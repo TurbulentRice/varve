@@ -1,0 +1,27 @@
+{
+  "name": "@cairn/legacy-import",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "One-way migration from the legacy Microsoft Access database.",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b",
+    "test": "vitest run",
+    "reconcile": "vitest run test/reconcile.test.ts --reporter=basic"
+  },
+  "dependencies": {
+    "@cairn/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.6.0",
+    "vitest": "^2.1.0"
+  }
+}

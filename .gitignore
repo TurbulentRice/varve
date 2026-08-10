@@ -1,0 +1,34 @@
+node_modules/
+dist/
+*.tsbuildinfo
+.DS_Store
+
+# Excel lock files
+~$*
+
+# local scratch
+.venv/
+venv/
+
+# Local tooling config
+.claude/settings.local.json
+
+# ---------------------------------------------------------------------------
+# Real financial data — never committed.
+#
+# legacy/ holds one household's actual balance history. Account numbers in the
+# source were already masked, but the balances, the per-quarter net worth in the
+# year notes, and the owner names are real. Git history is effectively permanent
+# and this repository is intended to become public, so the data stays local.
+#
+# The *structural* artifacts below the ignores — the schema, the reconstructed
+# queries, the extraction script — carry no personal data and are committed,
+# because they document what the migration is migrating from.
+#
+# Regenerate everything here with: legacy/extracted/extract.sh
+# ---------------------------------------------------------------------------
+legacy/*.accdb
+legacy/*.xlsx
+legacy/extracted/csv/
+legacy/extracted/*.sqlite
+legacy/extracted/access-objects.csv

@@ -1,0 +1,19 @@
+{
+  "name": "cairn-workspace",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -b packages/core packages/legacy-import",
+    "typecheck": "pnpm build",
+    "test": "pnpm -r test",
+    "reconcile": "pnpm --filter @cairn/legacy-import reconcile",
+    "clean": "rm -rf packages/*/dist packages/*/*.tsbuildinfo"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0",
+    "vitest": "^2.1.0"
+  }
+}
