@@ -5,12 +5,12 @@ want the history of how the thinking changed, that is
 [the working doc](working/discovery-and-architecture.md) — this file only ever
 describes now.
 
-Last updated: 2026-08-11, after the loans port.
+Last updated: 2026-08-11, after routing.
 
 ## Where things stand
 
-Six phases done, merged to `main`. **410 tests**, clean typecheck, clean
-production build.
+Seven phases done, merged to `main`. **440 tests**, clean typecheck, clean
+production build, and CI running both on every PR.
 
 | Package | What it holds | Tests |
 |---|---|---|
@@ -19,7 +19,7 @@ production build.
 | [`packages/retirement`](../packages/retirement) | Ledger, household + per-account derivation, year entry, Monte Carlo. | 83 |
 | [`packages/loans`](../packages/loans) | Amortization, five repayment strategies, comparison. Ported from `financetools`. | 195 |
 | [`packages/legacy-import`](../packages/legacy-import) | One-way migration from Access, with a synthetic fixture. | 23 |
-| [`apps/web`](../apps/web) | React + Vite. Dashboard, projection fan chart, year editor, account views. | — |
+| [`apps/web`](../apps/web) | React + Vite. Dashboard, projection fan chart, year editor, account views, hash routing. | 30 |
 
 ## Roadmap
 
@@ -28,23 +28,15 @@ production build.
 3. ✅ Editing and persistence
 4. ✅ Per-account views
 5. ✅ `packages/loans` — `financetools` ported, reconciled line for line
-6. ⬅ **Next: routing, then wiring loans into the ledger and the UI.**
+6. ✅ Routing — hash-based, hand-rolled, four surfaces bookmarkable
+7. ⬅ **Next: wiring loans into the ledger and the UI.**
 
 Deferred behind a stated seam: server, auth, sync, institution APIs. None is
 worth building for a user who does not exist yet.
 
-## What's next, in order
+## What's next
 
-### 1. Routing
-
-The app holds view state in a three-way `useState` toggle. An account page you
-cannot bookmark, link, or reach with the back button is the first thing that will
-feel wrong to a real user — and loans are about to add a fourth surface, which
-turns a nuisance into a structural problem.
-
-Small and unglamorous. Also the piece everything after it assumes.
-
-### 2. Wiring loans into the ledger and the UI
+### Wiring loans into the ledger and the UI
 
 `packages/loans` is finished and standalone. Nothing consumes it yet, which was
 deliberate: the integration API should be designed against a real consumer rather
@@ -65,8 +57,14 @@ The open question is a modelling one, and deserves the same treatment §11 got:
 
 ## Known debt, deliberately deferred
 
-- **No routing.** See above. Next up.
 - **Loans are not integrated.** Standalone by design; see above.
+- **No route for loans yet.** `Route` is a union in
+  [`apps/web/src/routing/route.ts`](../apps/web/src/routing/route.ts); the loans
+  surface is one more member and one more case in `parseRoute`.
+- **Routing is hand-rolled** (§12.3). Fine at four views with one parameter each.
+  The signal to adopt a real router is a route needing something the union cannot
+  express — a query string, genuine nesting, a loading state. Call sites already
+  speak in `Route` values, so that swap is mechanical.
 - **Account detail tiles get tight at 1280px** — six across, with "Share of
   household" wrapping. Legible, not elegant.
 - **`localStorage` is not durable.** Export is the real backup. A "last exported"

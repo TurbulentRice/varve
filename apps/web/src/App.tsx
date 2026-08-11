@@ -1,4 +1,4 @@
-import { m, type Account, type Money } from '@varve/core';
+import { accountId, m, type Account, type Money } from '@varve/core';
 import {
   InMemoryRepository,
   PersistingRepository,
@@ -23,6 +23,8 @@ import {
   type YearEntry,
 } from '@varve/retirement';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { DASHBOARD } from './routing/route.js';
+import { navigate, useRoute } from './routing/useRoute.js';
 import { anchorBands, ProjectionChart, type BandPoint } from './charts/ProjectionChart.js';
 import { Controls, type Settings } from './components/Controls.js';
 import { Disclosure } from './components/Disclosure.js';
@@ -114,8 +116,7 @@ function Ledger({
   const observed = useMemo(() => observedReturns(history), [history]);
 
   const [error, setError] = useState<string | null>(null);
-  const [editingYear, setEditingYear] = useState<number | null>(null);
-  const [openAccount, setOpenAccount] = useState<string | null>(null);
+  const route = useRoute();
 
   const [settings, setSettings] = useState<Settings>(() => ({
     contribution: 10_000,
@@ -206,27 +207,48 @@ function Ledger({
     }
   }
 
-  const selected = accountHistories.find((a) => a.account.id === openAccount);
+  const selected =
+    route.view === 'account'
+      ? accountHistories.find((a) => a.account.id === route.accountId)
+      : undefined;
+
+  // A link to an account this ledger does not have — a stale bookmark, or one
+  // sent from a different document.
+  //
+  // The first version quietly rewrote the URL to the dashboard. That was wrong
+  // twice over: it behaved differently from an unrecognised route like
+  // `#/nowhere`, which keeps its URL, and it destroyed the evidence. Someone
+  // told "that link does not work" cannot say what they tried if the app has
+  // already erased it.
+  //
+  // So the URL stands and the app says what happened. Absent is a fact worth
+  // stating rather than normalising away — the same instinct as ground rule 3.
+  const missingAccount = route.view === 'account' && !selected;
+
   if (selected) {
     return (
       <div className="page">
-        <AccountDetail history={selected} onClose={() => setOpenAccount(null)} />
+        <AccountDetail history={selected} onClose={() => navigate(DASHBOARD)} />
       </div>
     );
   }
 
-  if (editingYear !== null) {
+  if (route.view === 'year') {
+    const year = route.year;
     return (
       <div className="page">
         <YearEditor
           accounts={editableAccounts}
           observations={snapshot.observations}
           flows={snapshot.flows}
-          year={editingYear}
-          onYearChange={setEditingYear}
-          onSave={(entries) => saveYear(editingYear, entries)}
+          year={year}
+          // Stepping between years refines one destination rather than visiting
+          // several, so it overwrites the entry instead of stacking fifteen of
+          // them between the reader and the way out.
+          onYearChange={(next) => navigate({ view: 'year', year: next }, { replace: true })}
+          onSave={(entries) => saveYear(year, entries)}
           onAddAccount={addAccount}
-          onClose={() => setEditingYear(null)}
+          onClose={() => navigate(DASHBOARD)}
         />
       </div>
     );
@@ -246,7 +268,7 @@ function Ledger({
           <button
             type="button"
             className="primary"
-            onClick={() => setEditingYear(new Date().getUTCFullYear() - 1)}
+            onClick={() => navigate({ view: 'year', year: new Date().getUTCFullYear() - 1 })}
           >
             Update numbers
           </button>
@@ -276,6 +298,14 @@ function Ledger({
         <div className="error" role="alert">
           <strong>Could not open that file</strong>
           {error}
+        </div>
+      ) : null}
+
+      {missingAccount ? (
+        <div className="error" role="status">
+          <strong>That account is not in this ledger</strong>
+          The link names an account this document does not contain. It may belong to a different
+          ledger, or the account may since have been removed.
         </div>
       ) : null}
 
@@ -309,7 +339,10 @@ function Ledger({
           hint={`${accountHistories.length} accounts`}
           open
         >
-          <AccountsTable accounts={accountHistories} onSelect={setOpenAccount} />
+          <AccountsTable
+            accounts={accountHistories}
+            onSelect={(id) => navigate({ view: 'account', accountId: accountId(id) })}
+          />
         </Disclosure>
 
         <Disclosure
