@@ -1,0 +1,113 @@
+/**
+ * Design tokens.
+ *
+ * Placeholder brand values, deliberately swappable. Colours that carry meaning
+ * were checked with the data-viz validator against these exact surfaces rather
+ * than chosen by eye — see the notes below, which record what passed and what
+ * needed a second channel.
+ *
+ * Charts read these same custom properties directly from CSS, so a chart can
+ * never drift out of sync with the interface around it, and dark mode is one
+ * declaration rather than a parallel set of hard-coded hex in JavaScript.
+ */
+
+:root {
+  color-scheme: light dark;
+
+  /* -- surfaces and ink ---------------------------------------------------- */
+  --surface: #fbfaf8;
+  --surface-raised: #ffffff;
+  --surface-sunken: #f4f2ee;
+
+  --ink: #1c1a17;
+  --ink-secondary: #52514e;
+  --ink-muted: #898781;
+
+  --line: #e6e1d9; /* hairline grid */
+  --axis: #c3c2b7; /* baseline, dividers */
+
+  /* -- data ---------------------------------------------------------------- */
+  /*
+   * One hue. The household's value is a single quantity, shown as recorded and
+   * then as simulated; nested bands are the *magnitude* of uncertainty, which
+   * is a sequential job, so they are steps of the same blue rather than
+   * separate hues. Validated: inside the lightness band, above the chroma
+   * floor, >= 3:1 on this surface.
+   */
+  --data-line: #2a78d6;
+  /*
+   * Washes rather than solid steps, and nested so they composite: the inner
+   * band sits on the outer one, so the middle of the fan darkens naturally.
+   * A saturated block this large would out-shout the line that carries the
+   * actual answer.
+   */
+  --data-band-inner: rgba(42, 120, 214, 0.18);
+  --data-band-outer: rgba(42, 120, 214, 0.1);
+
+  /*
+   * Gain and loss.
+   *
+   * Green against red separates by only ΔE 4.1 under deuteranopia — the
+   * canonical colourblind failure, and inherent rather than a bad pick: the
+   * validator fails this pair even with purpose-built status colours. So the
+   * colour never carries the meaning alone. Every figure it touches already
+   * shows a sign, and that sign is the real channel.
+   */
+  --positive: #0ca30c;
+  --negative: #d03b3b;
+
+  /* -- shape and rhythm ---------------------------------------------------- */
+  --radius-sm: 6px;
+  --radius: 10px;
+  --radius-lg: 14px;
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+
+  --font-sans: ui-sans-serif, -apple-system, "Segoe UI", system-ui, sans-serif;
+
+  --hairline: 1px solid var(--line);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme='light'])) {
+    --surface: #171614;
+    --surface-raised: #201e1b;
+    --surface-sunken: #131211;
+
+    --ink: #ece8e1;
+    --ink-secondary: #c3c2b7;
+    --ink-muted: #898781;
+
+    --line: #2c2c2a;
+    --axis: #383835;
+
+    /* Stepped for the dark surface, not flipped: the bands go darker as they
+       widen, and the line brightens to stay the loudest thing on the plot. */
+    --data-line: #3987e5;
+    --data-band-inner: rgba(57, 135, 229, 0.22);
+    --data-band-outer: rgba(57, 135, 229, 0.12);
+  }
+}
+
+:root[data-theme='dark'] {
+  --surface: #171614;
+  --surface-raised: #201e1b;
+  --surface-sunken: #131211;
+
+  --ink: #ece8e1;
+  --ink-secondary: #c3c2b7;
+  --ink-muted: #898781;
+
+  --line: #2c2c2a;
+  --axis: #383835;
+
+  --data-line: #3987e5;
+  --data-band-inner: rgba(57, 135, 229, 0.22);
+  --data-band-outer: rgba(57, 135, 229, 0.12);
+}

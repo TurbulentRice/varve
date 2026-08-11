@@ -1,0 +1,542 @@
+/* Layout and components. Colour lives entirely in tokens.css. */
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--surface);
+  color: var(--ink);
+  font: 15px/1.55 var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+.page {
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-5) var(--space-7);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+/* ---------------------------------------------------------------- masthead */
+
+.masthead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-5);
+  flex-wrap: wrap;
+}
+
+h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+.subtitle {
+  margin: var(--space-1) 0 0;
+  color: var(--ink-muted);
+  font-size: 0.8125rem;
+}
+
+.open {
+  border: var(--hairline);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-4);
+  font-size: 0.8125rem;
+  color: var(--ink-secondary);
+  background: var(--surface-raised);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.open:hover {
+  color: var(--ink);
+  border-color: var(--axis);
+}
+
+.open input {
+  display: none;
+}
+
+/* -------------------------------------------------------------------- hero */
+
+.hero {
+  text-align: center;
+  padding: var(--space-5) 0 var(--space-2);
+}
+
+.hero-lead {
+  margin: 0;
+  color: var(--ink-secondary);
+  font-size: 0.9375rem;
+}
+
+.hero-figure {
+  /* Same sans as everything else; proportional figures, not tabular. */
+  margin: var(--space-2) 0;
+  font-size: clamp(3.25rem, 11vw, 5rem);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: var(--ink);
+}
+
+.hero-detail {
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: 0.875rem;
+}
+
+.hero-detail strong {
+  color: var(--ink-secondary);
+  font-weight: 600;
+}
+
+/* ---------------------------------------------------------------- controls */
+
+.controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: var(--space-4) var(--space-5);
+  padding: var(--space-4) var(--space-5);
+  background: var(--surface-raised);
+  border: var(--hairline);
+  border-radius: var(--radius);
+}
+
+.control {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.control-label {
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.045em;
+}
+
+.control-value {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.control input[type='range'] {
+  width: 100%;
+  margin-top: var(--space-1);
+  accent-color: var(--data-line);
+}
+
+.control-select select {
+  margin-top: var(--space-2);
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  font: inherit;
+  font-size: 0.875rem;
+  color: var(--ink);
+  background: var(--surface);
+  border: var(--hairline);
+  border-radius: var(--radius-sm);
+}
+
+/* ------------------------------------------------------------------- chart */
+
+.chart {
+  position: relative;
+  background: var(--surface-raised);
+  border: var(--hairline);
+  border-radius: var(--radius);
+  padding: var(--space-4) var(--space-4) var(--space-3);
+}
+
+.chart svg {
+  display: block;
+  overflow: visible;
+}
+
+.grid,
+.baseline {
+  stroke: var(--line);
+  stroke-width: 1;
+}
+
+.baseline {
+  stroke: var(--axis);
+}
+
+.divider {
+  stroke: var(--axis);
+  stroke-width: 1;
+}
+
+.divider-label {
+  fill: var(--ink-muted);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.band-outer {
+  fill: var(--data-band-outer);
+}
+
+.band-inner {
+  fill: var(--data-band-inner);
+}
+
+.series-actual,
+.series-median {
+  fill: none;
+  stroke: var(--data-line);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.series-median {
+  opacity: 0.9;
+}
+
+.marker {
+  fill: var(--data-line);
+  /* A surface ring keeps the dot legible where it crosses the fan. */
+  stroke: var(--surface-raised);
+  stroke-width: 2;
+}
+
+.crosshair {
+  stroke: var(--ink-muted);
+  stroke-width: 1;
+  pointer-events: none;
+}
+
+.tick {
+  fill: var(--ink-muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.hit {
+  fill: transparent;
+  cursor: crosshair;
+}
+
+.chart-key {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  margin-top: var(--space-3);
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+}
+
+.key-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.key-line {
+  width: 14px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--data-line);
+}
+
+.key-swatch {
+  width: 14px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+.key-swatch-inner {
+  background: var(--data-band-inner);
+}
+
+.key-swatch-outer {
+  background: var(--data-band-outer);
+}
+
+.chart-tooltip {
+  position: absolute;
+  top: var(--space-5);
+  transform: translateX(var(--space-3));
+  min-width: 11rem;
+  padding: var(--space-3);
+  background: var(--surface-raised);
+  border: var(--hairline);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 6px 20px rgb(0 0 0 / 12%);
+  pointer-events: none;
+  font-size: 0.8125rem;
+}
+
+.chart-tooltip.flip {
+  transform: translateX(calc(-100% - var(--space-3)));
+}
+
+.tooltip-year {
+  font-weight: 600;
+  margin-bottom: var(--space-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.tooltip-row {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-4);
+  line-height: 1.7;
+}
+
+.tooltip-label {
+  color: var(--ink-muted);
+}
+
+.tooltip-value {
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-secondary);
+}
+
+.tooltip-value.strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/* ------------------------------------------------------------------- tiles */
+
+/*
+ * Individually bordered rather than the hairline-gap trick over a shared
+ * background. With an odd number of tiles that technique leaves the last cell
+ * of the grid showing the container colour — a conspicuous empty box, and it
+ * turns up exactly when the grid reflows to two columns on a phone.
+ */
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+  gap: var(--space-3);
+}
+
+.tile {
+  background: var(--surface-raised);
+  border: var(--hairline);
+  border-radius: var(--radius);
+  padding: var(--space-4);
+}
+
+.tile-label {
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.045em;
+}
+
+.tile-value {
+  font-size: 1.375rem;
+  font-weight: 600;
+  margin-top: var(--space-1);
+  letter-spacing: -0.015em;
+}
+
+.tile-detail {
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+  margin-top: var(--space-1);
+}
+
+/* ------------------------------------------------------------- disclosures */
+
+.details {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.disclosure {
+  border: var(--hairline);
+  border-radius: var(--radius);
+  background: var(--surface-raised);
+}
+
+.disclosure > summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  cursor: pointer;
+  list-style: none;
+  font-size: 0.875rem;
+}
+
+.disclosure > summary::-webkit-details-marker {
+  display: none;
+}
+
+.disclosure-marker {
+  width: 0;
+  height: 0;
+  border-left: 5px solid var(--ink-muted);
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  transition: transform 120ms ease;
+}
+
+.disclosure[open] .disclosure-marker {
+  transform: rotate(90deg);
+}
+
+.disclosure-title {
+  font-weight: 600;
+}
+
+.disclosure-hint {
+  color: var(--ink-muted);
+  font-size: 0.8125rem;
+}
+
+.disclosure-body {
+  border-top: var(--hairline);
+  padding: var(--space-4);
+}
+
+/* ------------------------------------------------------------------ tables */
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.table-caption {
+  caption-side: top;
+  text-align: left;
+  color: var(--ink-muted);
+  font-size: 0.75rem;
+  padding-bottom: var(--space-3);
+}
+
+th {
+  text-align: right;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-muted);
+  padding: 0 var(--space-3) var(--space-2);
+  border-bottom: var(--hairline);
+  white-space: nowrap;
+}
+
+thead th:first-child,
+tbody th {
+  text-align: left;
+}
+
+td,
+tbody th {
+  padding: var(--space-2) var(--space-3);
+  border-bottom: var(--hairline);
+  font-size: 0.8125rem;
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+tbody th.year {
+  font-weight: 600;
+}
+
+tbody tr:hover {
+  background: var(--surface-sunken);
+}
+
+.num {
+  text-align: right;
+}
+
+.muted {
+  color: var(--ink-muted);
+}
+
+.strong {
+  font-weight: 600;
+}
+
+/* Colour reinforces the sign; it never carries the meaning alone. */
+.positive {
+  color: var(--positive);
+}
+
+.negative {
+  color: var(--negative);
+}
+
+.delta.material {
+  font-weight: 600;
+}
+
+.delta.trivial {
+  color: var(--ink-muted);
+  opacity: 0.55;
+}
+
+.flag {
+  color: var(--data-line);
+  margin-left: var(--space-1);
+  font-size: 0.75rem;
+  cursor: help;
+}
+
+.table-note {
+  margin: var(--space-4) 0 0;
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+  max-width: 46rem;
+  line-height: 1.6;
+}
+
+/* ------------------------------------------------------------------- misc */
+
+.footnote {
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+  max-width: 46rem;
+  line-height: 1.6;
+}
+
+.error {
+  border: 1px solid var(--negative);
+  border-radius: var(--radius-sm);
+  padding: var(--space-4);
+  color: var(--negative);
+  background: var(--surface-raised);
+}
+
+.error strong {
+  display: block;
+  margin-bottom: var(--space-1);
+}
+
+@media (max-width: 640px) {
+  .page {
+    padding: var(--space-5) var(--space-3) var(--space-6);
+    gap: var(--space-5);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+  }
+}

@@ -23,7 +23,8 @@
       "@varve/retirement": [
         "../../packages/retirement/src/index.ts"
       ]
-    }
+    },
+    "jsx": "react-jsx"
   },
   "include": [
     "src/**/*",

@@ -420,9 +420,25 @@ Decided: **React on Vite** for the UI. Not Next.js — this is local-first with 
 
 Framework-free, and the feature named as central to the product: check readiness, run a simulation without needing the terminology. Addresses §3.6 directly — a single assumed rate answers "what if every year is average?", and no year is. There are twenty years of real quarterly returns here to seed and validate against, which is a rare thing to have. Accumulation with a target first; drawdown and depletion follow.
 
-**2. Framework and the first real UI**
+**2. Framework and the first real UI** — ✅ done
 
-React + Vite, replacing the throwaway view. Formalize the current CSS variables into a token set with placeholder brand values. First charts land here — the fan chart from step 1 is the natural opener, since a range of outcomes is exactly what a number cannot show.
+React + Vite. Tokens in `theme/tokens.css`, read by CSS *and* by the chart, so a
+visualization cannot drift out of sync with the interface or need a parallel set
+of hex in JavaScript.
+
+The chart is hand-written SVG over `d3-scale` and `d3-shape`: history running
+into the simulated fan, one axis, one hue, with the boundary marked. Nested
+bands are the magnitude of uncertainty, which is a sequential job, so they are
+washes of the line's own hue rather than separate colours.
+
+Colour that carries meaning was validated rather than eyeballed. That caught two
+things. A muted green fell below the chroma floor and read as grey. And gain
+against loss separates by roughly ΔE 4 under deuteranopia — a failure inherent
+to red/green, not a bad pick, since purpose-built status colours fail it too. The
+sign therefore carries the meaning everywhere and colour only reinforces it.
+
+Each chart has a table twin behind a disclosure, which serves the readers who
+want numbers and the rule that no value be reachable only by hovering.
 
 **3. Editing**
 
