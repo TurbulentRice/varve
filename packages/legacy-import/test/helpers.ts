@@ -1,4 +1,4 @@
-import { Money, type AccountId } from '@cairn/core';
+import { Money, type AccountId } from '@varve/core';
 import { parseCsvRecords } from '../src/csv.js';
 import type { ImportResult, LegacyCsv } from '../src/import.js';
 

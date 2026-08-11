@@ -1,0 +1,21 @@
+{
+  "name": "@varve/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Throwaway view over the household ledger.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@varve/core": "workspace:*",
+    "@varve/store": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0",
+    "vite": "^5.4.0"
+  }
+}

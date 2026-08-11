@@ -1,0 +1,197 @@
+/**
+ * The serialized form of a household's entire ledger.
+ *
+ * One self-contained JSON document. Small enough to hold in memory and send
+ * whole — twenty years of quarterly data is a few hundred records, and even
+ * daily feeds for a decade land in the single-digit megabytes.
+ *
+ * ## Why a document
+ *
+ * It is the local file format, the backup, the interchange format, and the
+ * shape a server would store in a `jsonb` column. Keeping those the same thing
+ * means "export your data" is not a feature anyone has to build later, and it
+ * leaves the door open to encrypting the document client-side so a server can
+ * hold it without being able to read it — which normalized server tables
+ * foreclose almost entirely.
+ *
+ * ## Two fields that are cheap now and impossible to retrofit
+ *
+ * `schemaVersion` makes migration possible at all. A format with no version is
+ * a format that can never change.
+ *
+ * `revision` is a monotonic counter bumped on every committed write. Today it
+ * powers nothing; it exists so that optimistic concurrency (`UPDATE … WHERE
+ * revision = ?`) and delta sync ("everything added since revision N") remain
+ * available without a format change. Because the ledger is append-dominant,
+ * a delta is close to trivial to compute — which is the reason not to foreclose
+ * it now.
+ *
+ * ## Money
+ *
+ * Amounts serialize as **strings**, never JSON numbers. This is a hard rule,
+ * not an implementation detail: `43821.3468` as an IEEE double is not
+ * `43821.3468`, and a format that round-trips money through floats corrupts it
+ * silently and permanently.
+ */
+
+import {
+  Money,
+  isoDate,
+  type Account,
+  type AccountId,
+  type BalanceObservation,
+  type Flow,
+  type FlowKind,
+  type Household,
+  type Note,
+  type Owner,
+} from '@varve/core';
+
+/** Bump when the on-disk shape changes in a way older readers cannot handle. */
+export const SNAPSHOT_SCHEMA_VERSION = 1;
+
+export interface Snapshot {
+  readonly schemaVersion: number;
+  /** Monotonic; incremented on every committed write. */
+  readonly revision: number;
+  /** When this document was written, ISO 8601. */
+  readonly exportedAt: string;
+
+  readonly household: Household;
+  readonly owners: readonly Owner[];
+  readonly accounts: readonly Account[];
+  readonly observations: readonly BalanceObservation[];
+  readonly flows: readonly Flow[];
+  readonly notes: readonly Note[];
+}
+
+export function emptySnapshot(household: Household): Snapshot {
+  return {
+    schemaVersion: SNAPSHOT_SCHEMA_VERSION,
+    revision: 0,
+    exportedAt: new Date().toISOString(),
+    household,
+    owners: [],
+    accounts: [],
+    observations: [],
+    flows: [],
+    notes: [],
+  };
+}
+
+// ------------------------------------------------------------------ encoding
+
+/**
+ * Serialize to JSON text.
+ *
+ * `Money.toJSON()` already emits its lossless decimal string, so amounts pass
+ * through as strings without special handling here.
+ */
+export function encodeSnapshot(snapshot: Snapshot, pretty = true): string {
+  return JSON.stringify(snapshot, null, pretty ? 2 : 0);
+}
+
+export class SnapshotFormatError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'SnapshotFormatError';
+  }
+}
+
+/**
+ * Parse JSON text back into a snapshot, reviving `Money` and validating shape.
+ *
+ * Deliberately strict. A snapshot is someone's entire financial history;
+ * failing loudly on a malformed document is much kinder than loading it
+ * half-formed and letting the damage surface three screens later.
+ */
+export function decodeSnapshot(text: string): Snapshot {
+  let raw: unknown;
+  try {
+    raw = JSON.parse(text);
+  } catch (cause) {
+    throw new SnapshotFormatError(`Not valid JSON: ${(cause as Error).message}`);
+  }
+
+  if (typeof raw !== 'object' || raw === null) {
+    throw new SnapshotFormatError('Expected a JSON object at the top level');
+  }
+  const doc = raw as Record<string, unknown>;
+
+  const version = doc.schemaVersion;
+  if (typeof version !== 'number') {
+    throw new SnapshotFormatError('Missing schemaVersion — refusing to guess the format');
+  }
+  if (version > SNAPSHOT_SCHEMA_VERSION) {
+    throw new SnapshotFormatError(
+      `Snapshot is schema version ${version}, but this build understands at most ` +
+        `${SNAPSHOT_SCHEMA_VERSION}. Upgrade before opening it.`,
+    );
+  }
+
+  const household = doc.household as Household | undefined;
+  if (!household?.id) throw new SnapshotFormatError('Missing household');
+
+  return {
+    schemaVersion: version,
+    revision: typeof doc.revision === 'number' ? doc.revision : 0,
+    exportedAt: typeof doc.exportedAt === 'string' ? doc.exportedAt : new Date(0).toISOString(),
+    household,
+    owners: array<Owner>(doc.owners, 'owners'),
+    accounts: array<Account>(doc.accounts, 'accounts'),
+    observations: array<Record<string, unknown>>(doc.observations, 'observations').map(
+      decodeObservation,
+    ),
+    flows: array<Record<string, unknown>>(doc.flows, 'flows').map(decodeFlow),
+    notes: array<Note>(doc.notes, 'notes'),
+  };
+}
+
+function array<T>(value: unknown, field: string): T[] {
+  if (value === undefined) return [];
+  if (!Array.isArray(value)) throw new SnapshotFormatError(`Expected ${field} to be an array`);
+  return value as T[];
+}
+
+function amount(value: unknown, context: string): Money {
+  if (typeof value === 'string') return Money.fromString(value);
+  if (typeof value === 'number') {
+    // Loud, because silently accepting it is how float corruption gets in.
+    throw new SnapshotFormatError(
+      `${context}: amounts must be strings, not JSON numbers (got ${value}). ` +
+        'A number has already lost precision by the time it is parsed.',
+    );
+  }
+  throw new SnapshotFormatError(`${context}: missing amount`);
+}
+
+function decodeObservation(raw: Record<string, unknown>, i: number): BalanceObservation {
+  return {
+    id: raw.id as BalanceObservation['id'],
+    accountId: raw.accountId as BalanceObservation['accountId'],
+    asOf: isoDate(String(raw.asOf)),
+    amount: amount(raw.amount, `observations[${i}]`),
+    source: (raw.source ?? 'manual') as BalanceObservation['source'],
+  };
+}
+
+type Mutable<T> = { -readonly [K in keyof T]: T[K] };
+
+function decodeFlow(raw: Record<string, unknown>, i: number): Flow {
+  const flow: Mutable<Flow> = {
+    id: raw.id as Flow['id'],
+    accountId: raw.accountId as Flow['accountId'],
+    occurredOn: isoDate(String(raw.occurredOn)),
+    amount: amount(raw.amount, `flows[${i}]`),
+    kind: raw.kind as FlowKind,
+  };
+
+  // Optional fields are left absent rather than set to undefined, so that
+  // re-encoding a document reproduces what was read rather than sprouting nulls.
+  if (typeof raw.counterpartyAccountId === 'string') {
+    flow.counterpartyAccountId = raw.counterpartyAccountId as AccountId;
+  }
+  if (typeof raw.note === 'string') flow.note = raw.note;
+
+  return flow;
+}

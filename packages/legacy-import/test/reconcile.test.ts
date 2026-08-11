@@ -20,7 +20,7 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { Money, balanceAsOf, summarizeYear, yearEnd, type BalanceObservation, type Flow } from '@cairn/core';
+import { Money, balanceAsOf, summarizeYear, yearEnd, type BalanceObservation, type Flow } from '@varve/core';
 import { importLegacy, type ImportResult } from '../src/import.js';
 import { loadLegacyCsv } from '../src/load.js';
 import { indexBy, legacyYearEndTotals } from './helpers.js';

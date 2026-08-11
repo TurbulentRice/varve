@@ -1,4 +1,4 @@
-# Retirement Tracker → (working title)
+# Varve
 
 A personal finance platform. Retirement tracking first, loan repayment second.
 
@@ -18,8 +18,19 @@ pnpm install && pnpm test
 | Package | What it is |
 |---|---|
 | [`packages/core`](packages/core) | Domain model and financial calculations. Pure, zero dependencies. |
+| [`packages/store`](packages/store) | Snapshot format, repository interface, in-memory adapter. |
 | [`packages/legacy-import`](packages/legacy-import) | One-way migration from the Access database. |
+| [`apps/web`](apps/web) | Throwaway view over a household's history. |
 | [`legacy/extracted/`](legacy/extracted) | Schema and extraction tooling for the legacy database. |
+
+```bash
+pnpm snapshot && pnpm --filter @varve/web dev
+```
+
+`snapshot` builds the sample document the app ships with, and — if you have the
+legacy extract locally — a second one from the real database, written to
+`local-snapshot.json` at the repo root. Open it with the app's file picker; it
+is read in the browser and never uploaded.
 
 ## A note on the data
 
@@ -58,6 +69,7 @@ Rates are ordinary `number`s. `Money.ratio()` is the only bridge between them.
 
 ## Status
 
-Discovery and the calculation core are done and reconciled against the real
-data. Storage, UI, and the loans module are not started — see
+Discovery, the calculation core, storage, and a throwaway view are done, and
+the migration reconciles against the real database. The loans module and
+anything server-side are not started — see
 [§9 of the working doc](WORKING-DOC.md#9-initializing-the-real-project).

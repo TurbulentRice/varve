@@ -1,0 +1,2115 @@
+{
+  "schemaVersion": 1,
+  "revision": 1,
+  "exportedAt": "2026-08-11T00:37:38.511Z",
+  "household": {
+    "id": "h1",
+    "name": "Sample Household"
+  },
+  "owners": [
+    {
+      "id": "own:1",
+      "householdId": "h1",
+      "name": "Ada"
+    },
+    {
+      "id": "own:2",
+      "householdId": "h1",
+      "name": "Ben"
+    }
+  ],
+  "accounts": [
+    {
+      "id": "acct:1",
+      "householdId": "h1",
+      "name": "Ada 401(k)",
+      "ownerIds": [
+        "own:1"
+      ],
+      "kind": "retirement",
+      "active": false,
+      "legacyPortfolioId": 1
+    },
+    {
+      "id": "acct:2",
+      "householdId": "h1",
+      "name": "Ada IRA",
+      "ownerIds": [
+        "own:1"
+      ],
+      "kind": "retirement",
+      "active": true,
+      "legacyPortfolioId": 2
+    },
+    {
+      "id": "acct:3",
+      "householdId": "h1",
+      "name": "Ben IRA A",
+      "ownerIds": [
+        "own:2"
+      ],
+      "kind": "retirement",
+      "active": false,
+      "legacyPortfolioId": 3
+    },
+    {
+      "id": "acct:4",
+      "householdId": "h1",
+      "name": "Ben IRA B",
+      "ownerIds": [
+        "own:2"
+      ],
+      "kind": "retirement",
+      "active": false,
+      "legacyPortfolioId": 4
+    },
+    {
+      "id": "acct:5",
+      "householdId": "h1",
+      "name": "Ben IRA C",
+      "ownerIds": [
+        "own:2"
+      ],
+      "kind": "retirement",
+      "active": true,
+      "legacyPortfolioId": 5
+    },
+    {
+      "id": "acct:6",
+      "householdId": "h1",
+      "name": "Joint Brokerage",
+      "ownerIds": [
+        "own:1",
+        "own:2"
+      ],
+      "kind": "savings",
+      "active": true,
+      "legacyPortfolioId": 6
+    },
+    {
+      "id": "acct:7",
+      "householdId": "h1",
+      "name": "Petty Cash",
+      "ownerIds": [
+        "own:1"
+      ],
+      "kind": "savings",
+      "active": false,
+      "legacyPortfolioId": 7
+    },
+    {
+      "id": "acct:8",
+      "householdId": "h1",
+      "name": "Index Benchmark",
+      "ownerIds": [],
+      "kind": "benchmark",
+      "active": true,
+      "legacyPortfolioId": 8
+    }
+  ],
+  "observations": [
+    {
+      "id": "obs:1:2018:open",
+      "accountId": "acct:1",
+      "asOf": "2018-01-01",
+      "amount": "0.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:2:2018:open",
+      "accountId": "acct:2",
+      "asOf": "2018-01-01",
+      "amount": "0.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:3:2018:open",
+      "accountId": "acct:3",
+      "asOf": "2018-01-01",
+      "amount": "0.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:4:2018:open",
+      "accountId": "acct:4",
+      "asOf": "2018-01-01",
+      "amount": "0.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:6:2018:open",
+      "accountId": "acct:6",
+      "asOf": "2018-01-01",
+      "amount": "0.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:7:2018:open",
+      "accountId": "acct:7",
+      "asOf": "2018-01-01",
+      "amount": "0.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:8:2018:open",
+      "accountId": "acct:8",
+      "asOf": "2018-01-01",
+      "amount": "1000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:1:2018:Q1",
+      "accountId": "acct:1",
+      "asOf": "2018-03-31",
+      "amount": "10000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:2:2018:Q1",
+      "accountId": "acct:2",
+      "asOf": "2018-03-31",
+      "amount": "25000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:3:2018:Q1",
+      "accountId": "acct:3",
+      "asOf": "2018-03-31",
+      "amount": "10000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:4:2018:Q1",
+      "accountId": "acct:4",
+      "asOf": "2018-03-31",
+      "amount": "5000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:6:2018:Q1",
+      "accountId": "acct:6",
+      "asOf": "2018-03-31",
+      "amount": "5000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:7:2018:Q1",
+      "accountId": "acct:7",
+      "asOf": "2018-03-31",
+      "amount": "200.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:8:2018:Q1",
+      "accountId": "acct:8",
+      "asOf": "2018-03-31",
+      "amount": "1020.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:1:2018:Q2",
+      "accountId": "acct:1",
+      "asOf": "2018-06-30",
+      "amount": "20000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:2:2018:Q2",
+      "accountId": "acct:2",
+      "asOf": "2018-06-30",
+      "amount": "50000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:3:2018:Q2",
+      "accountId": "acct:3",
+      "asOf": "2018-06-30",
+      "amount": "20000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:4:2018:Q2",
+      "accountId": "acct:4",
+      "asOf": "2018-06-30",
+      "amount": "10000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:6:2018:Q2",
+      "accountId": "acct:6",
+      "asOf": "2018-06-30",
+      "amount": "10000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:7:2018:Q2",
+      "accountId": "acct:7",
+      "asOf": "2018-06-30",
+      "amount": "200.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:8:2018:Q2",
+      "accountId": "acct:8",
+      "asOf": "2018-06-30",
+      "amount": "1050.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:1:2018:Q3",
+      "accountId": "acct:1",
+      "asOf": "2018-09-30",
+      "amount": "30000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:2:2018:Q3",
+      "accountId": "acct:2",
+      "asOf": "2018-09-30",
+      "amount": "75000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:3:2018:Q3",
+      "accountId": "acct:3",
+      "asOf": "2018-09-30",
+      "amount": "30000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:4:2018:Q3",
+      "accountId": "acct:4",
+      "asOf": "2018-09-30",
+      "amount": "15000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:6:2018:Q3",
+      "accountId": "acct:6",
+      "asOf": "2018-09-30",
+      "amount": "15000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:7:2018:Q3",
+      "accountId": "acct:7",
+      "asOf": "2018-09-30",
+      "amount": "200.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:8:2018:Q3",
+      "accountId": "acct:8",
+      "asOf": "2018-09-30",
+      "amount": "1030.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:1:2018:Q4",
+      "accountId": "acct:1",
+      "asOf": "2018-12-31",
+      "amount": "35000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:2:2018:Q4",
+      "accountId": "acct:2",
+      "asOf": "2018-12-31",
+      "amount": "100000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:3:2018:Q4",
+      "accountId": "acct:3",
+      "asOf": "2018-12-31",
+      "amount": "40000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:4:2018:Q4",
+      "accountId": "acct:4",
+      "asOf": "2018-12-31",
+      "amount": "20000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:6:2018:Q4",
+      "accountId": "acct:6",
+      "asOf": "2018-12-31",
+      "amount": "20000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:7:2018:Q4",
+      "accountId": "acct:7",
+      "asOf": "2018-12-31",
+      "amount": "200.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:8:2018:Q4",
+      "accountId": "acct:8",
+      "asOf": "2018-12-31",
+      "amount": "1000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:1:2019:Q1",
+      "accountId": "acct:1",
+      "asOf": "2019-03-31",
+      "amount": "37000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:2:2019:Q1",
+      "accountId": "acct:2",
+      "asOf": "2019-03-31",
+      "amount": "105000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:3:2019:Q1",
+      "accountId": "acct:3",
+      "asOf": "2019-03-31",
+      "amount": "43000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:4:2019:Q1",
+      "accountId": "acct:4",
+      "asOf": "2019-03-31",
+      "amount": "22000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:6:2019:Q1",
+      "accountId": "acct:6",
+      "asOf": "2019-03-31",
+      "amount": "22000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:7:2019:Q1",
+      "accountId": "acct:7",
+      "asOf": "2019-03-31",
+      "amount": "200.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:8:2019:Q1",
+      "accountId": "acct:8",
+      "asOf": "2019-03-31",
+      "amount": "1100.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:1:2019:Q2",
+      "accountId": "acct:1",
+      "asOf": "2019-06-30",
+      "amount": "39000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:2:2019:Q2",
+      "accountId": "acct:2",
+      "asOf": "2019-06-30",
+      "amount": "110000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:3:2019:Q2",
+      "accountId": "acct:3",
+      "asOf": "2019-06-30",
+      "amount": "46000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:4:2019:Q2",
+      "accountId": "acct:4",
+      "asOf": "2019-06-30",
+      "amount": "24000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:6:2019:Q2",
+      "accountId": "acct:6",
+      "asOf": "2019-06-30",
+      "amount": "24000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:7:2019:Q2",
+      "accountId": "acct:7",
+      "asOf": "2019-06-30",
+      "amount": "200.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:8:2019:Q2",
+      "accountId": "acct:8",
+      "asOf": "2019-06-30",
+      "amount": "1150.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:1:2019:Q3",
+      "accountId": "acct:1",
+      "asOf": "2019-09-30",
+      "amount": "41000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:2:2019:Q3",
+      "accountId": "acct:2",
+      "asOf": "2019-09-30",
+      "amount": "115000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:3:2019:Q3",
+      "accountId": "acct:3",
+      "asOf": "2019-09-30",
+      "amount": "49000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:4:2019:Q3",
+      "accountId": "acct:4",
+      "asOf": "2019-09-30",
+      "amount": "26000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:6:2019:Q3",
+      "accountId": "acct:6",
+      "asOf": "2019-09-30",
+      "amount": "26000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:7:2019:Q3",
+      "accountId": "acct:7",
+      "asOf": "2019-09-30",
+      "amount": "200.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:8:2019:Q3",
+      "accountId": "acct:8",
+      "asOf": "2019-09-30",
+      "amount": "1180.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:1:2019:Q4",
+      "accountId": "acct:1",
+      "asOf": "2019-12-31",
+      "amount": "42000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:2:2019:Q4",
+      "accountId": "acct:2",
+      "asOf": "2019-12-31",
+      "amount": "120000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:3:2019:Q4",
+      "accountId": "acct:3",
+      "asOf": "2019-12-31",
+      "amount": "52000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:4:2019:Q4",
+      "accountId": "acct:4",
+      "asOf": "2019-12-31",
+      "amount": "28000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:6:2019:Q4",
+      "accountId": "acct:6",
+      "asOf": "2019-12-31",
+      "amount": "28000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:7:2019:Q4",
+      "accountId": "acct:7",
+      "asOf": "2019-12-31",
+      "amount": "200.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:8:2019:Q4",
+      "accountId": "acct:8",
+      "asOf": "2019-12-31",
+      "amount": "1250.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:1:2020:Q1",
+      "accountId": "acct:1",
+      "asOf": "2020-03-31",
+      "amount": "44000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:2:2020:Q1",
+      "accountId": "acct:2",
+      "asOf": "2020-03-31",
+      "amount": "115000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:3:2020:Q1",
+      "accountId": "acct:3",
+      "asOf": "2020-03-31",
+      "amount": "50000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:4:2020:Q1",
+      "accountId": "acct:4",
+      "asOf": "2020-03-31",
+      "amount": "27000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:6:2020:Q1",
+      "accountId": "acct:6",
+      "asOf": "2020-03-31",
+      "amount": "25000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:7:2020:Q1",
+      "accountId": "acct:7",
+      "asOf": "2020-03-31",
+      "amount": "200.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:8:2020:Q1",
+      "accountId": "acct:8",
+      "asOf": "2020-03-31",
+      "amount": "1000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:1:2020:Q2",
+      "accountId": "acct:1",
+      "asOf": "2020-06-30",
+      "amount": "46000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:2:2020:Q2",
+      "accountId": "acct:2",
+      "asOf": "2020-06-30",
+      "amount": "125000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:3:2020:Q2",
+      "accountId": "acct:3",
+      "asOf": "2020-06-30",
+      "amount": "54000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:4:2020:Q2",
+      "accountId": "acct:4",
+      "asOf": "2020-06-30",
+      "amount": "30000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:6:2020:Q2",
+      "accountId": "acct:6",
+      "asOf": "2020-06-30",
+      "amount": "29000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:7:2020:Q2",
+      "accountId": "acct:7",
+      "asOf": "2020-06-30",
+      "amount": "200.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:8:2020:Q2",
+      "accountId": "acct:8",
+      "asOf": "2020-06-30",
+      "amount": "1150.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:1:2020:Q3",
+      "accountId": "acct:1",
+      "asOf": "2020-09-30",
+      "amount": "48000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:2:2020:Q3",
+      "accountId": "acct:2",
+      "asOf": "2020-09-30",
+      "amount": "132000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:3:2020:Q3",
+      "accountId": "acct:3",
+      "asOf": "2020-09-30",
+      "amount": "56000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:4:2020:Q3",
+      "accountId": "acct:4",
+      "asOf": "2020-09-30",
+      "amount": "32000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:6:2020:Q3",
+      "accountId": "acct:6",
+      "asOf": "2020-09-30",
+      "amount": "31000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:7:2020:Q3",
+      "accountId": "acct:7",
+      "asOf": "2020-09-30",
+      "amount": "200.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:8:2020:Q3",
+      "accountId": "acct:8",
+      "asOf": "2020-09-30",
+      "amount": "1250.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:1:2020:Q4",
+      "accountId": "acct:1",
+      "asOf": "2020-12-31",
+      "amount": "50000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:2:2020:Q4",
+      "accountId": "acct:2",
+      "asOf": "2020-12-31",
+      "amount": "140000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:3:2020:Q4",
+      "accountId": "acct:3",
+      "asOf": "2020-12-31",
+      "amount": "58000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:4:2020:Q4",
+      "accountId": "acct:4",
+      "asOf": "2020-12-31",
+      "amount": "34000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:6:2020:Q4",
+      "accountId": "acct:6",
+      "asOf": "2020-12-31",
+      "amount": "33000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:7:2020:Q4",
+      "accountId": "acct:7",
+      "asOf": "2020-12-31",
+      "amount": "200.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:8:2020:Q4",
+      "accountId": "acct:8",
+      "asOf": "2020-12-31",
+      "amount": "1400.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:1:close",
+      "accountId": "acct:1",
+      "asOf": "2021-01-01",
+      "amount": "0.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:2:2021:open",
+      "accountId": "acct:2",
+      "asOf": "2021-01-01",
+      "amount": "190000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:7:close",
+      "accountId": "acct:7",
+      "asOf": "2021-01-01",
+      "amount": "0.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:2:2021:Q1",
+      "accountId": "acct:2",
+      "asOf": "2021-03-31",
+      "amount": "195000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:3:2021:Q1",
+      "accountId": "acct:3",
+      "asOf": "2021-03-31",
+      "amount": "59000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:4:2021:Q1",
+      "accountId": "acct:4",
+      "asOf": "2021-03-31",
+      "amount": "36000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:6:2021:Q1",
+      "accountId": "acct:6",
+      "asOf": "2021-03-31",
+      "amount": "35000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:8:2021:Q1",
+      "accountId": "acct:8",
+      "asOf": "2021-03-31",
+      "amount": "1450.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:2:2021:Q2",
+      "accountId": "acct:2",
+      "asOf": "2021-06-30",
+      "amount": "200000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:3:2021:Q2",
+      "accountId": "acct:3",
+      "asOf": "2021-06-30",
+      "amount": "59500.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:4:2021:Q2",
+      "accountId": "acct:4",
+      "asOf": "2021-06-30",
+      "amount": "38000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:6:2021:Q2",
+      "accountId": "acct:6",
+      "asOf": "2021-06-30",
+      "amount": "37000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:8:2021:Q2",
+      "accountId": "acct:8",
+      "asOf": "2021-06-30",
+      "amount": "1500.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:2:2021:Q3",
+      "accountId": "acct:2",
+      "asOf": "2021-09-30",
+      "amount": "205000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:3:2021:Q3",
+      "accountId": "acct:3",
+      "asOf": "2021-09-30",
+      "amount": "59800.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:4:2021:Q3",
+      "accountId": "acct:4",
+      "asOf": "2021-09-30",
+      "amount": "39000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:6:2021:Q3",
+      "accountId": "acct:6",
+      "asOf": "2021-09-30",
+      "amount": "38000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:8:2021:Q3",
+      "accountId": "acct:8",
+      "asOf": "2021-09-30",
+      "amount": "1520.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:2:2021:Q4",
+      "accountId": "acct:2",
+      "asOf": "2021-12-31",
+      "amount": "210000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:3:2021:Q4",
+      "accountId": "acct:3",
+      "asOf": "2021-12-31",
+      "amount": "60000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:4:2021:Q4",
+      "accountId": "acct:4",
+      "asOf": "2021-12-31",
+      "amount": "40000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:6:2021:Q4",
+      "accountId": "acct:6",
+      "asOf": "2021-12-31",
+      "amount": "40000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:8:2021:Q4",
+      "accountId": "acct:8",
+      "asOf": "2021-12-31",
+      "amount": "1600.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:3:close",
+      "accountId": "acct:3",
+      "asOf": "2022-01-01",
+      "amount": "0.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:4:close",
+      "accountId": "acct:4",
+      "asOf": "2022-01-01",
+      "amount": "0.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:5:2022:open",
+      "accountId": "acct:5",
+      "asOf": "2022-01-01",
+      "amount": "100000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:2:2022:Q1",
+      "accountId": "acct:2",
+      "asOf": "2022-03-31",
+      "amount": "200000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:5:2022:Q1",
+      "accountId": "acct:5",
+      "asOf": "2022-03-31",
+      "amount": "95000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:6:2022:Q1",
+      "accountId": "acct:6",
+      "asOf": "2022-03-31",
+      "amount": "36000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:8:2022:Q1",
+      "accountId": "acct:8",
+      "asOf": "2022-03-31",
+      "amount": "1500.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:2:2022:Q2",
+      "accountId": "acct:2",
+      "asOf": "2022-06-30",
+      "amount": "190000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:5:2022:Q2",
+      "accountId": "acct:5",
+      "asOf": "2022-06-30",
+      "amount": "90000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:6:2022:Q2",
+      "accountId": "acct:6",
+      "asOf": "2022-06-30",
+      "amount": "33000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:8:2022:Q2",
+      "accountId": "acct:8",
+      "asOf": "2022-06-30",
+      "amount": "1350.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:2:2022:Q3",
+      "accountId": "acct:2",
+      "asOf": "2022-09-30",
+      "amount": "185000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:5:2022:Q3",
+      "accountId": "acct:5",
+      "asOf": "2022-09-30",
+      "amount": "92000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:6:2022:Q3",
+      "accountId": "acct:6",
+      "asOf": "2022-09-30",
+      "amount": "32000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:8:2022:Q3",
+      "accountId": "acct:8",
+      "asOf": "2022-09-30",
+      "amount": "1300.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:2:2022:Q4",
+      "accountId": "acct:2",
+      "asOf": "2022-12-31",
+      "amount": "195000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:5:2022:Q4",
+      "accountId": "acct:5",
+      "asOf": "2022-12-31",
+      "amount": "98000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:6:2022:Q4",
+      "accountId": "acct:6",
+      "asOf": "2022-12-31",
+      "amount": "35000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:8:2022:Q4",
+      "accountId": "acct:8",
+      "asOf": "2022-12-31",
+      "amount": "1400.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:2:2023:Q1",
+      "accountId": "acct:2",
+      "asOf": "2023-03-31",
+      "amount": "205000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:5:2023:Q1",
+      "accountId": "acct:5",
+      "asOf": "2023-03-31",
+      "amount": "105000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:6:2023:Q1",
+      "accountId": "acct:6",
+      "asOf": "2023-03-31",
+      "amount": "37000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:8:2023:Q1",
+      "accountId": "acct:8",
+      "asOf": "2023-03-31",
+      "amount": "1480.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:2:2023:Q2",
+      "accountId": "acct:2",
+      "asOf": "2023-06-30",
+      "amount": "215000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:5:2023:Q2",
+      "accountId": "acct:5",
+      "asOf": "2023-06-30",
+      "amount": "110000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:6:2023:Q2",
+      "accountId": "acct:6",
+      "asOf": "2023-06-30",
+      "amount": "39000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:8:2023:Q2",
+      "accountId": "acct:8",
+      "asOf": "2023-06-30",
+      "amount": "1550.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:2:2023:Q3",
+      "accountId": "acct:2",
+      "asOf": "2023-09-30",
+      "amount": "220000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:5:2023:Q3",
+      "accountId": "acct:5",
+      "asOf": "2023-09-30",
+      "amount": "112000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:8:2023:Q3",
+      "accountId": "acct:8",
+      "asOf": "2023-09-30",
+      "amount": "1580.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:2:2023:Q4",
+      "accountId": "acct:2",
+      "asOf": "2023-12-31",
+      "amount": "230000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:5:2023:Q4",
+      "accountId": "acct:5",
+      "asOf": "2023-12-31",
+      "amount": "120000.0000",
+      "source": "legacy-import"
+    },
+    {
+      "id": "obs:8:2023:Q4",
+      "accountId": "acct:8",
+      "asOf": "2023-12-31",
+      "amount": "1680.0000",
+      "source": "legacy-import"
+    }
+  ],
+  "flows": [
+    {
+      "id": "flow:1:2018:Q1:cont",
+      "accountId": "acct:1",
+      "occurredOn": "2018-02-14",
+      "amount": "10000.0000",
+      "kind": "contribution"
+    },
+    {
+      "id": "flow:1:2018:Q1:fee",
+      "accountId": "acct:1",
+      "occurredOn": "2018-02-14",
+      "amount": "-25.0000",
+      "kind": "fee"
+    },
+    {
+      "id": "flow:2:2018:Q1:cont",
+      "accountId": "acct:2",
+      "occurredOn": "2018-02-14",
+      "amount": "25000.0000",
+      "kind": "contribution"
+    },
+    {
+      "id": "flow:2:2018:Q1:fee",
+      "accountId": "acct:2",
+      "occurredOn": "2018-02-14",
+      "amount": "-25.0000",
+      "kind": "fee"
+    },
+    {
+      "id": "flow:3:2018:Q1:cont",
+      "accountId": "acct:3",
+      "occurredOn": "2018-02-14",
+      "amount": "10000.0000",
+      "kind": "contribution"
+    },
+    {
+      "id": "flow:4:2018:Q1:cont",
+      "accountId": "acct:4",
+      "occurredOn": "2018-02-14",
+      "amount": "5000.0000",
+      "kind": "contribution"
+    },
+    {
+      "id": "flow:6:2018:Q1:cont",
+      "accountId": "acct:6",
+      "occurredOn": "2018-02-14",
+      "amount": "5000.0000",
+      "kind": "contribution"
+    },
+    {
+      "id": "flow:6:2018:Q1:fee",
+      "accountId": "acct:6",
+      "occurredOn": "2018-02-14",
+      "amount": "-50.0000",
+      "kind": "fee"
+    },
+    {
+      "id": "flow:7:2018:Q1:cont",
+      "accountId": "acct:7",
+      "occurredOn": "2018-02-14",
+      "amount": "200.0000",
+      "kind": "contribution"
+    },
+    {
+      "id": "flow:1:2018:Q2:cont",
+      "accountId": "acct:1",
+      "occurredOn": "2018-05-15",
+      "amount": "10000.0000",
+      "kind": "contribution"
+    },
+    {
+      "id": "flow:1:2018:Q2:fee",
+      "accountId": "acct:1",
+      "occurredOn": "2018-05-15",
+      "amount": "-25.0000",
+      "kind": "fee"
+    },
+    {
+      "id": "flow:2:2018:Q2:cont",
+      "accountId": "acct:2",
+      "occurredOn": "2018-05-15",
+      "amount": "25000.0000",
+      "kind": "contribution"
+    },
+    {
+      "id": "flow:2:2018:Q2:fee",
+      "accountId": "acct:2",
+      "occurredOn": "2018-05-15",
+      "amount": "-25.0000",
+      "kind": "fee"
+    },
+    {
+      "id": "flow:3:2018:Q2:cont",
+      "accountId": "acct:3",
+      "occurredOn": "2018-05-15",
+      "amount": "10000.0000",
+      "kind": "contribution"
+    },
+    {
+      "id": "flow:4:2018:Q2:cont",
+      "accountId": "acct:4",
+      "occurredOn": "2018-05-15",
+      "amount": "5000.0000",
+      "kind": "contribution"
+    },
+    {
+      "id": "flow:6:2018:Q2:cont",
+      "accountId": "acct:6",
+      "occurredOn": "2018-05-15",
+      "amount": "5000.0000",
+      "kind": "contribution"
+    },
+    {
+      "id": "flow:6:2018:Q2:fee",
+      "accountId": "acct:6",
+      "occurredOn": "2018-05-15",
+      "amount": "-50.0000",
+      "kind": "fee"
+    },
+    {
+      "id": "flow:1:2018:Q3:cont",
+      "accountId": "acct:1",
+      "occurredOn": "2018-08-15",
+      "amount": "10000.0000",
+      "kind": "contribution"
+    },
+    {
+      "id": "flow:1:2018:Q3:fee",
+      "accountId": "acct:1",
+      "occurredOn": "2018-08-15",
+      "amount": "-25.0000",
+      "kind": "fee"
+    },
+    {
+      "id": "flow:2:2018:Q3:cont",
+      "accountId": "acct:2",
+      "occurredOn": "2018-08-15",
+      "amount": "25000.0000",
+      "kind": "contribution"
+    },
+    {
+      "id": "flow:2:2018:Q3:fee",
+      "accountId": "acct:2",
+      "occurredOn": "2018-08-15",
+      "amount": "-25.0000",
+      "kind": "fee"
+    },
+    {
+      "id": "flow:3:2018:Q3:cont",
+      "accountId": "acct:3",
+      "occurredOn": "2018-08-15",
+      "amount": "10000.0000",
+      "kind": "contribution"
+    },
+    {
+      "id": "flow:4:2018:Q3:cont",
+      "accountId": "acct:4",
+      "occurredOn": "2018-08-15",
+      "amount": "5000.0000",
+      "kind": "contribution"
+    },
+    {
+      "id": "flow:6:2018:Q3:cont",
+      "accountId": "acct:6",
+      "occurredOn": "2018-08-15",
+      "amount": "5000.0000",
+      "kind": "contribution"
+    },
+    {
+      "id": "flow:6:2018:Q3:fee",
+      "accountId": "acct:6",
+      "occurredOn": "2018-08-15",
+      "amount": "-50.0000",
+      "kind": "fee"
+    },
+    {
+      "id": "flow:1:2018:Q4:cont",
+      "accountId": "acct:1",
+      "occurredOn": "2018-11-15",
+      "amount": "4000.0000",
+      "kind": "contribution"
+    },
+    {
+      "id": "flow:1:2018:Q4:fee",
+      "accountId": "acct:1",
+      "occurredOn": "2018-11-15",
+      "amount": "-25.0000",
+      "kind": "fee"
+    },
+    {
+      "id": "flow:2:2018:Q4:cont",
+      "accountId": "acct:2",
+      "occurredOn": "2018-11-15",
+      "amount": "20000.0000",
+      "kind": "contribution"
+    },
+    {
+      "id": "flow:2:2018:Q4:fee",
+      "accountId": "acct:2",
+      "occurredOn": "2018-11-15",
+      "amount": "-25.0000",
+      "kind": "fee"
+    },
+    {
+      "id": "flow:3:2018:Q4:cont",
+      "accountId": "acct:3",
+      "occurredOn": "2018-11-15",
+      "amount": "10000.0000",
+      "kind": "contribution"
+    },
+    {
+      "id": "flow:4:2018:Q4:cont",
+      "accountId": "acct:4",
+      "occurredOn": "2018-11-15",
+      "amount": "5000.0000",
+      "kind": "contribution"
+    },
+    {
+      "id": "flow:6:2018:Q4:cont",
+      "accountId": "acct:6",
+      "occurredOn": "2018-11-15",
+      "amount": "5000.0000",
+      "kind": "contribution"
+    },
+    {
+      "id": "flow:6:2018:Q4:fee",
+      "accountId": "acct:6",
+      "occurredOn": "2018-11-15",
+      "amount": "-50.0000",
+      "kind": "fee"
+    },
+    {
+      "id": "flow:1:2019:Q1:cont",
+      "accountId": "acct:1",
+      "occurredOn": "2019-02-14",
+      "amount": "500.0000",
+      "kind": "contribution"
+    },
+    {
+      "id": "flow:1:2019:Q1:fee",
+      "accountId": "acct:1",
+      "occurredOn": "2019-02-14",
+      "amount": "-25.0000",
+      "kind": "fee"
+    },
+    {
+      "id": "flow:2:2019:Q1:cont",
+      "accountId": "acct:2",
+      "occurredOn": "2019-02-14",
+      "amount": "1000.0000",
+      "kind": "contribution"
+    },
+    {
+      "id": "flow:2:2019:Q1:fee",
+      "accountId": "acct:2",
+      "occurredOn": "2019-02-14",
+      "amount": "-25.0000",
+      "kind": "fee"
+    },
+    {
+      "id": "flow:3:2019:Q1:cont",
+      "accountId": "acct:3",
+      "occurredOn": "2019-02-14",
+      "amount": "500.0000",
+      "kind": "contribution"
+    },
+    {
+      "id": "flow:4:2019:Q1:cont",
+      "accountId": "acct:4",
+      "occurredOn": "2019-02-14",
+      "amount": "1000.0000",
+      "kind": "contribution"
+    },
+    {
+      "id": "flow:6:2019:Q1:fee",
+      "accountId": "acct:6",
+      "occurredOn": "2019-02-14",
+      "amount": "-50.0000",
+      "kind": "fee"
+    },
+    {
+      "id": "flow:1:2019:Q2:cont",
+      "accountId": "acct:1",
+      "occurredOn": "2019-05-15",
+      "amount": "500.0000",
+      "kind": "contribution"
+    },
+    {
+      "id": "flow:1:2019:Q2:fee",
+      "accountId": "acct:1",
+      "occurredOn": "2019-05-15",
+      "amount": "-25.0000",
+      "kind": "fee"
+    },
+    {
+      "id": "flow:2:2019:Q2:cont",
+      "accountId": "acct:2",
+      "occurredOn": "2019-05-15",
+      "amount": "1000.0000",
+      "kind": "contribution"
+    },
+    {
+      "id": "flow:2:2019:Q2:fee",
+      "accountId": "acct:2",
+      "occurredOn": "2019-05-15",
+      "amount": "-25.0000",
+      "kind": "fee"
+    },
+    {
+      "id": "flow:3:2019:Q2:cont",
+      "accountId": "acct:3",
+      "occurredOn": "2019-05-15",
+      "amount": "500.0000",
+      "kind": "contribution"
+    },
+    {
+      "id": "flow:4:2019:Q2:cont",
+      "accountId": "acct:4",
+      "occurredOn": "2019-05-15",
+      "amount": "1000.0000",
+      "kind": "contribution"
+    },
+    {
+      "id": "flow:6:2019:Q2:fee",
+      "accountId": "acct:6",
+      "occurredOn": "2019-05-15",
+      "amount": "-50.0000",
+      "kind": "fee"
+    },
+    {
+      "id": "flow:1:2019:Q3:cont",
+      "accountId": "acct:1",
+      "occurredOn": "2019-08-15",
+      "amount": "500.0000",
+      "kind": "contribution"
+    },
+    {
+      "id": "flow:1:2019:Q3:fee",
+      "accountId": "acct:1",
+      "occurredOn": "2019-08-15",
+      "amount": "-25.0000",
+      "kind": "fee"
+    },
+    {
+      "id": "flow:2:2019:Q3:cont",
+      "accountId": "acct:2",
+      "occurredOn": "2019-08-15",
+      "amount": "1000.0000",
+      "kind": "contribution"
+    },
+    {
+      "id": "flow:2:2019:Q3:fee",
+      "accountId": "acct:2",
+      "occurredOn": "2019-08-15",
+      "amount": "-25.0000",
+      "kind": "fee"
+    },
+    {
+      "id": "flow:3:2019:Q3:cont",
+      "accountId": "acct:3",
+      "occurredOn": "2019-08-15",
+      "amount": "500.0000",
+      "kind": "contribution"
+    },
+    {
+      "id": "flow:4:2019:Q3:cont",
+      "accountId": "acct:4",
+      "occurredOn": "2019-08-15",
+      "amount": "1000.0000",
+      "kind": "contribution"
+    },
+    {
+      "id": "flow:6:2019:Q3:fee",
+      "accountId": "acct:6",
+      "occurredOn": "2019-08-15",
+      "amount": "-50.0000",
+      "kind": "fee"
+    },
+    {
+      "id": "flow:1:2019:Q4:cont",
+      "accountId": "acct:1",
+      "occurredOn": "2019-11-15",
+      "amount": "500.0000",
+      "kind": "contribution"
+    },
+    {
+      "id": "flow:1:2019:Q4:fee",
+      "accountId": "acct:1",
+      "occurredOn": "2019-11-15",
+      "amount": "-25.0000",
+      "kind": "fee"
+    },
+    {
+      "id": "flow:2:2019:Q4:cont",
+      "accountId": "acct:2",
+      "occurredOn": "2019-11-15",
+      "amount": "1000.0000",
+      "kind": "contribution"
+    },
+    {
+      "id": "flow:2:2019:Q4:fee",
+      "accountId": "acct:2",
+      "occurredOn": "2019-11-15",
+      "amount": "-25.0000",
+      "kind": "fee"
+    },
+    {
+      "id": "flow:3:2019:Q4:cont",
+      "accountId": "acct:3",
+      "occurredOn": "2019-11-15",
+      "amount": "500.0000",
+      "kind": "contribution"
+    },
+    {
+      "id": "flow:4:2019:Q4:cont",
+      "accountId": "acct:4",
+      "occurredOn": "2019-11-15",
+      "amount": "1000.0000",
+      "kind": "contribution"
+    },
+    {
+      "id": "flow:6:2019:Q4:fee",
+      "accountId": "acct:6",
+      "occurredOn": "2019-11-15",
+      "amount": "-50.0000",
+      "kind": "fee"
+    },
+    {
+      "id": "flow:1:2020:Q1:cont",
+      "accountId": "acct:1",
+      "occurredOn": "2020-02-14",
+      "amount": "500.0000",
+      "kind": "contribution"
+    },
+    {
+      "id": "flow:1:2020:Q1:fee",
+      "accountId": "acct:1",
+      "occurredOn": "2020-02-14",
+      "amount": "-25.0000",
+      "kind": "fee"
+    },
+    {
+      "id": "flow:2:2020:Q1:cont",
+      "accountId": "acct:2",
+      "occurredOn": "2020-02-14",
+      "amount": "1000.0000",
+      "kind": "contribution"
+    },
+    {
+      "id": "flow:2:2020:Q1:fee",
+      "accountId": "acct:2",
+      "occurredOn": "2020-02-14",
+      "amount": "-25.0000",
+      "kind": "fee"
+    },
+    {
+      "id": "flow:3:2020:Q1:cont",
+      "accountId": "acct:3",
+      "occurredOn": "2020-02-14",
+      "amount": "500.0000",
+      "kind": "contribution"
+    },
+    {
+      "id": "flow:4:2020:Q1:cont",
+      "accountId": "acct:4",
+      "occurredOn": "2020-02-14",
+      "amount": "1000.0000",
+      "kind": "contribution"
+    },
+    {
+      "id": "flow:6:2020:Q1:fee",
+      "accountId": "acct:6",
+      "occurredOn": "2020-02-14",
+      "amount": "-50.0000",
+      "kind": "fee"
+    },
+    {
+      "id": "flow:1:2020:Q2:cont",
+      "accountId": "acct:1",
+      "occurredOn": "2020-05-15",
+      "amount": "500.0000",
+      "kind": "contribution"
+    },
+    {
+      "id": "flow:1:2020:Q2:fee",
+      "accountId": "acct:1",
+      "occurredOn": "2020-05-15",
+      "amount": "-25.0000",
+      "kind": "fee"
+    },
+    {
+      "id": "flow:2:2020:Q2:cont",
+      "accountId": "acct:2",
+      "occurredOn": "2020-05-15",
+      "amount": "1000.0000",
+      "kind": "contribution"
+    },
+    {
+      "id": "flow:2:2020:Q2:fee",
+      "accountId": "acct:2",
+      "occurredOn": "2020-05-15",
+      "amount": "-25.0000",
+      "kind": "fee"
+    },
+    {
+      "id": "flow:3:2020:Q2:cont",
+      "accountId": "acct:3",
+      "occurredOn": "2020-05-15",
+      "amount": "500.0000",
+      "kind": "contribution"
+    },
+    {
+      "id": "flow:4:2020:Q2:cont",
+      "accountId": "acct:4",
+      "occurredOn": "2020-05-15",
+      "amount": "1000.0000",
+      "kind": "contribution"
+    },
+    {
+      "id": "flow:6:2020:Q2:cont",
+      "accountId": "acct:6",
+      "occurredOn": "2020-05-15",
+      "amount": "2000.0000",
+      "kind": "contribution"
+    },
+    {
+      "id": "flow:6:2020:Q2:fee",
+      "accountId": "acct:6",
+      "occurredOn": "2020-05-15",
+      "amount": "-50.0000",
+      "kind": "fee"
+    },
+    {
+      "id": "flow:1:2020:Q3:cont",
+      "accountId": "acct:1",
+      "occurredOn": "2020-08-15",
+      "amount": "500.0000",
+      "kind": "contribution"
+    },
+    {
+      "id": "flow:1:2020:Q3:fee",
+      "accountId": "acct:1",
+      "occurredOn": "2020-08-15",
+      "amount": "-25.0000",
+      "kind": "fee"
+    },
+    {
+      "id": "flow:2:2020:Q3:cont",
+      "accountId": "acct:2",
+      "occurredOn": "2020-08-15",
+      "amount": "1000.0000",
+      "kind": "contribution"
+    },
+    {
+      "id": "flow:2:2020:Q3:fee",
+      "accountId": "acct:2",
+      "occurredOn": "2020-08-15",
+      "amount": "-25.0000",
+      "kind": "fee"
+    },
+    {
+      "id": "flow:3:2020:Q3:cont",
+      "accountId": "acct:3",
+      "occurredOn": "2020-08-15",
+      "amount": "500.0000",
+      "kind": "contribution"
+    },
+    {
+      "id": "flow:4:2020:Q3:cont",
+      "accountId": "acct:4",
+      "occurredOn": "2020-08-15",
+      "amount": "1000.0000",
+      "kind": "contribution"
+    },
+    {
+      "id": "flow:6:2020:Q3:fee",
+      "accountId": "acct:6",
+      "occurredOn": "2020-08-15",
+      "amount": "-50.0000",
+      "kind": "fee"
+    },
+    {
+      "id": "flow:1:2020:Q4:cont",
+      "accountId": "acct:1",
+      "occurredOn": "2020-11-15",
+      "amount": "500.0000",
+      "kind": "contribution"
+    },
+    {
+      "id": "flow:1:2020:Q4:fee",
+      "accountId": "acct:1",
+      "occurredOn": "2020-11-15",
+      "amount": "-25.0000",
+      "kind": "fee"
+    },
+    {
+      "id": "flow:2:2020:Q4:cont",
+      "accountId": "acct:2",
+      "occurredOn": "2020-11-15",
+      "amount": "1000.0000",
+      "kind": "contribution"
+    },
+    {
+      "id": "flow:2:2020:Q4:fee",
+      "accountId": "acct:2",
+      "occurredOn": "2020-11-15",
+      "amount": "-25.0000",
+      "kind": "fee"
+    },
+    {
+      "id": "flow:3:2020:Q4:cont",
+      "accountId": "acct:3",
+      "occurredOn": "2020-11-15",
+      "amount": "500.0000",
+      "kind": "contribution"
+    },
+    {
+      "id": "flow:4:2020:Q4:cont",
+      "accountId": "acct:4",
+      "occurredOn": "2020-11-15",
+      "amount": "1000.0000",
+      "kind": "contribution"
+    },
+    {
+      "id": "flow:6:2020:Q4:fee",
+      "accountId": "acct:6",
+      "occurredOn": "2020-11-15",
+      "amount": "-50.0000",
+      "kind": "fee"
+    },
+    {
+      "id": "flow:1:close",
+      "accountId": "acct:1",
+      "occurredOn": "2021-01-01",
+      "amount": "-50000.0000",
+      "kind": "transfer_out",
+      "note": "Account stopped reporting; balance moved elsewhere",
+      "counterpartyAccountId": "acct:2"
+    },
+    {
+      "id": "flow:2:2021:carry",
+      "accountId": "acct:2",
+      "occurredOn": "2021-01-01",
+      "amount": "50000.0000",
+      "kind": "transfer_in",
+      "note": "Reconstructed from an opening balance that disagreed with the prior close",
+      "counterpartyAccountId": "acct:1"
+    },
+    {
+      "id": "flow:7:close",
+      "accountId": "acct:7",
+      "occurredOn": "2021-01-01",
+      "amount": "-200.0000",
+      "kind": "transfer_out",
+      "note": "Account stopped reporting; balance moved elsewhere"
+    },
+    {
+      "id": "flow:2:2021:Q1:cont",
+      "accountId": "acct:2",
+      "occurredOn": "2021-02-14",
+      "amount": "1000.0000",
+      "kind": "contribution"
+    },
+    {
+      "id": "flow:2:2021:Q1:fee",
+      "accountId": "acct:2",
+      "occurredOn": "2021-02-14",
+      "amount": "-25.0000",
+      "kind": "fee"
+    },
+    {
+      "id": "flow:6:2021:Q1:fee",
+      "accountId": "acct:6",
+      "occurredOn": "2021-02-14",
+      "amount": "-50.0000",
+      "kind": "fee"
+    },
+    {
+      "id": "flow:2:2021:Q2:cont",
+      "accountId": "acct:2",
+      "occurredOn": "2021-05-15",
+      "amount": "1000.0000",
+      "kind": "contribution"
+    },
+    {
+      "id": "flow:2:2021:Q2:fee",
+      "accountId": "acct:2",
+      "occurredOn": "2021-05-15",
+      "amount": "-25.0000",
+      "kind": "fee"
+    },
+    {
+      "id": "flow:6:2021:Q2:fee",
+      "accountId": "acct:6",
+      "occurredOn": "2021-05-15",
+      "amount": "-50.0000",
+      "kind": "fee"
+    },
+    {
+      "id": "flow:2:2021:Q3:cont",
+      "accountId": "acct:2",
+      "occurredOn": "2021-08-15",
+      "amount": "1000.0000",
+      "kind": "contribution"
+    },
+    {
+      "id": "flow:2:2021:Q3:fee",
+      "accountId": "acct:2",
+      "occurredOn": "2021-08-15",
+      "amount": "-25.0000",
+      "kind": "fee"
+    },
+    {
+      "id": "flow:6:2021:Q3:fee",
+      "accountId": "acct:6",
+      "occurredOn": "2021-08-15",
+      "amount": "-50.0000",
+      "kind": "fee"
+    },
+    {
+      "id": "flow:2:2021:Q4:cont",
+      "accountId": "acct:2",
+      "occurredOn": "2021-11-15",
+      "amount": "1000.0000",
+      "kind": "contribution"
+    },
+    {
+      "id": "flow:2:2021:Q4:fee",
+      "accountId": "acct:2",
+      "occurredOn": "2021-11-15",
+      "amount": "-25.0000",
+      "kind": "fee"
+    },
+    {
+      "id": "flow:6:2021:Q4:fee",
+      "accountId": "acct:6",
+      "occurredOn": "2021-11-15",
+      "amount": "-50.0000",
+      "kind": "fee"
+    },
+    {
+      "id": "flow:3:close",
+      "accountId": "acct:3",
+      "occurredOn": "2022-01-01",
+      "amount": "-60000.0000",
+      "kind": "transfer_out",
+      "note": "Account stopped reporting; balance moved elsewhere"
+    },
+    {
+      "id": "flow:4:close",
+      "accountId": "acct:4",
+      "occurredOn": "2022-01-01",
+      "amount": "-40000.0000",
+      "kind": "transfer_out",
+      "note": "Account stopped reporting; balance moved elsewhere"
+    },
+    {
+      "id": "flow:5:2022:open",
+      "accountId": "acct:5",
+      "occurredOn": "2022-01-01",
+      "amount": "100000.0000",
+      "kind": "transfer_in",
+      "note": "Opening balance carried in from before tracking began"
+    },
+    {
+      "id": "flow:2:2022:Q1:fee",
+      "accountId": "acct:2",
+      "occurredOn": "2022-02-14",
+      "amount": "-25.0000",
+      "kind": "fee"
+    },
+    {
+      "id": "flow:5:2022:Q1:cont",
+      "accountId": "acct:5",
+      "occurredOn": "2022-02-14",
+      "amount": "1000.0000",
+      "kind": "contribution"
+    },
+    {
+      "id": "flow:6:2022:Q1:fee",
+      "accountId": "acct:6",
+      "occurredOn": "2022-02-14",
+      "amount": "-50.0000",
+      "kind": "fee"
+    },
+    {
+      "id": "flow:2:2022:Q2:fee",
+      "accountId": "acct:2",
+      "occurredOn": "2022-05-15",
+      "amount": "-25.0000",
+      "kind": "fee"
+    },
+    {
+      "id": "flow:5:2022:Q2:cont",
+      "accountId": "acct:5",
+      "occurredOn": "2022-05-15",
+      "amount": "1000.0000",
+      "kind": "contribution"
+    },
+    {
+      "id": "flow:6:2022:Q2:fee",
+      "accountId": "acct:6",
+      "occurredOn": "2022-05-15",
+      "amount": "-50.0000",
+      "kind": "fee"
+    },
+    {
+      "id": "flow:2:2022:Q3:fee",
+      "accountId": "acct:2",
+      "occurredOn": "2022-08-15",
+      "amount": "-25.0000",
+      "kind": "fee"
+    },
+    {
+      "id": "flow:5:2022:Q3:cont",
+      "accountId": "acct:5",
+      "occurredOn": "2022-08-15",
+      "amount": "1000.0000",
+      "kind": "contribution"
+    },
+    {
+      "id": "flow:6:2022:Q3:fee",
+      "accountId": "acct:6",
+      "occurredOn": "2022-08-15",
+      "amount": "-50.0000",
+      "kind": "fee"
+    },
+    {
+      "id": "flow:2:2022:Q4:fee",
+      "accountId": "acct:2",
+      "occurredOn": "2022-11-15",
+      "amount": "-25.0000",
+      "kind": "fee"
+    },
+    {
+      "id": "flow:5:2022:Q4:cont",
+      "accountId": "acct:5",
+      "occurredOn": "2022-11-15",
+      "amount": "1000.0000",
+      "kind": "contribution"
+    },
+    {
+      "id": "flow:6:2022:Q4:fee",
+      "accountId": "acct:6",
+      "occurredOn": "2022-11-15",
+      "amount": "-50.0000",
+      "kind": "fee"
+    },
+    {
+      "id": "flow:2:2023:Q1:cont",
+      "accountId": "acct:2",
+      "occurredOn": "2023-02-14",
+      "amount": "2000.0000",
+      "kind": "contribution"
+    },
+    {
+      "id": "flow:2:2023:Q1:fee",
+      "accountId": "acct:2",
+      "occurredOn": "2023-02-14",
+      "amount": "-25.0000",
+      "kind": "fee"
+    },
+    {
+      "id": "flow:5:2023:Q1:cont",
+      "accountId": "acct:5",
+      "occurredOn": "2023-02-14",
+      "amount": "1000.0000",
+      "kind": "contribution"
+    },
+    {
+      "id": "flow:6:2023:Q1:fee",
+      "accountId": "acct:6",
+      "occurredOn": "2023-02-14",
+      "amount": "-50.0000",
+      "kind": "fee"
+    },
+    {
+      "id": "flow:2:2023:Q2:cont",
+      "accountId": "acct:2",
+      "occurredOn": "2023-05-15",
+      "amount": "2000.0000",
+      "kind": "contribution"
+    },
+    {
+      "id": "flow:2:2023:Q2:fee",
+      "accountId": "acct:2",
+      "occurredOn": "2023-05-15",
+      "amount": "-25.0000",
+      "kind": "fee"
+    },
+    {
+      "id": "flow:5:2023:Q2:cont",
+      "accountId": "acct:5",
+      "occurredOn": "2023-05-15",
+      "amount": "1000.0000",
+      "kind": "contribution"
+    },
+    {
+      "id": "flow:6:2023:Q2:fee",
+      "accountId": "acct:6",
+      "occurredOn": "2023-05-15",
+      "amount": "-50.0000",
+      "kind": "fee"
+    },
+    {
+      "id": "flow:2:2023:Q3:cont",
+      "accountId": "acct:2",
+      "occurredOn": "2023-08-15",
+      "amount": "2000.0000",
+      "kind": "contribution"
+    },
+    {
+      "id": "flow:2:2023:Q3:fee",
+      "accountId": "acct:2",
+      "occurredOn": "2023-08-15",
+      "amount": "-25.0000",
+      "kind": "fee"
+    },
+    {
+      "id": "flow:5:2023:Q3:cont",
+      "accountId": "acct:5",
+      "occurredOn": "2023-08-15",
+      "amount": "1000.0000",
+      "kind": "contribution"
+    },
+    {
+      "id": "flow:2:2023:Q4:cont",
+      "accountId": "acct:2",
+      "occurredOn": "2023-11-15",
+      "amount": "2000.0000",
+      "kind": "contribution"
+    },
+    {
+      "id": "flow:2:2023:Q4:fee",
+      "accountId": "acct:2",
+      "occurredOn": "2023-11-15",
+      "amount": "-25.0000",
+      "kind": "fee"
+    },
+    {
+      "id": "flow:5:2023:Q4:cont",
+      "accountId": "acct:5",
+      "occurredOn": "2023-11-15",
+      "amount": "1000.0000",
+      "kind": "contribution"
+    }
+  ],
+  "notes": [
+    {
+      "id": "note:2018",
+      "householdId": "h1",
+      "year": 2018,
+      "text": "Opened the first accounts."
+    },
+    {
+      "id": "note:2020",
+      "householdId": "h1",
+      "year": 2020,
+      "text": "Rough Q1, recovered by year end."
+    },
+    {
+      "id": "note:2021",
+      "householdId": "h1",
+      "year": 2021,
+      "text": "Rolled the 401(k) into the IRA."
+    },
+    {
+      "id": "note:2022",
+      "householdId": "h1",
+      "year": 2022,
+      "text": "Consolidated Ben’s two IRAs."
+    }
+  ]
+}

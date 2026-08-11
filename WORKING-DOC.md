@@ -364,7 +364,7 @@ And the control holds — on real data, every account-year with **no** external 
 
 The layout above is already the target shape from Decision 4, so promoting this spike is mostly moving and renaming.
 
-**1. Name it.** `retirement-tracker` no longer describes it, and the package scope `@cairn/*` throughout is a deliberate placeholder — it names the layer, not the product. Worth choosing before `git init`, since it touches the directory name, the scope, and eventually the domain. (`RepayMint` suggests a family, but Mint is a retired Intuit product and the association may be more liability than asset.)
+**1. Name it.** `retirement-tracker` no longer describes it, and the package scope `@varve/*` throughout is a deliberate placeholder — it names the layer, not the product. Worth choosing before `git init`, since it touches the directory name, the scope, and eventually the domain. (`RepayMint` suggests a family, but Mint is a retired Intuit product and the association may be more liability than asset.)
 
 **2. Split the repo from the archive.** ✅ Done — the `.accdb`, the `.xlsx`, and `extracted/` now live under `legacy/`.
 

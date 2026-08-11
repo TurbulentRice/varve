@@ -27,6 +27,9 @@ venv/
 #
 # Regenerate everything here with: legacy/extracted/extract.sh
 # ---------------------------------------------------------------------------
+# Snapshots of real data. Never bundled: kept out of any app source tree.
+local-snapshot.json
+
 legacy/*.accdb
 legacy/*.xlsx
 legacy/extracted/csv/

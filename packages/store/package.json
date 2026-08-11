@@ -1,13 +1,17 @@
 {
-  "name": "@varve/core",
+  "name": "@varve/store",
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Pure, dependency-free domain model and financial calculations.",
+  "description": "Household ledger storage: snapshot format, repository interface, adapters.",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./file": {
+      "types": "./dist/file.d.ts",
+      "default": "./dist/file.js"
     }
   },
   "main": "./dist/index.js",
@@ -15,11 +19,14 @@
   "files": ["dist"],
   "scripts": {
     "build": "tsc -b",
-    "typecheck": "tsc --noEmit",
-    "test": "vitest run",
-    "test:watch": "vitest"
+    "typecheck": "tsc -b",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@varve/core": "workspace:*"
   },
   "devDependencies": {
+    "@types/node": "^22.0.0",
     "typescript": "^5.6.0",
     "vitest": "^2.1.0"
   }

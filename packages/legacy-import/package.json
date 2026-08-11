@@ -1,5 +1,5 @@
 {
-  "name": "@cairn/legacy-import",
+  "name": "@varve/legacy-import",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -14,10 +14,12 @@
     "build": "tsc -b",
     "typecheck": "tsc -b",
     "test": "vitest run",
-    "reconcile": "vitest run test/reconcile.test.ts --reporter=basic"
+    "reconcile": "vitest run test/reconcile.test.ts --reporter=basic",
+    "snapshot": "tsc -b && node dist/cli.js"
   },
   "dependencies": {
-    "@cairn/core": "workspace:*"
+    "@varve/core": "workspace:*",
+    "@varve/store": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

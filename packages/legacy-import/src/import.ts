@@ -31,6 +31,7 @@ import {
   householdId,
   isoDate,
   midpoint,
+  noteId,
   observationId,
   ownerId,
   quarterEnd,
@@ -42,9 +43,10 @@ import {
   type Flow,
   type Household,
   type IsoDate,
+  type Note,
   type Owner,
   type Quarter,
-} from '@cairn/core';
+} from '@varve/core';
 import { parseCsvRecords } from './csv.js';
 
 export interface LegacyCsv {
@@ -70,18 +72,13 @@ export interface ImportIssue {
   readonly amount?: Money;
 }
 
-export interface JournalEntry {
-  readonly year: number;
-  readonly notes: string;
-}
-
 export interface ImportResult {
   readonly household: Household;
   readonly owners: Owner[];
   readonly accounts: Account[];
   readonly observations: BalanceObservation[];
   readonly flows: Flow[];
-  readonly journal: JournalEntry[];
+  readonly notes: Note[];
   readonly issues: ImportIssue[];
 }
 
@@ -183,9 +180,14 @@ export function importLegacy(csv: LegacyCsv, householdName = 'Household'): Impor
   }
 
   // --------------------------------------------------------------- journal
-  const journal: JournalEntry[] = parseCsvRecords(csv.years)
+  const notes: Note[] = parseCsvRecords(csv.years)
     .filter((r) => r.Notes?.trim())
-    .map((r) => ({ year: Number(r.YearID), notes: r.Notes!.trim() }))
+    .map((r) => ({
+      id: noteId(`note:${r.YearID}`),
+      householdId: home.id,
+      year: Number(r.YearID),
+      text: r.Notes!.trim(),
+    }))
     .sort((a, b) => a.year - b.year);
 
   // ----------------------------------------------------------- performance
@@ -494,7 +496,7 @@ export function importLegacy(csv: LegacyCsv, householdName = 'Household'): Impor
   observations.sort((a, b) => a.asOf.localeCompare(b.asOf));
   flows.sort((a, b) => a.occurredOn.localeCompare(b.occurredOn));
 
-  return { household: home, owners, accounts, observations, flows, journal, issues };
+  return { household: home, owners, accounts, observations, flows, notes, issues };
 }
 
 /** Latest non-null balance in a row: the legacy `Q4 ?? Q3 ?? Q2 ?? Q1` rule. */

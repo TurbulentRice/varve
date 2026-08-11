@@ -24,7 +24,7 @@
  * `Currency` type produces, and the parser should meet what it will really see.
  */
 
-import type { LegacyCsv } from '../../src/import.js';
+import type { LegacyCsv } from '../import.js';
 
 type Amount = number | null;
 

@@ -15,6 +15,22 @@ importers:
         specifier: ^2.1.0
         version: 2.1.9(@types/node@22.20.1)
 
+  apps/web:
+    dependencies:
+      '@varve/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@varve/store':
+        specifier: workspace:*
+        version: link:../../packages/store
+    devDependencies:
+      typescript:
+        specifier: ^5.6.0
+        version: 5.9.3
+      vite:
+        specifier: ^5.4.0
+        version: 5.4.21(@types/node@22.20.1)
+
   packages/core:
     devDependencies:
       typescript:
@@ -26,7 +42,26 @@ importers:
 
   packages/legacy-import:
     dependencies:
-      '@cairn/core':
+      '@varve/core':
+        specifier: workspace:*
+        version: link:../core
+      '@varve/store':
+        specifier: workspace:*
+        version: link:../store
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.20.1
+      typescript:
+        specifier: ^5.6.0
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.0
+        version: 2.1.9(@types/node@22.20.1)
+
+  packages/store:
+    dependencies:
+      '@varve/core':
         specifier: workspace:*
         version: link:../core
     devDependencies:

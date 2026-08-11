@@ -16,9 +16,9 @@ import {
   yearEnd,
   type BalanceObservation,
   type Flow,
-} from '@cairn/core';
+} from '@varve/core';
 import { importLegacy } from '../src/import.js';
-import { SYNTHETIC_CSV, SYNTHETIC_FACTS } from './fixtures/synthetic.js';
+import { SYNTHETIC_CSV, SYNTHETIC_FACTS } from '../src/fixtures/synthetic.js';
 import { indexBy, legacyYearEndTotals } from './helpers.js';
 
 const imported = importLegacy(SYNTHETIC_CSV, 'Sample Household');
@@ -59,8 +59,9 @@ describe('structure', () => {
     }
   });
 
-  it('keeps year notes as journal entries, skipping empty ones', () => {
-    expect(imported.journal.map((j) => j.year)).toEqual([2018, 2020, 2021, 2022]);
+  it('keeps year notes, skipping empty ones', () => {
+    expect(imported.notes.map((n) => n.year)).toEqual([2018, 2020, 2021, 2022]);
+    expect(imported.notes[0]!.text).toContain('Opened the first accounts');
   });
 
   it('flags a Savings-typed account named like a brokerage', () => {

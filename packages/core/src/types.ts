@@ -30,12 +30,14 @@ export type OwnerId = Id<'Owner'>;
 export type AccountId = Id<'Account'>;
 export type ObservationId = Id<'Observation'>;
 export type FlowId = Id<'Flow'>;
+export type NoteId = Id<'Note'>;
 
 export const householdId = (v: string) => v as HouseholdId;
 export const ownerId = (v: string) => v as OwnerId;
 export const accountId = (v: string) => v as AccountId;
 export const observationId = (v: string) => v as ObservationId;
 export const flowId = (v: string) => v as FlowId;
+export const noteId = (v: string) => v as NoteId;
 
 // ------------------------------------------------------------------ entities
 
@@ -129,6 +131,25 @@ export interface Flow {
   /** The other side of a transfer. Set on both halves of the pair. */
   readonly counterpartyAccountId?: AccountId;
   readonly note?: string;
+}
+
+// --------------------------------------------------------------------- notes
+
+/**
+ * A remark attached to a year of the household's history.
+ *
+ * The legacy database kept a free-text memo per year, and it turned out to hold
+ * real commentary going back to 2007 — quarter-by-quarter observations someone
+ * wrote at the time. That is worth more than it looks: numbers record what
+ * happened, notes record what the person thought was happening. Carried into
+ * the domain rather than left behind in the importer.
+ */
+export interface Note {
+  readonly id: NoteId;
+  readonly householdId: HouseholdId;
+  /** Calendar year the note describes. */
+  readonly year: number;
+  readonly text: string;
 }
 
 /**

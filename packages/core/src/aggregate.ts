@@ -27,7 +27,11 @@ export interface BalanceAt {
 }
 
 /**
- * The most recent observation on or before `date`.
+ * The most recent balance on or before `date`.
+ *
+ * Takes the minimal `{ asOf, amount }` shape rather than a full observation, so
+ * that a synthetic series — a household aggregate, a benchmark, a projection —
+ * composes with it just as a stored one does.
  *
  * This generalizes the legacy rule `Q4 ?? Q3 ?? Q2 ?? Q1`, which existed so the
  * current, partial year would report its latest known quarter instead of going
@@ -39,11 +43,8 @@ export interface BalanceAt {
  * A closed account must be recorded with a final zero-balance observation;
  * otherwise its last non-zero balance keeps answering forever.
  */
-export function balanceAsOf(
-  observations: readonly BalanceObservation[],
-  date: IsoDate,
-): BalanceAt {
-  let best: BalanceObservation | undefined;
+export function balanceAsOf(observations: readonly DatedBalance[], date: IsoDate): BalanceAt {
+  let best: DatedBalance | undefined;
   for (const observation of observations) {
     if (observation.asOf > date) continue;
     if (!best || observation.asOf > best.asOf) best = observation;
@@ -88,7 +89,7 @@ export interface PeriodSummary {
  * Summarize one account (or one pre-merged group) over a date range.
  */
 export function summarizePeriod(
-  observations: readonly BalanceObservation[],
+  observations: readonly DatedBalance[],
   flows: readonly Flow[],
   range: DateRange,
   options: ReturnOptions = {},
@@ -133,7 +134,7 @@ export function summarizePeriod(
 
 /** Summarize a calendar year. */
 export function summarizeYear(
-  observations: readonly BalanceObservation[],
+  observations: readonly DatedBalance[],
   flows: readonly Flow[],
   year: number,
   options: ReturnOptions = {},
