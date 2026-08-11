@@ -804,3 +804,153 @@ installment. The clamps survive the reformulation too — the cases where the
 full-precision and cent-rounded tests disagree are precisely the cases where both
 answers round to the same installment. That is why the port can match a
 28-significant-digit `Decimal` implementation using a `bigint` and a `number`.
+
+---
+
+## 12. Routing
+
+The app has held its view state in `useState` since the first UI: a nullable
+`openAccount`, a nullable `editingYear`, and a dashboard when both are null.
+Three early returns in one component. It worked because there were three
+surfaces and one reader, and it stops working for a reason that has nothing to
+do with how many surfaces there are.
+
+An account page you cannot link to, cannot bookmark, and cannot leave with the
+back button is not a page. It is a modal wearing a page's clothes. The back
+button in particular is the tell: on a phone it is the system gesture, so the
+first instinct after opening an account is the one action the app answers by
+closing the whole thing.
+
+Loans will add a fourth surface, and comparing repayment strategies is the first
+view here that someone would genuinely want to send to another person. That
+turns a nuisance into a structural problem, which is why this comes before the
+integration rather than after it.
+
+### 12.1 A route is a domain type, not a string
+
+The decision that shapes everything else: routing is modelled as a **discriminated
+union** with pure `parseRoute` and `formatRoute` functions on either side of it.
+
+```
+type Route =
+  | { view: 'dashboard' }
+  | { view: 'account'; accountId: AccountId }
+  | { view: 'year'; year: number }
+```
+
+Nothing about that is React. It is a parser and a printer over a small algebra,
+which means it is testable the way the rest of this codebase is testable — plain
+data in, plain data out, no DOM and no framework. The React layer on top is a
+single hook that subscribes to `hashchange` and calls `parseRoute`.
+
+This is the same shape the project keeps arriving at, and the reason to name it
+explicitly is that it keeps paying. `core` is pure and the app is a shell over
+it. The charts are hand-written SVG over `d3-scale`, with the maths separated
+from the rendering. Now the router: the interesting part is a total function
+from a string to a union, and the framework integration is the boring part.
+
+The property worth having is that **an unparseable URL is not an error state**.
+`parseRoute` is total — anything it does not recognise is the dashboard. A stale
+link, a typo, a hand-edited hash, a route removed in a later version: all land
+somewhere sensible rather than on a blank screen. There is no 404 in an app whose
+entire dataset is in the browser, and pretending otherwise would be inventing a
+failure mode.
+
+### 12.2 Hash, not paths
+
+`#/accounts/acct:1`, not `/accounts/acct:1`.
+
+Real paths are prettier and are what people expect, and they require the host to
+rewrite unknown paths to `index.html`. That is a `_redirects` file, or the
+Pages 404 trick, or an nginx `try_files` — a piece of configuration that lives
+somewhere other than this repository, is easy to forget, and fails in a way that
+looks like the app is broken rather than the host is misconfigured.
+
+Hash routing needs none of it. It works on any static host, it works from
+`file://`, and it works unchanged inside a Tauri shell — which §10 names as a
+target and which does not serve over HTTP at all. For a local-first app with no
+server, that is the honest default rather than the lazy one: the URL is uglier
+in exchange for the app working everywhere it is put, with no deployment
+knowledge encoded outside the build.
+
+Should paths become worth it later, `parseRoute` and `formatRoute` are where the
+change lands, and the union does not move.
+
+### 12.3 Why not a router library
+
+React Router would do this, costs 15–20 KB gzipped, and brings loaders, nested
+layouts, and a concept surface that four routes cannot use.
+
+The argument against it is the one §10 already made about charts: a library
+built for the standard case fights back the moment the case is not standard, and
+what this app needs from routing is genuinely small — four views, one parameter
+each, no nesting, no data loading, since the entire ledger is already in memory
+before the first render. A hundred lines of typed parser answers all of it and
+adds nothing to reason about later.
+
+The risk in hand-rolling is the usual one: it grows into a bad router. The guard
+is that the union is the whole interface. When a route needs something the union
+cannot express — a query string, genuine nesting, a loading state — that is the
+signal to adopt a real router, and by then the call sites will already be
+expressed in terms of `Route` values rather than strings, which is what makes
+the swap mechanical rather than a rewrite.
+
+### 12.4 What the URL says, and what it must not
+
+Route parameters are identity, never data. `#/accounts/acct:1` names an account;
+it does not carry a balance, a name, or anything else about it. That matters
+here more than it usually would, because a URL is the single most likely thing
+to be copied out of this app and pasted somewhere else — into a chat message, a
+bug report, a screenshot. Ground rule 1 is about what reaches a bundle, but the
+same instinct applies to what reaches a clipboard.
+
+Account ids are already opaque and local to the document (`acct:1`), so they
+carry nothing. The year editor takes a year. Neither leaks.
+
+### 12.5 What the work turned up
+
+Routing cost **+0.59 KB gzipped** — 296.13 KB to 297.72 KB raw. React Router
+would have been 15–20 KB for the same four views, which is the ratio §12.3
+predicted without being able to check it.
+
+The app also gained tests for the first time. `parseRoute` and `formatRoute` are
+pure, so they are unit-testable with no DOM and no React, and there are thirty of
+them: every malformed URL a person could plausibly be holding, the escaping of an
+id containing a slash, and a round-trip property over every route shape. `pnpm
+test` was already `pnpm -r test`, so CI picked them up with no configuration —
+which is an argument for keeping the interesting part of a UI concern outside the
+UI, since that is the only reason there was anything cheap to test.
+
+**Two assertions in those tests were wrong before the code was.** One expected
+the formatted hash to contain no `#`, which every hash begins with by definition.
+The other expected `interestDue`-style arithmetic that had simply been done
+wrong on paper. Both were test bugs rather than code bugs, and both were found in
+seconds because the functions are pure — which is most of the argument for the
+split.
+
+**Looking at the running app changed a decision.** §12.1 said an unrecognised URL
+falls back to the dashboard, and the first implementation *also* rewrote the
+address bar when a well-formed route named an account the ledger does not have —
+on the reasoning that showing one thing while the URL claims another makes the
+URL a lie.
+
+Driving it exposed that as inconsistent and quietly destructive. `#/nowhere`
+keeps its URL and renders the dashboard; a missing account silently became `#/`.
+Two behaviours for one situation. Worse, the rewrite erases the evidence: someone
+told "that link does not work" cannot say what they tried, because the app has
+already replaced it.
+
+The URL now stands in both cases, and the app *says* the account is not in this
+ledger. Absent is a fact worth stating rather than normalising away, which is
+ground rule 3 wearing different clothes — it was about numbers, and it is really
+about not silently substituting a plausible value for a missing one.
+
+**Year stepping confirmed the push/replace split was worth making.** Five steps
+through the editor add zero history entries, so the way out is always one press
+back. Verified in the browser rather than reasoned about: `history.length` before
+and after.
+
+One thing deliberately not solved. Opening a deep link as the very first page and
+then pressing back leaves the app, because there is no history to return to. That
+is correct browser behaviour and not something a router should fake; the
+persistent "← All accounts" control is what covers it.
