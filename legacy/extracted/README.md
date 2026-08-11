@@ -45,4 +45,4 @@ form bindings rather than in code.
 **`access-objects.csv` is latin-1, not UTF-8** — the `Owner` column holds raw binary SIDs.
 Read it with `encoding='latin-1'`.
 
-See [`WORKING-DOC.md`](../../../WORKING-DOC.md) for the analysis.
+See [the working doc](../../docs/working/discovery-and-architecture.md) for the analysis.

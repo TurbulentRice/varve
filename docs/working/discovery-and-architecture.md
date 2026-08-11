@@ -1,10 +1,24 @@
-# Retirement Tracker — Discovery & Architecture
+# Varve — Discovery & Architecture
 
-**Status:** discovery complete; calculation core built and reconciled against the legacy data.
-**Date:** 2026-08-10
+The working document for phases 0–5: reading the two legacy assets, the findings
+that came out of them, the architectural decisions with their trade-offs, and
+every phase built so far. It is long because the reasoning is the point.
+
+**Started:** 2026-08-10 · **Covers:** discovery through the loans port (§11).
+For where things stand right now, see [`docs/STATUS.md`](../STATUS.md).
+
 **Scope:** understand the two legacy assets, extract everything portable, and set foundational direction for a cross-platform port.
 
-**Decisions taken:** TypeScript core (§4.2) · observations + flows (§4.1) · local-first with a sync seam (§4.3) · monorepo, module-shaped (§4.4) · platform framing, retirement first · multi-tenancy modelled from the start.
+**Decisions taken:** TypeScript core (§4.2) · observations + flows (§4.1) · local-first with a sync seam (§4.3) · monorepo, module-shaped (§4.4) · platform framing, retirement first · multi-tenancy modelled from the start · loans as a peer over the same core (§11).
+
+> **The section numbering here is load-bearing.** Code comments cite it directly
+> — `§8.1` for the money conventions, `§11.2` for the loans rounding argument,
+> `Decision 4` for the monorepo shape. Extend it; do not renumber it.
+>
+> This document accumulates. Where a conclusion in it turned out to be wrong, the
+> correction is marked in place rather than edited away — see the warning boxes in
+> §9.3 and §11.2. That record is the valuable part: twice, a correction written
+> this way survived a later session about to repeat the mistake.
 
 ---
 
@@ -22,7 +36,7 @@ Authorship note: the workbook was authored by the household owner, created 2026-
 
 ### Reading them on macOS
 
-Solved and reproducible — see [`legacy/extracted/extract.sh`](legacy/extracted/extract.sh):
+Solved and reproducible — see [`legacy/extracted/extract.sh`](../../legacy/extracted/extract.sh):
 
 ```bash
 brew install mdbtools && ./legacy/extracted/extract.sh
@@ -342,7 +356,7 @@ The remaining four IRAs merged many-to-one, which no pairwise match can see. Sum
 
 **One warning survives the whole import**, and it names itself: `Individual Cash Reserves (11111)`, a dormant account holding a two-figure balance since 2012. It stopped reporting after 2019 and was never rolled anywhere. It accounts for the entire discrepancy between the 2019 close and the 2020 open noted in §3.2 — the single unexplained amount in twenty years of records.
 
-> Specific balances are omitted throughout this document by design; see §9.3. The mechanics are demonstrated on invented numbers in `packages/legacy-import/test/fixtures/synthetic.ts`, which reproduces each of these structural cases.
+> Specific balances are omitted throughout this document by design; see §9.3. The mechanics are demonstrated on invented numbers in `packages/legacy-import/src/fixtures/synthetic.ts`, which reproduces each of these structural cases.
 
 ### 8.3 Reconciliation: zero drift
 
