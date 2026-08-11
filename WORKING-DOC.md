@@ -402,4 +402,38 @@ The reconciliation suite detects whether the data is present: it runs locally, a
 
 **5. Deferred deliberately, with the seam left open:** the server (needed only when institution linking arrives, since API tokens cannot live in a browser), auth, and sync. Building any of them now would be building for a user who does not exist yet.
 
-A reasonable next slice is `packages/store` plus a throwaway view that renders the reconciled history — the fastest way to find out whether the model is pleasant to *use*, which is the one thing 95 passing tests cannot tell us.
+✅ Done. `packages/store`, `packages/retirement`, and a throwaway view all exist, and the model survived contact with a UI — see §10 for what comes next.
+
+---
+
+## 10. Roadmap
+
+Decided: **React on Vite** for the UI. Not Next.js — this is local-first with no server, no SSR requirement, and a desktop/mobile target that a server framework actively complicates.
+
+**On "shared components across platforms."** Mostly a myth worth naming. Desktop is solved by any framework (Tauri wraps a web app). Mobile is either React Native — genuinely native, but *not* sharing components with web — or a webview shell. What actually ports untouched is `core`, `store`, and `retirement`: the money, the ledger, the derivations. The plan is to **share the packages, not the components**, and design mobile as its own surface over the same core. UI components are the layer least likely to survive a platform jump anyway, because a good phone UI here is not a shrunken desktop one.
+
+**On charts.** No charting library. `d3-scale` / `d3-shape` / `d3-array` for the math, SVG written by hand (or `visx`, which is thin React wrappers over exactly those). Chart libraries are built for standard charts and fight back the moment you want something distinctive — which is the whole point here. The first chart is real work because it establishes the patterns; each one after is hours. Charts and CSS must read the **same** theme tokens, or the visualizations drift out of sync the first time anything is rethemed.
+
+### Order
+
+**1. Monte Carlo and better projections** — `packages/retirement`, in progress
+
+Framework-free, and the feature named as central to the product: check readiness, run a simulation without needing the terminology. Addresses §3.6 directly — a single assumed rate answers "what if every year is average?", and no year is. There are twenty years of real quarterly returns here to seed and validate against, which is a rare thing to have. Accumulation with a target first; drawdown and depletion follow.
+
+**2. Framework and the first real UI**
+
+React + Vite, replacing the throwaway view. Formalize the current CSS variables into a token set with placeholder brand values. First charts land here — the fan chart from step 1 is the natural opener, since a range of outcomes is exactly what a number cannot show.
+
+**3. Editing**
+
+`store` already has the write path; nothing calls it yet. Manual entry needs to feel good — it is the primary interaction, even if it is not the focus. Once a year, a handful of numbers per account, and it should feel like taking ownership rather than filing a return.
+
+**4. Per-account views**
+
+Deliberately after a UI exists. Designing that API with nothing consuming it would repeat the mistake that made graduating `history.ts` necessary in the first place.
+
+**5. `packages/loans`**
+
+`financetools` ported to TypeScript. Peer to `retirement` over the same core, which is what makes absorbing RepayMint an addition rather than a merge.
+
+**Deferred, with the seam left open:** server, auth, sync, institution APIs. A household's ledger as one `jsonb` document per row, fetched at load and written back on change, with `revision` for optimistic concurrency — and the option to encrypt it client-side so the server holds what it cannot read. None of it is worth building for a user who does not exist yet.

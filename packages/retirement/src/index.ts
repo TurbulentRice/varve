@@ -10,6 +10,23 @@ export { loadLedger, type Ledger } from './ledger.js';
 export { householdSeries, type HouseholdSeries } from './household.js';
 export { deriveHistory, type History, type YearRow } from './history.js';
 
+export { mulberry32, randomInt, standardNormal, type Rng } from './random.js';
+
+export {
+  simulate,
+  chanceOfReaching,
+  observedReturns,
+  bootstrap,
+  blockBootstrap,
+  normal,
+  fixed,
+  type ReturnModel,
+  type SimulationInput,
+  type Simulation,
+  type SimulationYear,
+  type Band,
+} from './simulate.js';
+
 import { loadLedger } from './ledger.js';
 import { deriveHistory, type History } from './history.js';
 import type { Repository } from '@varve/store';
