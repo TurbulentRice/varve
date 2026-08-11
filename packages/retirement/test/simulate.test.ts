@@ -196,19 +196,36 @@ describe('chance of reaching a target', () => {
 });
 
 describe('seeding from observed history', () => {
+  const year = (
+    twr: number,
+    benchmark: number,
+    extra: Partial<{ recorded: boolean; partial: boolean; startValue: Money; contributions: Money }> = {},
+  ) => ({
+    twr,
+    benchmark,
+    recorded: true,
+    partial: false,
+    startValue: m('100'),
+    contributions: m('0'),
+    ...extra,
+  });
+
   const history = {
     years: [
-      { twr: 0.1, benchmark: 0.12, partial: false, startValue: m('100'), contributions: m('0') },
-      { twr: -0.2, benchmark: -0.18, partial: false, startValue: m('110'), contributions: m('0') },
-      { twr: 0.15, benchmark: 0.2, partial: false, startValue: m('90'), contributions: m('0') },
+      year(0.1, 0.12),
+      year(-0.2, -0.18),
+      year(0.15, 0.2),
       // Still in progress: an incomplete year is not a year's return.
-      { twr: 0.03, benchmark: 0.04, partial: true, startValue: m('105'), contributions: m('0') },
-      // Opened with a transfer, nothing at risk and nothing contributed.
-      { twr: 0, benchmark: 0.05, partial: false, startValue: Money.zero(), contributions: Money.zero() },
+      year(0.03, 0.04, { partial: true }),
+      // Opened with a transfer — nothing at risk, nothing contributed.
+      year(0, 0.05, { startValue: Money.zero(), contributions: Money.zero() }),
+      // A gap in the record. Resampling it would feed the simulation a 0% year
+      // that nobody ever lived through.
+      year(0, 0.06, { recorded: false }),
     ],
   } as unknown as Parameters<typeof observedReturns>[0];
 
-  it('takes the portfolio returns, skipping partial and opening years', () => {
+  it('takes the portfolio returns, skipping partial, opening and unrecorded years', () => {
     expect(observedReturns(history)).toEqual([0.1, -0.2, 0.15]);
   });
 

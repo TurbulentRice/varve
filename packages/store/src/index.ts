@@ -30,3 +30,10 @@ export {
 } from './repository.js';
 
 export { InMemoryRepository } from './memory.js';
+
+export {
+  PersistingRepository,
+  localSnapshotStore,
+  memorySnapshotStore,
+  type SnapshotStore,
+} from './persistence.js';

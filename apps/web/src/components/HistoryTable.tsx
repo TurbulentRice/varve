@@ -30,15 +30,20 @@ export function HistoryTable({ years }: { years: readonly YearRow[] }) {
           {[...years].reverse().map((y) => {
             // No legacy figure means no disagreement to report. Showing a delta
             // against an undefined number invents a discrepancy.
-            const delta = y.legacyReturn === null ? null : (y.twr - y.legacyReturn) * 10_000;
+            const delta =
+              !y.recorded || y.legacyReturn === null ? null : (y.twr - y.legacyReturn) * 10_000;
             const material = delta !== null && Math.abs(delta) >= 100;
             const shown = delta !== null && Math.abs(delta) >= 1;
 
             return (
-              <tr key={y.year} title={y.note ?? undefined}>
+              <tr key={y.year} className={y.recorded ? undefined : 'unrecorded'} title={y.note ?? undefined}>
                 <th scope="row" className="year">
                   {y.year}
-                  {y.partial ? (
+                  {!y.recorded ? (
+                    <span className="flag gap" title="No balance was recorded in this year — the figure shown is the last one before it, carried forward.">
+                      no record
+                    </span>
+                  ) : y.partial ? (
                     <span className="flag" title={`as of ${y.endValueAsOf}`}>
                       •
                     </span>
@@ -53,13 +58,13 @@ export function HistoryTable({ years }: { years: readonly YearRow[] }) {
                 <td className="num muted">{money(y.contributions)}</td>
                 <td className="num muted">{y.fees.isZero() ? '—' : money(y.fees)}</td>
                 <td className={`num ${y.organicGain.isNegative() ? 'negative' : 'positive'}`}>
-                  {money(y.organicGain)}
+                  {y.recorded ? money(y.organicGain) : '—'}
                 </td>
                 <td className={`num strong ${y.twr < 0 ? 'negative' : 'positive'}`}>
-                  {percent(y.twr)}
+                  {y.recorded ? percent(y.twr) : '—'}
                 </td>
                 <td className="num muted">
-                  {y.legacyReturn === null ? '—' : percent(y.legacyReturn)}
+                  {y.recorded && y.legacyReturn !== null ? percent(y.legacyReturn) : '—'}
                 </td>
                 <td className={`num delta ${material ? 'material' : 'trivial'}`}>
                   {shown ? `${delta! > 0 ? '+' : '−'}${Math.abs(delta!).toFixed(0)} bp` : '—'}
@@ -77,7 +82,8 @@ export function HistoryTable({ years }: { years: readonly YearRow[] }) {
         original spreadsheet reported — dividing by the starting balance alone, which credits late
         contributions with a full year of growth. The two agree exactly in years with no
         contributions; Δ shows where they do not. • marks a year still in progress, ✎ a year with a
-        note.
+        note, and <em>no record</em> a year with no balance entered — the figure shown is the last
+        one before it, carried forward, and it counts toward no average.
       </p>
     </div>
   );

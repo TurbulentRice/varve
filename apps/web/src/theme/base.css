@@ -427,7 +427,9 @@ table {
   padding-bottom: var(--space-3);
 }
 
-th {
+/* Column headings are labels and get the small-caps treatment. Row headings
+   are content — an account name — and must not be shouted. */
+thead th {
   text-align: right;
   font-size: 0.7rem;
   font-weight: 600;
@@ -442,6 +444,13 @@ th {
 thead th:first-child,
 tbody th {
   text-align: left;
+}
+
+tbody th {
+  text-transform: none;
+  letter-spacing: normal;
+  font-size: 0.8125rem;
+  color: var(--ink);
 }
 
 td,
@@ -539,4 +548,227 @@ tbody tr:hover {
   * {
     transition: none !important;
   }
+}
+
+/* ------------------------------------------------------------------ buttons */
+
+button.primary,
+button.ghost,
+.masthead-actions .open {
+  font: inherit;
+  font-size: 0.8125rem;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  white-space: nowrap;
+  border: var(--hairline);
+}
+
+button.primary {
+  background: var(--data-line);
+  border-color: var(--data-line);
+  color: #fff;
+  font-weight: 600;
+}
+
+button.primary:disabled {
+  background: transparent;
+  border-color: var(--line);
+  color: var(--ink-muted);
+  cursor: default;
+  font-weight: 400;
+}
+
+button.ghost {
+  background: var(--surface-raised);
+  color: var(--ink-secondary);
+}
+
+button.ghost:hover:not(:disabled) {
+  color: var(--ink);
+  border-color: var(--axis);
+}
+
+button.ghost:disabled {
+  color: var(--ink-muted);
+  opacity: 0.5;
+  cursor: default;
+}
+
+.masthead-actions {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.loading {
+  color: var(--ink-muted);
+}
+
+/* ------------------------------------------------------------------- editor */
+
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.editor-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.year-stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  border: var(--hairline);
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+  padding: var(--space-1);
+}
+
+button.ghost.step {
+  border: none;
+  background: none;
+  padding: var(--space-1) var(--space-3);
+  font-size: 1.125rem;
+  line-height: 1;
+}
+
+.year-current {
+  font-size: 1.125rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  min-width: 3.5rem;
+  text-align: center;
+}
+
+.editor-lead {
+  margin: 0;
+  color: var(--ink-secondary);
+  font-size: 0.9375rem;
+  max-width: 44rem;
+}
+
+.entry-table th[scope='row'] {
+  font-weight: 500;
+  color: var(--ink);
+  white-space: normal;
+  min-width: 11rem;
+}
+
+.entry-table td {
+  padding: var(--space-2) var(--space-2);
+}
+
+input.amount {
+  width: 100%;
+  min-width: 7rem;
+  font: inherit;
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  padding: var(--space-2) var(--space-3);
+  color: var(--ink);
+  background: var(--surface);
+  border: var(--hairline);
+  border-radius: var(--radius-sm);
+}
+
+input.amount:focus {
+  outline: 2px solid var(--data-line);
+  outline-offset: -1px;
+  border-color: transparent;
+}
+
+input.amount:disabled {
+  background: transparent;
+  color: var(--ink-muted);
+  cursor: not-allowed;
+}
+
+tr.locked th[scope='row'] {
+  color: var(--ink-muted);
+}
+
+.lock {
+  margin-left: var(--space-2);
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-muted);
+  border: var(--hairline);
+  border-radius: 999px;
+  padding: 1px var(--space-2);
+  cursor: help;
+}
+
+button.ghost.add {
+  align-self: flex-start;
+}
+
+.add-account {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.add-account input,
+.add-account select {
+  font: inherit;
+  font-size: 0.875rem;
+  padding: var(--space-2) var(--space-3);
+  color: var(--ink);
+  background: var(--surface);
+  border: var(--hairline);
+  border-radius: var(--radius-sm);
+}
+
+.editor-foot {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-5);
+  flex-wrap: wrap;
+  border-top: var(--hairline);
+  padding-top: var(--space-4);
+}
+
+.editor-note {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+  max-width: 34rem;
+  line-height: 1.6;
+}
+
+.editor-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.saved {
+  font-size: 0.8125rem;
+  color: var(--positive);
+}
+
+tr.unrecorded td,
+tr.unrecorded th {
+  color: var(--ink-muted);
+}
+
+.flag.gap {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-muted);
+  border: var(--hairline);
+  border-radius: 999px;
+  padding: 1px var(--space-2);
 }

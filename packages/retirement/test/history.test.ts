@@ -173,8 +173,31 @@ describe('years', () => {
     expect(y.legacyReturn).toBeCloseTo(0.1, 9);
   });
 
+  it('distinguishes a gap in the record from a flat year', () => {
+    // 2020 and 2021 both have balances; a year with none is a gap, and the
+    // value shown for it is simply the last one carried forward.
+    const sparse = deriveHistory({
+      ...ledger(),
+      accounts: [account(MAIN, 'Main', 'retirement')],
+      observations: [
+        obs(MAIN, '2019-12-31', '1000'),
+        obs(MAIN, '2022-12-31', '1200'),
+      ],
+      flows: [flow(MAIN, '2019-12-31', '1000', 'transfer_in')],
+    });
+
+    const gap = sparse.years.find((y) => y.year === 2020)!;
+    expect(gap.recorded).toBe(false);
+    expect(gap.partial).toBe(false); // a gap is not a year in progress
+    expect(gap.endValue.toString()).toBe('1000.0000');
+
+    // And it must not be averaged in as a 0% year.
+    expect(sparse.averageReturn).toBeCloseTo(0.2, 9); // only 2022 counts
+  });
+
   it('marks a year that is only partly observed', () => {
     const y = yearOf(2022);
+    expect(y.recorded).toBe(true);
     expect(y.partial).toBe(true);
     expect(y.endValueAsOf).toBe('2022-06-30');
     expect(y.endValue.toString()).toBe('2100.0000');

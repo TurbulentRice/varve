@@ -10,6 +10,20 @@ export { loadLedger, type Ledger } from './ledger.js';
 export { householdSeries, type HouseholdSeries } from './household.js';
 export { deriveHistory, type History, type YearRow } from './history.js';
 
+export {
+  planYearEntry,
+  existingYearEntry,
+  newAccount,
+  parseAmount,
+  closingDate,
+  midYearDate,
+  balanceIdFor,
+  contributionIdFor,
+  feeIdFor,
+  type YearEntry,
+  type EntryPlan,
+} from './entry.js';
+
 export { mulberry32, randomInt, standardNormal, type Rng } from './random.js';
 
 export {

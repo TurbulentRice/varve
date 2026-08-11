@@ -28,6 +28,16 @@ export interface YearRow {
   readonly endValue: Money;
   /** May precede the year end when the year is still in progress. */
   readonly endValueAsOf: IsoDate;
+  /**
+   * Whether this year holds a balance of its own.
+   *
+   * A year with none is a *gap*, not a flat year: the balance shown is the last
+   * one before it, carried forward. Reporting a gap as 0% would claim something
+   * about a year nobody recorded — and would drag every average that included
+   * it toward zero.
+   */
+  readonly recorded: boolean;
+  /** Recorded, but not through the year end — a year still in progress. */
   readonly partial: boolean;
   readonly contributions: Money;
   readonly fees: Money;
@@ -92,16 +102,18 @@ export function deriveHistory(ledger: Ledger): History {
       const range = calendarYearRange(year);
       const summary = summarizePeriod(balances, externalFlows, range);
 
-      // Nothing observed in this year at all. Skipping beats rendering a row of
-      // zeroes that reads as a year of no growth.
+      // Before the record begins there is genuinely nothing to say.
       if (summary.startValue.isZero() && summary.endValue.isZero()) continue;
+
+      const recorded = balances.some((b) => b.asOf > range.start && b.asOf <= range.end);
 
       years.push({
         year,
         startValue: summary.startValue,
         endValue: summary.endValue,
         endValueAsOf: summary.endValueAsOf,
-        partial: summary.endValueAsOf < range.end,
+        recorded,
+        partial: recorded && summary.endValueAsOf < range.end,
         contributions: summary.byKind.contribution.plus(summary.byKind.withdrawal),
         fees: summary.byKind.fee.abs(),
         totalGain: summary.totalGain,
@@ -127,8 +139,8 @@ export function deriveHistory(ledger: Ledger): History {
       .map((f) => f.amount),
   );
 
-  // A year counts toward the average if it had capital at risk: it either began
-  // with a balance, or money was put in during it.
+  // A year counts toward the average if it was actually observed *and* had
+  // capital at risk — it either began with a balance or money was put in.
   //
   // The distinction matters at the start of a record. A ledger that opens with a
   // balance carried in from before tracking began has nothing at risk and no
@@ -137,7 +149,7 @@ export function deriveHistory(ledger: Ledger): History {
   // year *do* earn a return on the money while it is invested, and dropping that
   // year would discard a real one. Only the first case has no contributions.
   const investedYears = years.filter(
-    (y) => !y.startValue.isZero() || !y.contributions.isZero(),
+    (y) => y.recorded && (!y.startValue.isZero() || !y.contributions.isZero()),
   );
   const benchmarks = investedYears
     .map((y) => y.benchmark)

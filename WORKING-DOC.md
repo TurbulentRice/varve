@@ -437,9 +437,31 @@ sign therefore carries the meaning everywhere and colour only reinforces it.
 Each chart has a table twin behind a disclosure, which serves the readers who
 want numbers and the rule that no value be reachable only by hovering.
 
-**3. Editing**
+**3. Editing** — ✅ done
 
-`store` already has the write path; nothing calls it yet. Manual entry needs to feel good — it is the primary interaction, even if it is not the focus. Once a year, a handful of numbers per account, and it should feel like taking ownership rather than filing a return.
+Persistence first, because an edit that dies on refresh is not an edit.
+`SnapshotStore` is a two-method port — read the document, write the document —
+which is the whole surface `localStorage`, a file, and an HTTP endpoint holding
+a `jsonb` column have in common. `PersistingRepository` decorates any repository
+and writes after every mutation, so a save nobody remembers to call cannot lose
+anything.
+
+`planYearEntry` holds the translation from what a statement says to what the
+ledger stores. A closing balance is dated 31 December; an annual contribution
+total has no date of its own and is recorded mid-year, since that is what
+"accumulated through the year" weights to. Ids are derived from account and
+period, so saving a year twice corrects it instead of duplicating it — the only
+forgiving behaviour for a form someone meets once a year.
+
+Imported years are shown but locked: they hold quarterly detail an annual form
+cannot express, and one December box overwriting four quarters would destroy
+information silently.
+
+Editing immediately exposed a latent bug the imported data never could, because
+it has no gaps. A year with no balance of its own was reported as a flat 0%
+year rather than a gap, and counted toward the average return. `YearRow` now
+carries `recorded`, gaps are excluded from every average and from the returns
+that seed a simulation, and the table says *no record* rather than 0.0%.
 
 **4. Per-account views**
 

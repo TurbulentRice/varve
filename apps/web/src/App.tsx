@@ -1,17 +1,27 @@
-import { m, type Money } from '@varve/core';
-import { decodeSnapshot, type Snapshot } from '@varve/store';
+import { m, type Account, type Money } from '@varve/core';
+import {
+  InMemoryRepository,
+  PersistingRepository,
+  decodeSnapshot,
+  localSnapshotStore,
+  type Repository,
+  type Snapshot,
+} from '@varve/store';
 import {
   blockBootstrap,
   bootstrap,
   chanceOfReaching,
   deriveHistory,
+  newAccount,
   normal,
   observedReturns,
+  planYearEntry,
   simulate,
   type History,
   type ReturnModel,
+  type YearEntry,
 } from '@varve/retirement';
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { anchorBands, ProjectionChart, type BandPoint } from './charts/ProjectionChart.js';
 import { Controls, type Settings } from './components/Controls.js';
 import { Disclosure } from './components/Disclosure.js';
@@ -19,6 +29,8 @@ import { Hero } from './components/Hero.js';
 import { HistoryTable } from './components/HistoryTable.js';
 import { ProjectionTable } from './components/ProjectionTable.js';
 import { StatTiles } from './components/StatTiles.js';
+import { YearEditor } from './components/YearEditor.js';
+import { downloadSnapshot } from './lib/download.js';
 import sampleSnapshot from './data/sample-snapshot.json';
 
 /**
@@ -55,14 +67,51 @@ function modelFor(choice: Settings['model'], observed: readonly number[]): Retur
   }
 }
 
-export function App() {
-  const [snapshot, setSnapshot] = useState<Snapshot>(() =>
-    decodeSnapshot(JSON.stringify(sampleSnapshot)),
-  );
-  const [error, setError] = useState<string | null>(null);
+const store = localSnapshotStore();
 
+export function App() {
+  const [repo, setRepo] = useState<Repository | null>(null);
+  const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
+
+  // Anything previously saved wins over the bundled sample. Loading is async so
+  // a remote store slots in here later without touching anything downstream.
+  useEffect(() => {
+    void (async () => {
+      let initial: Snapshot;
+      try {
+        initial = (await store.load()) ?? decodeSnapshot(JSON.stringify(sampleSnapshot));
+      } catch {
+        // A stored document this build cannot read must not brick the app.
+        initial = decodeSnapshot(JSON.stringify(sampleSnapshot));
+      }
+      setRepo(new PersistingRepository(new InMemoryRepository(initial), store));
+      setSnapshot(initial);
+    })();
+  }, []);
+
+  const commit = useCallback(async () => {
+    if (repo) setSnapshot(await repo.export());
+  }, [repo]);
+
+  if (!snapshot || !repo) return <div className="page loading">Loading…</div>;
+
+  return <Ledger snapshot={snapshot} repo={repo} commit={commit} />;
+}
+
+function Ledger({
+  snapshot,
+  repo,
+  commit,
+}: {
+  snapshot: Snapshot;
+  repo: Repository;
+  commit: () => Promise<void>;
+}) {
   const history = useMemo<History>(() => deriveHistory(snapshot), [snapshot]);
   const observed = useMemo(() => observedReturns(history), [history]);
+
+  const [error, setError] = useState<string | null>(null);
+  const [editingYear, setEditingYear] = useState<number | null>(null);
 
   const [settings, setSettings] = useState<Settings>(() => ({
     contribution: 10_000,
@@ -71,8 +120,6 @@ export function App() {
     model: 'bootstrap',
   }));
 
-  // The default target depends on the ledger, so it follows a newly opened one
-  // rather than stranding the reader on a number from someone else's finances.
   const [targetTouched, setTargetTouched] = useState(false);
   const target = targetTouched
     ? settings.target
@@ -113,16 +160,57 @@ export function App() {
     [history],
   );
 
-  const chance = chanceOfReaching(simulation, m(String(target)));
+  const editableAccounts = useMemo(
+    () => snapshot.accounts.filter((a) => a.kind !== 'benchmark'),
+    [snapshot],
+  );
 
-  async function openSnapshot(file: File) {
+  async function saveYear(year: number, entries: YearEntry[]) {
+    const plan = planYearEntry(year, entries);
+    await repo.saveObservations(plan.observations);
+    await repo.saveFlows(plan.flows);
+    await repo.deleteObservations(plan.removedObservations);
+    await repo.deleteFlows(plan.removedFlows);
+    await commit();
+  }
+
+  async function addAccount(name: string, kind: Account['kind']) {
+    await repo.saveAccounts([
+      newAccount(
+        snapshot.household.id,
+        name,
+        kind === 'benchmark' ? 'retirement' : kind,
+        snapshot.owners.map((o) => o.id),
+      ),
+    ]);
+    await commit();
+  }
+
+  async function openFile(file: File) {
     try {
-      setSnapshot(decodeSnapshot(await file.text()));
-      setTargetTouched(false);
+      await repo.replace(decodeSnapshot(await file.text()));
+      await commit();
       setError(null);
     } catch (cause) {
       setError((cause as Error).message);
     }
+  }
+
+  if (editingYear !== null) {
+    return (
+      <div className="page">
+        <YearEditor
+          accounts={editableAccounts}
+          observations={snapshot.observations}
+          flows={snapshot.flows}
+          year={editingYear}
+          onYearChange={setEditingYear}
+          onSave={(entries) => saveYear(editingYear, entries)}
+          onAddAccount={addAccount}
+          onClose={() => setEditingYear(null)}
+        />
+      </div>
+    );
   }
 
   return (
@@ -135,17 +223,34 @@ export function App() {
             {history.years.length} years recorded
           </p>
         </div>
-        <label className="open">
-          Open a snapshot…
-          <input
-            type="file"
-            accept=".json"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) void openSnapshot(file);
-            }}
-          />
-        </label>
+        <div className="masthead-actions">
+          <button
+            type="button"
+            className="primary"
+            onClick={() => setEditingYear(new Date().getUTCFullYear() - 1)}
+          >
+            Update numbers
+          </button>
+          <button
+            type="button"
+            className="ghost"
+            onClick={() => downloadSnapshot(snapshot)}
+            title="Download everything as a file you keep"
+          >
+            Export
+          </button>
+          <label className="ghost open">
+            Open…
+            <input
+              type="file"
+              accept=".json"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) void openFile(file);
+              }}
+            />
+          </label>
+        </div>
       </header>
 
       {error ? (
@@ -156,7 +261,7 @@ export function App() {
       ) : null}
 
       <Hero
-        chance={chance}
+        chance={chanceOfReaching(simulation, m(String(target)))}
         target={m(String(target))}
         targetYear={lastYear + settings.years}
         median={simulation.finalValue.median}
@@ -176,10 +281,7 @@ export function App() {
       <StatTiles history={history} />
 
       <div className="details">
-        <Disclosure
-          summary="Every recorded year"
-          hint={`${history.years.length} years`}
-        >
+        <Disclosure summary="Every recorded year" hint={`${history.years.length} years`}>
           <HistoryTable years={history.years} />
         </Disclosure>
 
@@ -194,7 +296,8 @@ export function App() {
       <footer className="footnote">
         Simulated from {observed.length} recorded years of this household&rsquo;s own returns. Past
         returns are a small and biased sample — they are what happened to these accounts over one
-        particular stretch, not a forecast.
+        particular stretch, not a forecast. Your ledger is saved in this browser, which is
+        convenient and not durable; <strong>Export</strong> is the copy you actually keep.
       </footer>
     </div>
   );

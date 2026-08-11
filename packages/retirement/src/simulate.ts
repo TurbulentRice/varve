@@ -256,7 +256,12 @@ export function observedReturns(
   source: 'portfolio' | 'benchmark' = 'portfolio',
 ): number[] {
   return history.years
-    .filter((y) => !y.partial && (!y.startValue.isZero() || !y.contributions.isZero()))
+    .filter(
+      (y) =>
+        y.recorded &&
+        !y.partial &&
+        (!y.startValue.isZero() || !y.contributions.isZero()),
+    )
     .map((y) => (source === 'benchmark' ? y.benchmark : y.twr))
     .filter((r): r is number => r !== null);
 }
