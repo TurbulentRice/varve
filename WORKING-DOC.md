@@ -284,22 +284,33 @@ Mostly built already. `legacy/extracted/extract.sh` handles Access → SQLite; w
 packages/core/           pure domain + calculations, zero dependencies
   money.ts               exact decimal money on bigint
   time.ts                calendar dates, quarters, ranges
-  types.ts               households, owners, accounts, observations, flows
+  types.ts               households, owners, accounts, observations, flows, notes
   returns.ts             Modified Dietz, chain-linked TWR, fee drag
   aggregate.ts           period summaries, household rollups, rolling averages
   projection.ts          forward projection, milestones
+packages/store/          storage
+  snapshot.ts            the JSON document: schemaVersion, revision, money as strings
+  repository.ts          async, query-shaped interface
+  memory.ts              in-memory adapter
+  file.ts                atomic read/write (Node only, separate entry point)
+packages/retirement/     the view layer a UI talks to
+  ledger.ts              the working set; loadLedger is the only I/O here
+  household.ts           collapsing accounts into one series, netting transfers
+  history.ts             the year-by-year derivation
 packages/legacy-import/  one-way migration from Access
   csv.ts                 RFC 4180 reader (keeps money as exact text)
   import.ts              wide rows -> observations + flows, transfer recovery
-  test/reconcile.test.ts reconciliation against qryYearEndTotals
-legacy/extracted/        the legacy data in open formats (extract.sh, gitignored)
+  fixtures/synthetic.ts  the committed stand-in for the real database
+  cli.ts                 builds snapshot documents
+apps/web/                throwaway view
+legacy/extracted/        schema and extraction tooling (data is gitignored)
 ```
 
 ```bash
 pnpm install && pnpm test
 ```
 
-95 tests. `pnpm reconcile` prints the year-by-year comparison against Access.
+144 tests. `pnpm reconcile` prints the year-by-year comparison against Access.
 
 ---
 

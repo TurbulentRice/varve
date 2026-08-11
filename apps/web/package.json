@@ -12,7 +12,8 @@
   },
   "dependencies": {
     "@varve/core": "workspace:*",
-    "@varve/store": "workspace:*"
+    "@varve/store": "workspace:*",
+    "@varve/retirement": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.6.0",

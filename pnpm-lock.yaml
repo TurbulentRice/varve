@@ -20,6 +20,9 @@ importers:
       '@varve/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@varve/retirement':
+        specifier: workspace:*
+        version: link:../../packages/retirement
       '@varve/store':
         specifier: workspace:*
         version: link:../../packages/store
@@ -52,6 +55,22 @@ importers:
       '@types/node':
         specifier: ^22.0.0
         version: 22.20.1
+      typescript:
+        specifier: ^5.6.0
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.0
+        version: 2.1.9(@types/node@22.20.1)
+
+  packages/retirement:
+    dependencies:
+      '@varve/core':
+        specifier: workspace:*
+        version: link:../core
+      '@varve/store':
+        specifier: workspace:*
+        version: link:../store
+    devDependencies:
       typescript:
         specifier: ^5.6.0
         version: 5.9.3

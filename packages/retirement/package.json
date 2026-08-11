@@ -1,0 +1,29 @@
+{
+  "name": "@varve/retirement",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Retirement tracking: household history, returns, and benchmark comparison.",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@varve/core": "workspace:*",
+    "@varve/store": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0",
+    "vitest": "^2.1.0"
+  }
+}

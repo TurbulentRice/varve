@@ -6,7 +6,7 @@
     "node": ">=20"
   },
   "scripts": {
-    "build": "tsc -b packages/core packages/store packages/legacy-import",
+    "build": "tsc -b packages/core packages/store packages/retirement packages/legacy-import",
     "typecheck": "pnpm build",
     "test": "pnpm -r test",
     "reconcile": "pnpm --filter @varve/legacy-import reconcile",

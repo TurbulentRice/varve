@@ -11,7 +11,7 @@
 
 import { InMemoryRepository, decodeSnapshot, type Snapshot } from '@varve/store';
 import sampleSnapshot from './data/sample-snapshot.json';
-import { buildHistory, type History, type YearRow } from './history.js';
+import { buildHistory, type History, type YearRow } from '@varve/retirement';
 import './styles.css';
 
 const app = document.querySelector<HTMLDivElement>('#app')!;

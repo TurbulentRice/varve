@@ -1,7 +1,11 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ],
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "resolveJsonModule": true,
@@ -10,9 +14,19 @@
     "declaration": false,
     "declarationMap": false,
     "paths": {
-      "@varve/core": ["../../packages/core/src/index.ts"],
-      "@varve/store": ["../../packages/store/src/index.ts"]
+      "@varve/core": [
+        "../../packages/core/src/index.ts"
+      ],
+      "@varve/store": [
+        "../../packages/store/src/index.ts"
+      ],
+      "@varve/retirement": [
+        "../../packages/retirement/src/index.ts"
+      ]
     }
   },
-  "include": ["src/**/*", "vite.config.ts"]
+  "include": [
+    "src/**/*",
+    "vite.config.ts"
+  ]
 }
