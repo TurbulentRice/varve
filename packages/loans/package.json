@@ -1,0 +1,30 @@
+{
+  "name": "@varve/loans",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Loan amortization and repayment strategy comparison.",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "fixtures": "python3 tools/generate-fixtures.py"
+  },
+  "dependencies": {
+    "@varve/core": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0",
+    "vitest": "^2.1.0"
+  }
+}

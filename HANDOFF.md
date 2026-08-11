@@ -28,7 +28,7 @@ Repo: https://github.com/TurbulentRice/varve (public, MIT)
 
 ## Where things stand
 
-Five phases done, committed, and pushed. **215 tests**, clean typecheck, clean
+Six phases done, committed, and pushed. **410 tests**, clean typecheck, clean
 production build.
 
 | Package | What it holds | Tests |
@@ -36,6 +36,7 @@ production build.
 | `packages/core` | Money, dates, domain types, returns, aggregation, projection. Zero dependencies. | 80 |
 | `packages/store` | Snapshot format, repository interface, in-memory + persisting adapters. | 29 |
 | `packages/retirement` | Ledger, household + per-account derivation, year entry, Monte Carlo. | 83 |
+| `packages/loans` | Amortization, five repayment strategies, comparison. Ported from `financetools`. | 195 |
 | `packages/legacy-import` | One-way migration from Access, with a synthetic fixture. | 23 |
 | `apps/web` | React + Vite. Dashboard, projection fan chart, year editor, account views. | — |
 
@@ -45,6 +46,7 @@ pnpm build                       # typecheck + emit all packages
 pnpm --filter @varve/web dev     # the app
 pnpm snapshot                    # rebuild the sample (and local, if present)
 pnpm reconcile                   # replay the real Access data, if you have it
+pnpm --filter @varve/loans fixtures   # regenerate the financetools oracle (needs Python)
 ```
 
 ### Roadmap position
@@ -53,7 +55,8 @@ pnpm reconcile                   # replay the real Access data, if you have it
 2. ✅ Framework and the first real UI (React + Vite)
 3. ✅ Editing and persistence
 4. ✅ Per-account views
-5. ⬅ **`packages/loans` — port `financetools` to TypeScript. You are here.**
+5. ✅ `packages/loans` — `financetools` ported, reconciled line for line
+6. ⬅ **Next: routing, then wiring loans into the ledger and the UI. You are here.**
 
 Deferred behind a stated seam: server, auth, sync, institution APIs.
 
@@ -61,8 +64,12 @@ Deferred behind a stated seam: server, auth, sync, institution APIs.
 
 - **No routing.** View state is a three-way toggle (dashboard / editor / account
   detail) held in `useState`. An account page you cannot bookmark or reach with
-  the back button is the first thing that will feel wrong to a real user.
-  Routing is likely the next infrastructure piece after loans.
+  the back button is the first thing that will feel wrong to a real user. Loans
+  will add a fourth surface, which makes this the next infrastructure piece.
+- **Loans are not integrated.** `packages/loans` is standalone by design — no
+  ledger wiring, no UI. Deliberate: the API should be designed against a real
+  consumer, which is the `history.ts` lesson. Whether a loan is an account with a
+  negative balance or a different thing entirely is still open.
 - **Account detail tiles get tight at 1280px** — six across, with "Share of
   household" wrapping. Legible, not elegant.
 - **`localStorage` is not durable.** Export is the real backup. A "last exported"
@@ -185,54 +192,62 @@ not, and one was a test asserting behaviour that turned out to be wrong.
 
 ---
 
-## Next task: `packages/loans`
+## Next task: routing, then integrating loans
 
-Port [`financetools`](https://github.com/TurbulentRice/financetools) —
-`~/Dev/financetools`, Python, ~650 lines, zero dependencies, consumed today by
-[RepayMint](https://github.com/TurbulentRice/RepayMint).
+Two candidates, and they are ordered.
 
-It models loan amortization and compares repayment strategies. `Loan` holds a
-balance, rate, term and a payment history; `LoanQueue` holds several loans and a
-budget, and implements ordered strategies (**avalanche**, **blizzard**,
-**snowball**) plus **cascade**, **ice_slide**, **finish**, and a `debt_solve`
-routine; `LoanQueueCompare` runs them against each other. `README.md` there
-explains the algorithms well — read it.
+### 1. Routing
 
-The target shape is a **peer to `retirement` over the same `core`**. That is what
-makes absorbing RepayMint an addition rather than a merge, and it is the
-architecture bet from Decision 4 in the working doc.
+The app holds view state in a three-way `useState` toggle. An account page you
+cannot bookmark, link, or reach with the back button is the first thing that will
+feel wrong to a real user, and loans are about to add a fourth surface — which
+turns a nuisance into a structural problem.
 
-### Decisions to make and write down before coding
+This is small and unglamorous. It is also the piece everything after it assumes.
 
-- **Rounding.** `financetools` quantizes to cents with `ROUND_HALF_UP`. Varve
-  rounds **half-even**. Matching Python exactly makes parity testing trivial and
-  breaks the house convention; adopting half-even is consistent and means the
-  ported output will differ from the Python in the last cent. Pick one, say why.
-- **Where the Money/number seam falls.** Balances and payments are `Money`.
-  Interest rates and the discount factor (`((1+r)^n − 1)/(r(1+r)^n)`) are rate
-  maths and belong in `number`. Be explicit about where the crossing happens.
-- **Parity fixtures.** The Access migration is trusted because it reconciles
-  against an independent implementation. Consider the same here: generate
-  amortization schedules from the Python and commit them as fixtures, so the
-  port is *provably* faithful rather than plausibly so. The Python tests
-  (`tests/`) are a starting point but thin.
-- **Scope.** All the strategies, or the three the README documents first? A
-  smaller first slice that is genuinely finished beats five half-ported
-  algorithms.
-- **Integration, or not yet.** Loans could stay standalone initially. Wiring it
-  into the ledger and the UI is a separate phase, and doing it later means the
-  API gets designed against a real consumer — which is the lesson from
-  `history.ts`, built inside the web app and only graduated once its shape had
-  been tested by use.
+### 2. Wiring loans into the ledger and the UI
+
+`packages/loans` is finished and standalone: amortization, five strategies, and
+the comparison, reconciled line for line against the Python (§11 of the working
+doc). Nothing consumes it yet, which was deliberate — the integration API should
+be designed against a real consumer rather than guessed at, the lesson from
+`history.ts`.
+
+The open question is the modelling one, and it deserves the same treatment §11
+got — written down before code:
+
+- **Is a loan an account with a negative balance, or its own entity?** The
+  observations-and-flows model in `core` was built for assets. A loan has a
+  contractual schedule, which an investment account does not, and that schedule
+  is a *projection* rather than a record. Forcing it into `BalanceObservation`
+  may be elegant or may be the `Q0`-as-plug mistake in a new costume.
+- **Does net worth combine them?** If it does, `Money` handles the sign fine, but
+  every derivation in `retirement` that assumes growth is good needs re-reading.
+- **What does the UI actually show?** The comparison table is the interesting
+  output — five strategies, one budget, ranked. Probably that, plus one schedule
+  chart. Not five.
 
 ### Read before starting
 
-1. `WORKING-DOC.md` — all of it, especially §4 (architecture) and §10 (roadmap).
+1. `WORKING-DOC.md` §11 — the loans port, the decisions, and §11.7 for what
+   building it turned up. §4 for the architecture, §10 for the roadmap.
 2. `packages/core/src/money.ts` — the conventions every calculation inherits.
-3. `packages/retirement/src/series.ts` — how a derivation is structured, and how
+3. `packages/loans/src/cents.ts` — why loans use a coarser grid than everything
+   else, and the single-rounding argument that makes parity possible.
+4. `packages/retirement/src/series.ts` — how a derivation is structured, and how
    `recorded` / `measurable` handle absent data.
-4. `packages/retirement/test/account.test.ts` — the testing style.
-5. `~/Dev/financetools/README.md` and `financetools/loan.py`.
+5. `packages/loans/test/parity.test.ts` and `rounding.test.ts` — the testing
+   style, and how a deliberate departure gets pinned rather than hidden.
+
+Regenerating the loans oracle needs a `financetools` checkout and Python:
+
+```bash
+pnpm --filter @varve/loans fixtures
+```
+
+It is committed, so this is only necessary if the Python changes.
 
 Ask before assuming. Several decisions in this codebase went the non-obvious way
-for reasons that are written down but not guessable.
+for reasons that are written down but not guessable — and at least one of those
+reasons was written down wrong the first time and corrected by building it. See
+the warning box in §11.2.
