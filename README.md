@@ -1,11 +1,11 @@
 # Varve
 
-A personal finance platform. Retirement tracking first, loan repayment second.
+A personal finance platform.
 Web-first, local-first, TypeScript throughout.
 
 Grown out of a Microsoft Access database that has tracked one household's
 retirement savings quarterly since 2006, plus the Excel workbook that condensed
-it. Both are preserved in [`legacy/extracted/`](legacy/extracted/README.md); the
+it. Their spirit is preserved in [`legacy/extracted/`](legacy/extracted/README.md); the
 reasoning that came out of them is in
 [the working doc](docs/working/discovery-and-architecture.md).
 
