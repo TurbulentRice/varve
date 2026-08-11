@@ -191,8 +191,34 @@ describe('years', () => {
     expect(gap.partial).toBe(false); // a gap is not a year in progress
     expect(gap.endValue.toString()).toBe('1000.0000');
 
-    // And it must not be averaged in as a 0% year.
-    expect(sparse.averageReturn).toBeCloseTo(0.2, 9); // only 2022 counts
+    // 2022 has a balance of its own, but the one before it is three years back.
+    // Its 20% is three years of growth, so it is not a 2022 return and must not
+    // be averaged as one.
+    const after = sparse.years.find((y) => y.year === 2022)!;
+    expect(after.recorded).toBe(true);
+    expect(after.measurable).toBe(false);
+    expect(after.legacyReturn).toBeNull();
+
+    // Nothing here can be measured, so there is no average to report.
+    expect(sparse.averageReturn).toBe(0);
+  });
+
+  it('reports nothing earned for a first year it could not measure', () => {
+    // One closing balance and nothing before it says what the account is worth
+    // and nothing about what it did. Without this the whole balance reads as
+    // growth.
+    const opening = deriveHistory({
+      ...ledger(),
+      accounts: [account(MAIN, 'Main', 'retirement')],
+      observations: [obs(MAIN, '2024-12-31', '100000')],
+      flows: [flow(MAIN, '2024-07-01', '6000', 'contribution')],
+    });
+
+    const first = opening.years[0]!;
+    expect(first.measurable).toBe(false);
+    expect(first.legacyReturn).toBeNull();
+    expect(opening.lifetimeGain.isZero()).toBe(true);
+    expect(opening.averageReturn).toBe(0);
   });
 
   it('marks a year that is only partly observed', () => {

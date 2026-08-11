@@ -6,75 +6,18 @@
  * time-weighted return, and the gap between that and what it used to report.
  */
 
-import {
-  Money,
-  balanceAsOf,
-  calendarYearRange,
-  geometricMean,
-  summarizePeriod,
-  timeWeightedReturn,
-  yearEnd,
-  yearOf,
-  type Account,
-  type IsoDate,
-  type Owner,
-} from '@varve/core';
+import type { Account, Owner } from '@varve/core';
 import { householdSeries } from './household.js';
 import type { Ledger } from './ledger.js';
+import { summarizeSeries, type SeriesSummary } from './series.js';
 
-export interface YearRow {
-  readonly year: number;
-  readonly startValue: Money;
-  readonly endValue: Money;
-  /** May precede the year end when the year is still in progress. */
-  readonly endValueAsOf: IsoDate;
-  /**
-   * Whether this year holds a balance of its own.
-   *
-   * A year with none is a *gap*, not a flat year: the balance shown is the last
-   * one before it, carried forward. Reporting a gap as 0% would claim something
-   * about a year nobody recorded — and would drag every average that included
-   * it toward zero.
-   */
-  readonly recorded: boolean;
-  /** Recorded, but not through the year end — a year still in progress. */
-  readonly partial: boolean;
-  readonly contributions: Money;
-  readonly fees: Money;
-  /** Change in balance including contributions. Progress, not performance. */
-  readonly totalGain: Money;
-  /** Change in balance excluding external flows. The benchmarkable one. */
-  readonly organicGain: Money;
-  /** Chain-linked time-weighted return. */
-  readonly twr: number;
-  /**
-   * What the legacy spreadsheet would have reported, or `null` where it has no
-   * answer — it divides by the starting balance, so a year that began at zero is
-   * undefined rather than 0%.
-   */
-  readonly legacyReturn: number | null;
-  /** Benchmark return over the same year, when a benchmark is tracked. */
-  readonly benchmark: number | null;
-  readonly note: string | null;
-}
+export type { YearRow } from './series.js';
 
-export interface History {
+export interface History extends SeriesSummary {
   readonly householdName: string;
   readonly owners: readonly Owner[];
   readonly accounts: readonly Account[];
   readonly revision: number;
-
-  readonly years: readonly YearRow[];
-  readonly currentValue: Money;
-  readonly currentValueAsOf: IsoDate;
-  /** Contributed during the tracked period, net of withdrawals. */
-  readonly totalContributed: Money;
-  readonly totalFees: Money;
-  /** Everything earned above what was put in. */
-  readonly lifetimeGain: Money;
-  /** Geometric mean of the annual time-weighted returns. */
-  readonly averageReturn: number;
-  readonly averageBenchmark: number | null;
 }
 
 /**
@@ -85,101 +28,18 @@ export interface History {
  */
 export function deriveHistory(ledger: Ledger): History {
   const series = householdSeries(ledger);
-  const { balances, externalFlows } = series;
-
-  const noteByYear = new Map(ledger.notes.map((n) => [n.year, n.text]));
-
-  const years: YearRow[] = [];
-  let currentValue = Money.zero();
-  let currentValueAsOf = '1970-01-01' as IsoDate;
-
-  if (balances.length > 0) {
-    const observed = balances.map((b) => yearOf(b.asOf));
-    const firstYear = Math.min(...observed);
-    const lastYear = Math.max(...observed);
-
-    for (let year = firstYear; year <= lastYear; year += 1) {
-      const range = calendarYearRange(year);
-      const summary = summarizePeriod(balances, externalFlows, range);
-
-      // Before the record begins there is genuinely nothing to say.
-      if (summary.startValue.isZero() && summary.endValue.isZero()) continue;
-
-      const recorded = balances.some((b) => b.asOf > range.start && b.asOf <= range.end);
-
-      years.push({
-        year,
-        startValue: summary.startValue,
-        endValue: summary.endValue,
-        endValueAsOf: summary.endValueAsOf,
-        recorded,
-        partial: recorded && summary.endValueAsOf < range.end,
-        contributions: summary.byKind.contribution.plus(summary.byKind.withdrawal),
-        fees: summary.byKind.fee.abs(),
-        totalGain: summary.totalGain,
-        organicGain: summary.organicGain,
-        twr: summary.twr,
-        legacyReturn: summary.startValue.isZero() ? null : summary.simpleReturn,
-        benchmark: benchmarkReturn(series, range),
-        note: noteByYear.get(year) ?? null,
-      });
-    }
-
-    const latest = balanceAsOf(balances, yearEnd(lastYear));
-    currentValue = latest.amount;
-    currentValueAsOf = latest.asOf;
-  }
-
-  // Money that arrived from outside the tracked period — an opening balance
-  // carried in before records began — is a transfer, not a contribution, and is
-  // excluded here. It was never earned and never saved during these years.
-  const contributed = Money.sum(
-    externalFlows
-      .filter((f) => f.kind === 'contribution' || f.kind === 'withdrawal')
-      .map((f) => f.amount),
-  );
-
-  // A year counts toward the average if it was actually observed *and* had
-  // capital at risk — it either began with a balance or money was put in.
-  //
-  // The distinction matters at the start of a record. A ledger that opens with a
-  // balance carried in from before tracking began has nothing at risk and no
-  // return to speak of, and averaging its 0% in would understate every real year
-  // after it. But accounts that genuinely open at zero and are funded through the
-  // year *do* earn a return on the money while it is invested, and dropping that
-  // year would discard a real one. Only the first case has no contributions.
-  const investedYears = years.filter(
-    (y) => y.recorded && (!y.startValue.isZero() || !y.contributions.isZero()),
-  );
-  const benchmarks = investedYears
-    .map((y) => y.benchmark)
-    .filter((r): r is number => r !== null);
 
   return {
     householdName: ledger.household.name,
     owners: ledger.owners,
     accounts: ledger.accounts,
     revision: ledger.revision,
-    years,
-    currentValue,
-    currentValueAsOf,
-    totalContributed: contributed,
-    totalFees: Money.sum(ledger.flows.filter((f) => f.kind === 'fee').map((f) => f.amount)).abs(),
-    lifetimeGain: Money.sum(years.map((y) => y.organicGain)),
-    averageReturn: geometricMean(investedYears.map((y) => y.twr)),
-    averageBenchmark: benchmarks.length > 0 ? geometricMean(benchmarks) : null,
+    ...summarizeSeries({
+      balances: series.balances,
+      externalFlows: series.externalFlows,
+      allFlows: ledger.flows,
+      benchmarkBalances: series.benchmarkBalances,
+      notes: new Map(ledger.notes.map((n) => [n.year, n.text])),
+    }),
   };
-}
-
-function benchmarkReturn(
-  series: ReturnType<typeof householdSeries>,
-  range: { start: IsoDate; end: IsoDate },
-): number | null {
-  if (!series.benchmark) return null;
-
-  // An index has no flows, so its return is simply how far the level moved.
-  const within = series.benchmarkBalances.filter(
-    (b) => b.asOf >= range.start && b.asOf <= range.end,
-  );
-  return within.length < 2 ? null : timeWeightedReturn(within, []).rate;
 }

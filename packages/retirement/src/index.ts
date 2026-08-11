@@ -8,7 +8,13 @@
 
 export { loadLedger, type Ledger } from './ledger.js';
 export { householdSeries, type HouseholdSeries } from './household.js';
-export { deriveHistory, type History, type YearRow } from './history.js';
+export { deriveHistory, type History } from './history.js';
+export { summarizeSeries, type YearRow, type SeriesInput, type SeriesSummary } from './series.js';
+export {
+  deriveAccountHistory,
+  deriveAccountHistories,
+  type AccountHistory,
+} from './account.js';
 
 export {
   planYearEntry,

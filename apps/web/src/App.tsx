@@ -11,6 +11,7 @@ import {
   blockBootstrap,
   bootstrap,
   chanceOfReaching,
+  deriveAccountHistories,
   deriveHistory,
   newAccount,
   normal,
@@ -28,6 +29,8 @@ import { Disclosure } from './components/Disclosure.js';
 import { Hero } from './components/Hero.js';
 import { HistoryTable } from './components/HistoryTable.js';
 import { ProjectionTable } from './components/ProjectionTable.js';
+import { AccountDetail } from './components/AccountDetail.js';
+import { AccountsTable } from './components/AccountsTable.js';
 import { StatTiles } from './components/StatTiles.js';
 import { YearEditor } from './components/YearEditor.js';
 import { downloadSnapshot } from './lib/download.js';
@@ -112,6 +115,7 @@ function Ledger({
 
   const [error, setError] = useState<string | null>(null);
   const [editingYear, setEditingYear] = useState<number | null>(null);
+  const [openAccount, setOpenAccount] = useState<string | null>(null);
 
   const [settings, setSettings] = useState<Settings>(() => ({
     contribution: 10_000,
@@ -165,6 +169,12 @@ function Ledger({
     [snapshot],
   );
 
+  // A Snapshot satisfies Ledger structurally, so no conversion is needed.
+  const accountHistories = useMemo(
+    () => deriveAccountHistories(snapshot, history.currentValue),
+    [snapshot, history.currentValue],
+  );
+
   async function saveYear(year: number, entries: YearEntry[]) {
     const plan = planYearEntry(year, entries);
     await repo.saveObservations(plan.observations);
@@ -194,6 +204,15 @@ function Ledger({
     } catch (cause) {
       setError((cause as Error).message);
     }
+  }
+
+  const selected = accountHistories.find((a) => a.account.id === openAccount);
+  if (selected) {
+    return (
+      <div className="page">
+        <AccountDetail history={selected} onClose={() => setOpenAccount(null)} />
+      </div>
+    );
   }
 
   if (editingYear !== null) {
@@ -283,6 +302,14 @@ function Ledger({
       <div className="details">
         <Disclosure summary="Every recorded year" hint={`${history.years.length} years`}>
           <HistoryTable years={history.years} />
+        </Disclosure>
+
+        <Disclosure
+          summary="Account by account"
+          hint={`${accountHistories.length} accounts`}
+          open
+        >
+          <AccountsTable accounts={accountHistories} onSelect={setOpenAccount} />
         </Disclosure>
 
         <Disclosure

@@ -463,9 +463,27 @@ year rather than a gap, and counted toward the average return. `YearRow` now
 carries `recorded`, gaps are excluded from every average and from the returns
 that seed a simulation, and the table says *no record* rather than 0.0%.
 
-**4. Per-account views**
+**4. Per-account views** — ✅ done
 
-Deliberately after a UI exists. Designing that API with nothing consuming it would repeat the mistake that made graduating `history.ts` necessary in the first place.
+The payoff for the discovery work: the legacy formula was only mildly wrong at
+household level, where contributions are small against the balance, and badly
+wrong per account, where an account funded from a low base is the pathological
+case.
+
+`summarizeSeries` is shared between the two levels, because they want the same
+table. What differs is what goes in, and one thing inverts: a transfer between
+tracked accounts is netted away for the household — the money never left — but
+counts in full for an account, where it genuinely arrived or departed. Treating
+a rollover as growth is the exact error the ledger was reshaped to prevent.
+
+Building it surfaced a second gap-shaped bug. A year with only a closing balance
+and nothing before it was reporting its whole balance as growth — a first manual
+entry of $100,000 came back as "earned $100,000". `YearRow` now carries
+`measurable`: whether the account was seen at least twice across the year. Two
+observations is the right test rather than "was there one before the year",
+since an account opened on 1 January and funded through it *is* measurable. It
+also correctly refuses to credit the year after a multi-year gap with all the
+growth that accumulated during it.
 
 **5. `packages/loans`**
 
