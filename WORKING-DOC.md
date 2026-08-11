@@ -271,10 +271,7 @@ Mostly built already. `legacy/extracted/extract.sh` handles Access → SQLite; w
 
 5. Were fees deliberately dropped from the year-end totals (§3.4), or did that get lost in a revision?
 6. Is the S&P series meant to be price-only, or would he want total return (§3.5)?
-7. Three accounts are typed "Savings" but named like brokerages (`Brokerage (88888)`, `Etrade`, `Brokerage (Vanguard)`). The importer flags these; which classification did he intend?
-8. `Individual Cash Reserves (11111)` sat at ~$35 from 2012 and stopped reporting after 2019 without being rolled anywhere. It is the only unexplained amount in twenty years (§8.2). Closed? Forgotten?
-9. Do the form layouts matter enough to be worth a Windows session, or is a clean redesign welcome?
-10. What does he actually *look at* most? 20 forms and 4 reports were built; typically two or three carry all the value, and those should anchor v1's UI.
+7. What does he actually *look at* most? 20 forms and 4 reports were built; typically two or three carry all the value, and those should anchor v1's UI.
 
 ---
 
