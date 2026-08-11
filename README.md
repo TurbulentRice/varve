@@ -2,6 +2,8 @@
 
 A personal finance platform. Retirement tracking first, loan repayment second.
 
+Picking this up in a new session? Start with [HANDOFF.md](HANDOFF.md).
+
 Grown out of a Microsoft Access database that has tracked one household's
 retirement savings quarterly since 2006, plus the Excel workbook that condensed
 it. Both are preserved in [`legacy/extracted/`](legacy/extracted/README.md); the analysis that
