@@ -1,0 +1,82 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# A second push to a PR makes the first run irrelevant.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Test on Node ${{ matrix.node }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # The floor promised by `engines`, and the version actually developed
+        # against. The pair that can realistically drift apart.
+        node: [20, 24]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: pnpm
+
+      # Fails rather than resolving if the lockfile and manifests disagree,
+      # which is the whole point of committing a lockfile.
+      - run: pnpm install --frozen-lockfile
+
+      - name: Typecheck and build packages
+        run: pnpm build
+
+      - run: pnpm test
+
+      # The root build covers `packages/*` only, so the app is checked
+      # separately. It is also the only thing that produces a bundle, which the
+      # next job needs.
+      - name: Typecheck web app
+        run: pnpm --filter @varve/web typecheck
+
+      - name: Build web app
+        run: pnpm --filter @varve/web build
+
+  bundle:
+    name: No real data in the bundle
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @varve/web build
+
+      # Ground rule 1, automated.
+      #
+      # An earlier version auto-loaded a local snapshot via `import.meta.glob`
+      # and put a real household's account names and balances into a production
+      # bundle — a build that could have been deployed. The rule has been
+      # enforced by a documented grep ever since, which works exactly as long as
+      # someone remembers to run it.
+      #
+      # The check is deliberately structural rather than a search for known
+      # names. A denylist of real account names would have to *contain* those
+      # names to work, which puts the thing being protected into a public
+      # repository in order to protect it. Counting embedded ledgers needs no
+      # such list, and it catches the failure that actually happened: the sample
+      # is the only snapshot that belongs in the bundle, so finding two means
+      # something was picked up that should not have been.
+      - name: Exactly one ledger is bundled, and it is the sample
+        run: node .github/scripts/check-bundle.mjs

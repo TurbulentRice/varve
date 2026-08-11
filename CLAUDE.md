@@ -29,15 +29,24 @@ Not stylistic preferences. Each exists because breaking it caused a real bug.
 **1. Never put real financial data in the repo.** The source database holds one
 household's actual balances. It is gitignored, as is any snapshot derived from
 it. Tests assert *properties* ("every year reconciles", "exactly one warning
-survives"), never balances or names. Before any commit touching `apps/web`:
-
-```bash
-grep -rE "Rollover IRA|Individual Cash Reserves|Vanguard|Jackson|Angela" apps/web/dist/assets/*.js
-```
+survives"), never balances or names.
 
 An earlier version auto-loaded a local snapshot via `import.meta.glob` and put
-every real account name into a production bundle. Real snapshots now live
-outside any app source tree and are opened through a file picker.
+every real account name into a production bundle — a build that could have been
+deployed. Real snapshots now live outside any app source tree and are opened
+through a file picker at runtime.
+
+CI enforces this on every PR, and it runs locally the same way:
+
+```bash
+pnpm --filter @varve/web build && node .github/scripts/check-bundle.mjs
+```
+
+The check is **structural, not a denylist** — it refuses globbed and stray JSON
+imports in app source, and rejects any bundled ledger record belonging to a
+household other than the sample. A list of real account names would have to
+contain the very strings it exists to protect, in a public repository. A guard
+rail must not be the leak.
 
 **2. Money is exact; rates are not.** `Money` is a `bigint` at four decimal
 places — the scale Access's `Currency` type used, so twenty years round-trips
