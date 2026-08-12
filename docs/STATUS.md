@@ -5,19 +5,19 @@ want the history of how the thinking changed, that is
 [the working doc](working/discovery-and-architecture.md) — this file only ever
 describes now.
 
-Last updated: 2026-08-12, after wiring loans into the ledger.
+Last updated: 2026-08-12, after the budget-redistribution fix.
 
 ## Where things stand
 
-Eight phases done. **469 tests**, clean typecheck, clean production build, and
-CI running both on every PR.
+Nine phases done. **483 tests**, clean typecheck, clean production build, and CI
+running both on every PR.
 
 | Package | What it holds | Tests |
 |---|---|---|
 | [`packages/core`](../packages/core) | Money, dates, domain types, returns, aggregation, projection. Zero dependencies. | 80 |
 | [`packages/store`](../packages/store) | Snapshot format (v2), repository interface, in-memory + persisting adapters. | 34 |
 | [`packages/retirement`](../packages/retirement) | Ledger, household + per-account derivation, year entry, Monte Carlo. | 83 |
-| [`packages/loans`](../packages/loans) | Amortization, five repayment strategies, comparison, ledger seam. | 215 |
+| [`packages/loans`](../packages/loans) | Amortization, five repayment strategies, comparison, ledger seam. | 229 |
 | [`packages/legacy-import`](../packages/legacy-import) | One-way migration from Access, with a synthetic fixture. | 23 |
 | [`apps/web`](../apps/web) | React + Vite. Dashboard, projections, year editor, account views, debts, hash routing. | 34 |
 
@@ -30,36 +30,22 @@ CI running both on every PR.
 5. ✅ `packages/loans` — `financetools` ported, reconciled line for line
 6. ✅ Routing — hash-based, hand-rolled, bookmarkable surfaces
 7. ✅ Loans in the ledger — schema v2, entry, schedule, strategy comparison
-8. ⬅ **Next: the wasted-budget defect (§13.6), then payments and net worth.**
+8. ✅ The wasted-budget defect — the whole budget is spent every month (§14)
+9. ⬅ **Next: recording payments, then net worth.**
 
 Deferred behind a stated seam: server, auth, sync, institution APIs. None is
 worth building for a user who does not exist yet.
 
 ## What's next, in order
 
-### 1. The wasted-budget defect (§13.6)
-
-The highest-value item, and a correctness fix rather than a polish one. When a
-targeted loan is retired, it takes only what it still owes and **the rest of that
-month's budget is not spent at all** — not redirected, not carried forward.
-
-On a realistic ledger that is $692 unspent in a single month, enough to make
-cascade beat avalanche and contradict the whole theory of the thing. Every
-strategy's cost is overstated, and the comparison between them is distorted by an
-artifact rather than by the strategies.
-
-Inherited from `financetools`, so fixing it is a deliberate departure that
-changes the parity fixture. That is exactly why it wants its own phase rather
-than being smuggled into another.
-
-### 2. Recording payments
+### 1. Recording payments
 
 The ledger knows what is owed and not what has been paid against it. Payments are
 flows against a loan, exactly as contributions are flows against an account, so
 the shape accommodates them without moving (§13.2). This is what makes "am I on
 schedule?" answerable.
 
-### 3. Net worth
+### 2. Net worth
 
 Savings and debts in one figure. `Money` handles the sign, but the dashboard hero
 and the fan chart were both tuned by eye against real bugs, so changing what they
@@ -67,7 +53,6 @@ and the fan chart were both tuned by eye against real bugs, so changing what the
 
 ## Known debt, deliberately deferred
 
-- **A retiring loan wastes that month's budget.** See above — the next phase.
 - **No payment history for loans.** Balances are observed; what was paid against
   them is not recorded yet.
 - **Net worth does not exist.** Savings and debts are shown side by side and

@@ -107,7 +107,7 @@ export function repay(loans: readonly LoanTerms[], plan: RepaymentPlan): Repayme
     while (active.every((loan) => !loan.balance.isZero())) {
       if (plan.strategy === 'blizzard') active = prioritize(active, plan.strategy);
 
-      const payments = distribute(active, plan.strategy, minimum, budget);
+      const payments = allocate(active, plan.strategy, minimum, budget);
 
       active.forEach((loan, i) => {
         const paid = payMonth(loan.balance, loan.terms.annualRate, payments[i]!);
@@ -192,9 +192,77 @@ function monthlyCost(loan: Active): number {
 }
 
 /**
- * Work out what each loan is paid this month.
+ * What this loan would need to be finished with this month: the interest it is
+ * about to accrue, plus everything still owed.
+ */
+function payoffAmount(loan: Active): Money {
+  return interestDue(loan.balance, loan.terms.annualRate).plus(loan.balance);
+}
+
+/**
+ * Deal out the month's budget, spending all of it.
  *
- * Minimums first, then the remainder — piled on the target, or spread.
+ * {@link distribute} allocates by the strategy's rule and can hand a loan more
+ * than it needs to finish. The Python then pays what is owed and lets the rest
+ * evaporate — not redirected, not carried forward — which is the defect §13.6
+ * measured at $692 in a single month, enough to reverse the ranking of two
+ * strategies.
+ *
+ * The correction is a fixed point rather than a special case, because handing
+ * the change to the next loan can overshoot *that* loan too: a large budget
+ * against several small balances can retire three in one month. So deal, settle
+ * whoever overshot at exactly what they need, and deal the rest again across who
+ * is left.
+ *
+ * It terminates because every pass that changes anything removes at least one
+ * loan from the pool, so it cannot run more often than there are loans.
+ */
+function allocate(
+  loans: readonly Active[],
+  strategy: Strategy,
+  minimum: MinimumMode,
+  budget: Money,
+): Money[] {
+  const settled = new Map<number, Money>();
+  let pool = loans.map((loan, index) => ({ loan, index }));
+  let available = budget;
+
+  while (pool.length > 0) {
+    const shares = distribute(
+      pool.map((p) => p.loan),
+      strategy,
+      minimum,
+      available,
+    );
+
+    const overshot = pool.filter((p, i) => shares[i]!.compare(payoffAmount(p.loan)) > 0);
+
+    if (overshot.length === 0) {
+      pool.forEach((p, i) => settled.set(p.index, shares[i]!));
+      break;
+    }
+
+    for (const p of overshot) {
+      const exact = payoffAmount(p.loan);
+      settled.set(p.index, exact);
+      // Safe: the loan is being paid less than it was allocated, so what is
+      // left still covers the minimums of everyone remaining.
+      available = available.minus(exact);
+    }
+
+    const done = new Set(overshot.map((p) => p.index));
+    pool = pool.filter((p) => !done.has(p.index));
+  }
+
+  return loans.map((_, i) => settled.get(i) ?? Money.zero());
+}
+
+/**
+ * Work out each loan's share of this month's budget.
+ *
+ * Minimums first, then the remainder — piled on the target, or spread. A share
+ * can exceed what a loan needs to finish; {@link allocate} is what deals with
+ * that rather than letting the difference disappear.
  */
 function distribute(
   loans: readonly Active[],
