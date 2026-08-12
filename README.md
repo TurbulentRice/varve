@@ -30,7 +30,7 @@ read in the browser and never uploaded.
 | [`packages/retirement`](packages/retirement) | Household and per-account history, year entry, Monte Carlo. |
 | [`packages/loans`](packages/loans) | Amortization and repayment strategies. Ported from `financetools`. |
 | [`packages/legacy-import`](packages/legacy-import) | One-way migration from the Access database. |
-| [`apps/web`](apps/web) | React + Vite. Dashboard, projection chart, year editor, account views. |
+| [`apps/web`](apps/web) | React + Vite. Dashboard, projection chart, year editor, account views, hash routing. |
 | [`legacy/extracted/`](legacy/extracted) | Schema and extraction tooling for the legacy database. |
 
 ## Documentation
@@ -96,12 +96,13 @@ so it reveals nothing about what it reads.
 
 ## Status
 
-Six phases done: discovery, the calculation core, storage, the web UI, editing
-and persistence, per-account views, and the loans module.
+Seven phases done: discovery, the calculation core, storage, the web UI, editing
+and persistence, per-account views, the loans module, and routing. Tests and the
+production build run on every pull request.
 
 Loans are standalone for now — not yet wired into the ledger or the interface, so
-the API gets designed against a real consumer rather than a guess. Routing, the
-server, auth, and sync are deliberately deferred.
+the API gets designed against a real consumer rather than a guess. The server,
+auth, sync, and institution APIs are deliberately deferred.
 
 Current detail in [`docs/STATUS.md`](docs/STATUS.md); the reasoning for every
 deferral is in [the working doc](docs/working/discovery-and-architecture.md).
