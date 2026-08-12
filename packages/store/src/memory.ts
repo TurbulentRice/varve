@@ -9,11 +9,13 @@
  * and sorting once on write beats sorting on every read.
  */
 
-import { compareDates, type Account, type BalanceObservation, type Flow, type FlowId, type Household, type Note, type ObservationId, type Owner } from '@varve/core';
+import { compareDates, type Account, type BalanceObservation, type Flow, type FlowId, type Household, type Loan, type LoanId, type LoanObservation, type Note, type ObservationId, type Owner } from '@varve/core';
 import {
   matchesFlow,
   matchesObservation,
   type FlowQuery,
+  matchesWindow,
+  type LoanObservationQuery,
   type ObservationQuery,
   type Repository,
   type Revision,
@@ -27,6 +29,8 @@ export class InMemoryRepository implements Repository {
   #observations: BalanceObservation[];
   #flows: Flow[];
   #notes: Note[];
+  #loans: Loan[];
+  #loanObservations: LoanObservation[];
   #revision: Revision;
 
   constructor(snapshot: Snapshot) {
@@ -36,6 +40,8 @@ export class InMemoryRepository implements Repository {
     this.#observations = sortByDate([...snapshot.observations], (o) => o.asOf);
     this.#flows = sortByDate([...snapshot.flows], (f) => f.occurredOn);
     this.#notes = [...snapshot.notes];
+    this.#loans = [...snapshot.loans];
+    this.#loanObservations = sortByDate([...snapshot.loanObservations], (o) => o.asOf);
     this.#revision = snapshot.revision;
   }
 
@@ -97,6 +103,37 @@ export class InMemoryRepository implements Repository {
     return ++this.#revision;
   }
 
+  async loans(): Promise<readonly Loan[]> {
+    return this.#loans;
+  }
+
+  async loanObservations(query: LoanObservationQuery = {}): Promise<readonly LoanObservation[]> {
+    return this.#loanObservations.filter(
+      (o) =>
+        (query.loanId === undefined || o.loanId === query.loanId) &&
+        matchesWindow(o.asOf, query),
+    );
+  }
+
+  async saveLoans(loans: readonly Loan[]): Promise<Revision> {
+    this.#loans = upsert(this.#loans, loans);
+    return ++this.#revision;
+  }
+
+  async saveLoanObservations(observations: readonly LoanObservation[]): Promise<Revision> {
+    this.#loanObservations = sortByDate(upsert(this.#loanObservations, observations), (o) => o.asOf);
+    return ++this.#revision;
+  }
+
+  async deleteLoans(ids: readonly LoanId[]): Promise<Revision> {
+    const doomed = new Set<string>(ids);
+    this.#loans = this.#loans.filter((l) => !doomed.has(l.id));
+    // A loan's observations are meaningless without it, and leaving them makes
+    // the document grow every time one is removed and re-added.
+    this.#loanObservations = this.#loanObservations.filter((o) => !doomed.has(o.loanId));
+    return ++this.#revision;
+  }
+
   async deleteFlows(ids: readonly FlowId[]): Promise<Revision> {
     const doomed = new Set<string>(ids);
     this.#flows = this.#flows.filter((f) => !doomed.has(f.id));
@@ -116,6 +153,8 @@ export class InMemoryRepository implements Repository {
       observations: this.#observations,
       flows: this.#flows,
       notes: this.#notes,
+      loans: this.#loans,
+      loanObservations: this.#loanObservations,
     };
   }
 
@@ -126,6 +165,10 @@ export class InMemoryRepository implements Repository {
     this.#observations = sortByDate([...snapshot.observations], (o) => o.asOf);
     this.#flows = sortByDate([...snapshot.flows], (f) => f.occurredOn);
     this.#notes = [...snapshot.notes];
+    this.#loans = [...snapshot.loans];
+    this.#loanObservations = sortByDate([...snapshot.loanObservations], (o) => o.asOf);
+    this.#loans = [...snapshot.loans];
+    this.#loanObservations = sortByDate([...snapshot.loanObservations], (o) => o.asOf);
     this.#revision = snapshot.revision;
     return this.#revision;
   }

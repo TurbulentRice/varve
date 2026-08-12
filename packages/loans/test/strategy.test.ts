@@ -79,7 +79,11 @@ describe('the ordered strategies pick different targets', () => {
 });
 
 describe('avalanche earns its reputation', () => {
-  it('pays the least interest of the five', () => {
+  it('pays the least interest of the five, on this debt', () => {
+    // Not a general property of this implementation, though it should be: see
+    // §13.6. Where a targeted loan retires with budget to spare, the surplus is
+    // discarded rather than redirected, and a spreading strategy can come out
+    // ahead by wasting less.
     const results = STRATEGIES.map((strategy) => repay(MIXED, { strategy, budget: BUDGET }));
     const avalanche = results.find((r) => r.strategy === 'avalanche')!;
 

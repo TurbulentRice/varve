@@ -37,6 +37,10 @@ import type {
   FlowKind,
   Household,
   IsoDate,
+  Loan,
+  LoanId,
+  LoanObservation,
+  LoanObservationId,
   Note,
   ObservationId,
   Owner,
@@ -60,6 +64,10 @@ export interface FlowQuery extends DateWindow {
   readonly kinds?: readonly FlowKind[];
 }
 
+export interface LoanObservationQuery extends DateWindow {
+  readonly loanId?: LoanId;
+}
+
 /** A monotonic counter identifying a committed state of the store. */
 export type Revision = number;
 
@@ -71,6 +79,8 @@ export interface Repository {
   observations(query?: ObservationQuery): Promise<readonly BalanceObservation[]>;
   flows(query?: FlowQuery): Promise<readonly Flow[]>;
   notes(): Promise<readonly Note[]>;
+  loans(): Promise<readonly Loan[]>;
+  loanObservations(query?: LoanObservationQuery): Promise<readonly LoanObservation[]>;
   revision(): Promise<Revision>;
 
   // ----------------------------------------------------------------- writes
@@ -79,9 +89,13 @@ export interface Repository {
   saveObservations(observations: readonly BalanceObservation[]): Promise<Revision>;
   saveFlows(flows: readonly Flow[]): Promise<Revision>;
   saveNotes(notes: readonly Note[]): Promise<Revision>;
+  saveLoans(loans: readonly Loan[]): Promise<Revision>;
+  saveLoanObservations(observations: readonly LoanObservation[]): Promise<Revision>;
 
   deleteObservations(ids: readonly ObservationId[]): Promise<Revision>;
   deleteFlows(ids: readonly FlowId[]): Promise<Revision>;
+  /** Removes the loan and every observation of it — they mean nothing alone. */
+  deleteLoans(ids: readonly LoanId[]): Promise<Revision>;
 
   // -------------------------------------------------------------- documents
   /** The whole ledger, ready to serialize. */

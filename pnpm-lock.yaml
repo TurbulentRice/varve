@@ -20,6 +20,9 @@ importers:
       '@varve/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@varve/loans':
+        specifier: workspace:*
+        version: link:../../packages/loans
       '@varve/retirement':
         specifier: workspace:*
         version: link:../../packages/retirement

@@ -22,6 +22,9 @@
       ],
       "@varve/retirement": [
         "../../packages/retirement/src/index.ts"
+      ],
+      "@varve/loans": [
+        "../../packages/loans/src/index.ts"
       ]
     },
     "jsx": "react-jsx"

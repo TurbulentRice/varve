@@ -8,6 +8,9 @@ export default defineConfig({
     alias: {
       '@varve/core': fileURLToPath(new URL('../../packages/core/src/index.ts', import.meta.url)),
       '@varve/store': fileURLToPath(new URL('../../packages/store/src/index.ts', import.meta.url)),
+      '@varve/loans': fileURLToPath(
+        new URL('../../packages/loans/src/index.ts', import.meta.url),
+      ),
       '@varve/retirement': fileURLToPath(
         new URL('../../packages/retirement/src/index.ts', import.meta.url),
       ),

@@ -5,6 +5,9 @@ import {
   flowId,
   householdId,
   isoDate,
+  loanId,
+  loanObservationId,
+  m,
   observationId,
   ownerId,
   type Account,
@@ -202,5 +205,84 @@ describe('in-memory repository', () => {
     await repo.replace({ ...emptySnapshot(HOME), revision: 42 });
     expect(await repo.observations()).toHaveLength(0);
     expect(await repo.revision()).toBe(42);
+  });
+});
+
+describe('schema version 2 adds loans without breaking version 1', () => {
+  const v1 = JSON.stringify({
+    schemaVersion: 1,
+    revision: 3,
+    exportedAt: '2026-01-01T00:00:00.000Z',
+    household: { id: 'h1', name: 'Test' },
+    owners: [],
+    accounts: [],
+    observations: [],
+    flows: [],
+    notes: [],
+  });
+
+  it('opens a document written before loans existed', () => {
+    // Every exported file anyone is holding is version 1. Refusing them, or
+    // needing a migration step, would make export a worse backup than it claims.
+    const snapshot = decodeSnapshot(v1);
+
+    expect(snapshot.loans).toEqual([]);
+    expect(snapshot.loanObservations).toEqual([]);
+  });
+
+  it('reads absent as none rather than unknown', () => {
+    // The one case where missing genuinely *is* zero: a ledger written before
+    // the concept existed has no loans, and cannot have had any.
+    expect(decodeSnapshot(v1).loans).toHaveLength(0);
+  });
+
+  it('writes it back at the current version, so it upgrades once and stays', () => {
+    expect(decodeSnapshot(v1).schemaVersion).toBe(SNAPSHOT_SCHEMA_VERSION);
+    expect(SNAPSHOT_SCHEMA_VERSION).toBe(2);
+  });
+
+  it('round-trips loans and what is owed', () => {
+    const withLoans = {
+      ...emptySnapshot({ id: householdId('h1'), name: 'Test' }),
+      loans: [
+        {
+          id: loanId('l1'),
+          householdId: householdId('h1'),
+          name: 'Car',
+          ownerIds: [],
+          kind: 'auto' as const,
+          annualRate: 0.0625,
+          termMonths: 48,
+        },
+      ],
+      loanObservations: [
+        {
+          id: loanObservationId('lo1'),
+          loanId: loanId('l1'),
+          asOf: isoDate('2026-01-31'),
+          amount: m('18500.55'),
+          source: 'manual' as const,
+        },
+      ],
+    };
+
+    const back = decodeSnapshot(encodeSnapshot(withLoans));
+
+    expect(back.loans[0]!.name).toBe('Car');
+    // The rate is a number and stays one; only money is a string.
+    expect(back.loans[0]!.annualRate).toBe(0.0625);
+    expect(back.loanObservations[0]!.amount.toString()).toBe('18500.5500');
+  });
+
+  it('still refuses a balance owed written as a JSON number', () => {
+    const bad = JSON.stringify({
+      schemaVersion: 2,
+      household: { id: 'h1', name: 'Test' },
+      loanObservations: [{ id: 'lo1', loanId: 'l1', asOf: '2026-01-31', amount: 18500.55 }],
+    });
+
+    // Same rule as everywhere: a float has already lost precision by the time
+    // it is parsed, so accepting one silently is how corruption gets in.
+    expect(() => decodeSnapshot(bad)).toThrow(/must be strings/);
   });
 });

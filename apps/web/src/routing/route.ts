@@ -32,12 +32,14 @@
  * See §12 of the working doc.
  */
 
-import { accountId, type AccountId } from '@varve/core';
+import { accountId, loanId, type AccountId, type LoanId } from '@varve/core';
 
 export type Route =
   | { readonly view: 'dashboard' }
   | { readonly view: 'account'; readonly accountId: AccountId }
-  | { readonly view: 'year'; readonly year: number };
+  | { readonly view: 'year'; readonly year: number }
+  | { readonly view: 'loans' }
+  | { readonly view: 'loan'; readonly loanId: LoanId };
 
 export const DASHBOARD: Route = { view: 'dashboard' };
 
@@ -87,6 +89,10 @@ export function parseRoute(hash: string): Route {
     return { view: 'account', accountId: accountId(decodeSegment(tail)) };
   }
 
+  if (head === 'loans') {
+    return tail ? { view: 'loan', loanId: loanId(decodeSegment(tail)) } : { view: 'loans' };
+  }
+
   if (head === 'years' && tail) {
     // `Number` would accept '2024abc' as NaN but also ' 2024 ' and '0x7e8'.
     // Requiring digits keeps the URL meaning exactly what it looks like.
@@ -106,6 +112,10 @@ export function formatRoute(route: Route): string {
       return `#/accounts/${encodeSegment(route.accountId)}`;
     case 'year':
       return `#/years/${route.year}`;
+    case 'loans':
+      return '#/loans';
+    case 'loan':
+      return `#/loans/${encodeSegment(route.loanId)}`;
     case 'dashboard':
       return '#/';
   }
@@ -116,5 +126,6 @@ export function sameRoute(a: Route, b: Route): boolean {
   if (a.view !== b.view) return false;
   if (a.view === 'account' && b.view === 'account') return a.accountId === b.accountId;
   if (a.view === 'year' && b.view === 'year') return a.year === b.year;
+  if (a.view === 'loan' && b.view === 'loan') return a.loanId === b.loanId;
   return true;
 }

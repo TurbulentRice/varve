@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@varve/core": "workspace:*",
+    "@varve/loans": "workspace:*",
     "@varve/retirement": "workspace:*",
     "@varve/store": "workspace:*",
     "react": "^19.2.8",

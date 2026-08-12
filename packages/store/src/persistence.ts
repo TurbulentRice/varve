@@ -96,6 +96,8 @@ export class PersistingRepository implements Repository {
   observations: Repository['observations'] = (query) => this.#inner.observations(query);
   flows: Repository['flows'] = (query) => this.#inner.flows(query);
   notes: Repository['notes'] = () => this.#inner.notes();
+  loans: Repository['loans'] = () => this.#inner.loans();
+  loanObservations: Repository['loanObservations'] = (query) => this.#inner.loanObservations(query);
   revision: Repository['revision'] = () => this.#inner.revision();
   export: Repository['export'] = () => this.#inner.export();
 
@@ -120,6 +122,18 @@ export class PersistingRepository implements Repository {
 
   async saveNotes(...args: Parameters<Repository['saveNotes']>) {
     return this.#persist(await this.#inner.saveNotes(...args));
+  }
+
+  async saveLoans(...args: Parameters<Repository['saveLoans']>) {
+    return this.#persist(await this.#inner.saveLoans(...args));
+  }
+
+  async saveLoanObservations(...args: Parameters<Repository['saveLoanObservations']>) {
+    return this.#persist(await this.#inner.saveLoanObservations(...args));
+  }
+
+  async deleteLoans(...args: Parameters<Repository['deleteLoans']>) {
+    return this.#persist(await this.#inner.deleteLoans(...args));
   }
 
   async deleteObservations(...args: Parameters<Repository['deleteObservations']>) {

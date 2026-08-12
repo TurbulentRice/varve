@@ -26,5 +26,9 @@ export function toSnapshot(result: ImportResult): Snapshot {
     observations: result.observations,
     flows: result.flows,
     notes: result.notes,
+    // The Access database predates loans by twenty years and models only
+    // savings. Empty here is a fact about the source, not a gap in the import.
+    loans: [],
+    loanObservations: [],
   };
 }
