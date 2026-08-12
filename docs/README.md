@@ -27,26 +27,43 @@ from a record of reasoning into churn, which is why these are separate files.
 
 ## Working documents
 
-[`working/discovery-and-architecture.md`](working/discovery-and-architecture.md)
-covers phases 0–5: reading the legacy Access database and spreadsheet, the
-findings that came out of them, the architectural decisions with their
-trade-offs, and every phase through the loans port.
+There are two, and they divide by **era** rather than by topic.
 
-**Its section numbering is load-bearing.** Code comments cite it directly —
-`§8.1` for the money conventions, `§11.2` for the loans rounding argument,
-`Decision 4` for the monorepo shape. Extend it; do not renumber it. Grep before
-you restructure:
+[`working/discovery-and-architecture.md`](working/discovery-and-architecture.md)
+— §1–§17, **closed**. Reading the legacy Access database and spreadsheet, the
+findings that came out of them, the architectural decisions with their
+trade-offs, and every phase from the calculation core through net worth. It
+records how the *model* was arrived at, and that question is settled. Extend it
+only to correct something now known to be wrong, visibly, as §11.2 and §9.3 do.
+
+[`working/interface-and-experience.md`](working/interface-and-experience.md) —
+§18 onward, **open**. Whether anyone would want to use what the first era built.
+
+**The numbering runs continuously across both.** A second document restarting at
+§1 would make `§8.1` ambiguous in a dozen places, and the failure would be
+silent. §18.4 sets this out; `check-docs.mjs` enforces it.
+
+**Section numbering is load-bearing.** Code comments cite it directly — `§8.1`
+for the money conventions, `§11.2` for the loans rounding argument, `Decision 4`
+for the monorepo shape. Extend it; do not renumber it. This is checked rather
+than trusted, on every pull request and locally:
 
 ```bash
-grep -rn "§[0-9]\|Decision [0-9]" --include="*.ts" packages/
+node .github/scripts/check-docs.mjs
 ```
+
+It resolves every `§` and `Decision` citation in the repository — including the
+ones the working documents make of each other — against the headings that
+actually exist, and fails if any lands nowhere.
 
 ## Adding a new document
 
-A phase extends the existing working document when it builds on what is there.
-It gets a new file under `working/` when it opens a genuinely separate line of
-work — a subsystem with its own discovery, its own decisions, and no need to
-share section numbers.
+A phase extends the current working document when it builds on what is there. It
+gets a new file under `working/` when an **era** ends — when the question the
+existing document was answering is settled and a different one takes over. That
+has happened once, at §18.
+
+A new file continues the numbering. It does not restart it.
 
 Other kinds of documentation are welcome here as they arise: guides, operational
 runbooks, design notes, decision records. Give them a directory when there are
