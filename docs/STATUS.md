@@ -5,16 +5,16 @@ want the history of how the thinking changed, that is
 [the working doc](working/discovery-and-architecture.md) — this file only ever
 describes now.
 
-Last updated: 2026-08-12, after recording loan payments.
+Last updated: 2026-08-12, after net worth.
 
 ## Where things stand
 
-Ten phases done. **395 tests**, clean typecheck, clean production build, and CI
-running both on every PR.
+Eleven phases done. **406 tests**, clean typecheck, clean production build, and
+CI running tests, the bundle guard and the documentation checks on every PR.
 
 | Package | What it holds | Tests |
 |---|---|---|
-| [`packages/core`](../packages/core) | Money, dates, domain types, returns, aggregation, projection. Zero dependencies. | 80 |
+| [`packages/core`](../packages/core) | Money, dates, domain types, returns, aggregation, projection, net worth. Zero dependencies. | 91 |
 | [`packages/store`](../packages/store) | Snapshot format (v3), repository interface, in-memory + persisting adapters. | 39 |
 | [`packages/retirement`](../packages/retirement) | Ledger, household + per-account derivation, year entry, Monte Carlo. | 83 |
 | [`packages/loans`](../packages/loans) | Amortization, strategies, comparison, ledger seam, what a loan actually cost. | 136 |
@@ -33,18 +33,36 @@ running both on every PR.
 8. ✅ The wasted-budget defect — the whole budget is spent every month (§14)
 9. ✅ Retired most of the parity fixture (§15)
 10. ✅ Recording payments — interest measured rather than assumed (§16)
-11. ⬅ **Next: net worth.**
+11. ✅ Net worth — assets against debts, beside the hero rather than instead of it (§17)
+12. ⬅ **Next: an open choice — see below.**
 
 Deferred behind a stated seam: server, auth, sync, institution APIs. None is
 worth building for a user who does not exist yet.
 
 ## What's next
 
-### Net worth
+No single obvious next piece, which is itself worth noting — the modules that
+were missing are now present. Three candidates, roughly in order of what they
+buy:
 
-Savings and debts in one figure. `Money` handles the sign, but the dashboard hero
-and the fan chart were both tuned by eye against real bugs, so changing what they
-*mean* deserves its own phase rather than a quiet redefinition.
+### 1. Net worth over time
+
+§17 draws the figure for today and the series exists behind it, but nothing plots
+it. A net worth line running back through the record is the first chart in the
+app about the household rather than one module of it, and needs no new data.
+
+### 2. Are the payments on schedule?
+
+The ledger knows what was paid and what it cost (§16) but not whether that is
+ahead of or behind the contractual plan. Cheap on top of what exists, and it is
+the question a borrower actually asks.
+
+### 3. Projecting debt alongside savings
+
+The honest hard one, and deliberately deferred in §17.4. Debt falls on a
+near-certain schedule; savings are a distribution. Drawing them on one axis means
+either implying uncertainty that is not there or producing a band whose width
+means two things at once. Needs its own thinking, not an afternoon.
 
 ## Known debt, deliberately deferred
 

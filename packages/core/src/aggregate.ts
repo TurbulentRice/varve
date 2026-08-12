@@ -241,3 +241,79 @@ export function rollingAverage(
   if (window <= 0) throw new RangeError('Window must be positive');
   return rates.map((_, i) => (i + 1 < window ? null : mean(rates.slice(i + 1 - window, i + 1))));
 }
+
+// ----------------------------------------------------------------- net worth
+
+/**
+ * One moment, with both sides of the household's position.
+ *
+ * `assets` and `debts` are both positive quantities: the sign lives in the
+ * subtraction, not in the numbers, so neither series has to remember which kind
+ * of thing it is.
+ */
+export interface NetWorthPoint {
+  readonly asOf: IsoDate;
+  readonly assets: Money;
+  /** Owed. Positive. */
+  readonly debts: Money;
+  /** `assets − debts`. Negative when more is owed than held. */
+  readonly net: Money;
+  /**
+   * Whether that side had actually been observed by this date.
+   *
+   * A carried-forward zero is not a measurement, and the distinction matters
+   * asymmetrically: an unobserved debt subtracts nothing and reports a net worth
+   * that is too *high*, which is the flattering direction and the worst way to
+   * be wrong about this.
+   *
+   * This function cannot tell "owes nothing" from "owes an unrecorded amount" —
+   * both arrive as an empty series — so it reports what it saw and leaves the
+   * meaning to a caller that knows whether any debts exist at all. See §17.2.
+   */
+  readonly assetsObserved: boolean;
+  readonly debtsObserved: boolean;
+}
+
+/**
+ * Net two series of dated amounts against each other.
+ *
+ * Deliberately ignorant of what either side is. It has no idea one came from
+ * investment accounts and the other from loans, which is what keeps `retirement`
+ * and `loans` from having to know about each other (§17.1) — and what stops this
+ * growing a special case for either, in the one place where a special case would
+ * be a subtle lie.
+ *
+ * A point is emitted at every date either side moved, with the other side
+ * carried forward from its last known value, which is the same rule
+ * {@link balanceAsOf} applies within a single series.
+ */
+export function netWorthSeries(
+  assets: readonly DatedBalance[],
+  debts: readonly DatedBalance[],
+): NetWorthPoint[] {
+  const dates = [...new Set([...assets, ...debts].map((b) => b.asOf))].sort();
+
+  return dates.map((asOf) => {
+    const held = balanceAsOf(assets, asOf);
+    const owed = balanceAsOf(debts, asOf);
+
+    // `balanceAsOf` returns zero before the first observation, which is the
+    // right carried-forward value and the wrong thing to call a measurement.
+    const assetsObserved = assets.some((b) => b.asOf <= asOf);
+    const debtsObserved = debts.some((b) => b.asOf <= asOf);
+
+    return {
+      asOf,
+      assets: held.amount,
+      debts: owed.amount,
+      net: held.amount.minus(owed.amount),
+      assetsObserved,
+      debtsObserved,
+    };
+  });
+}
+
+/** The most recent point, or `null` where neither side has been observed. */
+export function netWorthNow(points: readonly NetWorthPoint[]): NetWorthPoint | null {
+  return points.length === 0 ? null : points[points.length - 1]!;
+}

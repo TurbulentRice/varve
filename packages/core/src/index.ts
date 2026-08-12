@@ -95,6 +95,9 @@ export {
   arithmeticMean,
   geometricMean,
   rollingAverage,
+  netWorthSeries,
+  netWorthNow,
+  type NetWorthPoint,
   type BalanceAt,
   type PeriodSummary,
 } from './aggregate.js';

@@ -6,11 +6,14 @@ import {
   loanPaymentId,
   m,
   Money,
+  netWorthNow,
+  netWorthSeries,
   type Account,
   type Loan,
   type LoanId,
 } from '@varve/core';
 import { findLoanState, loanCost, loanStates, payable } from '@varve/loans';
+import { NetWorth, NetWorthCaveat } from './components/NetWorth.js';
 import {
   InMemoryRepository,
   PersistingRepository,
@@ -195,6 +198,39 @@ function Ledger({
     () => Money.sum(loanStates(snapshot).filter(payable).map((s) => s.balance)),
     [snapshot],
   );
+
+  /**
+   * Assets against debts.
+   *
+   * Both sides are handed over as plain dated amounts, because `netWorthSeries`
+   * knows nothing about accounts or loans and should not (§17.1). Assets come
+   * from the year-end values already derived; debts from the total owed at each
+   * date any loan was observed.
+   */
+  const netWorth = useMemo(() => {
+    const assets = history.years.map((y) => ({ asOf: y.endValueAsOf, amount: y.endValue }));
+
+    const states = loanStates(snapshot);
+    const dates = [...new Set(snapshot.loanObservations.map((o) => o.asOf))].sort();
+    const debts = dates.map((asOf) => ({
+      asOf,
+      amount: Money.sum(
+        states.map((s) => {
+          const seen = snapshot.loanObservations
+            .filter((o) => o.loanId === s.loan.id && o.asOf <= asOf)
+            .sort((a, b) => (a.asOf < b.asOf ? -1 : 1));
+          return seen[seen.length - 1]?.amount ?? Money.zero();
+        }),
+      ),
+    }));
+
+    return {
+      now: netWorthNow(netWorthSeries(assets, debts)),
+      // The distinction core cannot make and this layer can: a loan with no
+      // balance recorded subtracts nothing, and overstates net worth.
+      unobserved: states.filter((s) => !s.observed).length,
+    };
+  }, [history.years, snapshot]);
 
   // A Snapshot satisfies Ledger structurally, so no conversion is needed.
   const accountHistories = useMemo(
@@ -464,6 +500,13 @@ function Ledger({
           The link names an account this document does not contain. It may belong to a different
           ledger, or the account may since have been removed.
         </div>
+      ) : null}
+
+      {netWorth.now ? (
+        <>
+          <NetWorthCaveat unobservedDebts={netWorth.unobserved} />
+          <NetWorth point={netWorth.now} unobservedDebts={netWorth.unobserved} />
+        </>
       ) : null}
 
       <Hero
