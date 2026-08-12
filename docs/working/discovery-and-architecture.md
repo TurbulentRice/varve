@@ -1147,3 +1147,114 @@ recorded, so the ledger knows what is owed and not what has been paid against
 it. Net worth does not combine savings and debts. Neither is a gap in this
 slice; both are the next two, and §13.2 explains why the shape accommodates them
 without moving.
+
+---
+
+## 14. Spending the whole budget
+
+§13.6 found it; this fixes it. When a targeted loan is retired it takes only what
+it still owes, and the remainder of that month's budget is not spent at all —
+not redirected to the loans still outstanding, not carried to the next month. It
+simply does not happen.
+
+The consequences are worse than a rounding artifact. Every strategy's cost is
+overstated, because money the borrower actually has is modelled as never leaving
+their hands. And the *comparison between* strategies is distorted, because
+strategies waste different amounts: on the first realistic ledger tried,
+avalanche left $692.44 unspent in the month a card cleared, cascade left $160.73,
+and the difference was enough to reverse their ranking. A tool whose entire
+purpose is ranking strategies was ranking an artifact.
+
+### 14.1 The fix is a fixed point, not a special case
+
+The obvious patch — "if the target overshoots, give the change to the next loan"
+— is not enough, because the next loan can overshoot too. A large budget against
+several small balances can retire three loans in one month, and each hand-off
+needs the same treatment.
+
+So allocation becomes a small fixed-point loop. Deal out the month's budget by
+whatever rule the strategy uses; find any loan whose share exceeds what it needs
+to finish; settle those at exactly what they need; then deal the *rest* of the
+budget out again across the loans still standing. Repeat until nothing overshoots.
+
+It terminates for a plain reason: every pass that changes anything removes at
+least one loan from the pool, so it cannot run more times than there are loans.
+
+Two properties fall out that are worth stating as tests rather than trusting.
+Every month before the debt is fully cleared now spends the budget **exactly** —
+there is no month where money goes unspent while something is still owed. And no
+loan is ever paid more than it owes, which is what made the surplus appear in the
+first place.
+
+### 14.2 What this costs: parity, and how to keep it anyway
+
+`financetools` has this defect, so correcting it means the port no longer
+reproduces the Python line for line. That is the thing §11.4 built the whole
+fixture apparatus to guarantee, and giving it up quietly would be a bad trade.
+
+It does not have to be given up. The divergence is precisely scoped:
+
+- **Single-loan schedules are untouched.** A lone loan retiring has nobody to
+  hand its surplus to, so all seven single-loan cases still match the original
+  Python exactly, and they are the ones that test the amortization arithmetic —
+  the interest, the rounding, the clamps, the capitalization.
+- **Only the multi-loan driver changes**, and only in months where a loan
+  retires.
+
+For the queue cases, the oracle is regenerated from a **patched** Python: the
+same correction, written independently in the language it came from, applied by
+the fixture generator where it is visible and reviewable rather than assumed. If
+the two implementations of the correction agree line for line across 2,948
+installments, the fix is right for the same reason the port was right.
+
+That is weaker than the original claim, and worth being honest about how: the
+Python patch is no longer an independent implementation, because the same person
+wrote both. It still catches everything a transcription error could cause, which
+is most of what parity was protecting against. What it cannot catch is a
+misunderstanding of the correction itself — and that is what §14.1's two
+properties are for, since they are statements about the world rather than about
+agreement between two programs.
+
+The unpatched fixture is kept alongside, so the size and shape of the departure
+stays measurable rather than becoming folklore.
+
+### 14.3 What the fix turned up
+
+**It never costs more.** Across all 30 strategy runs in the fixture, not one pays
+more interest after the correction than before. That is the right shape — money
+that was being modelled as never leaving the borrower's hands now goes against
+the debt, and there is no mechanism by which spending it sooner could cost more.
+Total interest across the fixture falls by **$5,178**, or 1.2%; the worst single
+case, a lopsided queue under avalanche, falls by **$1,202**.
+
+**Avalanche is optimal again.** On the ledger from §13.6 it goes from $1,609.57
+to $1,536.97 and reclaims first place from cascade, which is what the theory says
+and what `financetools`' README claims. The defect was never in the ordering. It
+was that avalanche, precisely *because* it retires loans fastest, hit the wasteful
+path most often — the strategy most punished by the bug was the one that should
+have won.
+
+**The two implementations agree exactly.** 119 parity assertions, every ordered
+strategy across all six queues, matching the independently written Python
+correction line for line. §14.2 already said what that is worth and what it is
+not, and both halves of that stand.
+
+**A test was asserting the artifact.** `compare.test.ts` had a case named "can
+disagree with itself about what is best", which asserted that the cheapest and
+fastest strategies differ. It passed for a year of commits and it was measuring
+the bug: the cheapest strategy was not the one targeting the dearest debt because
+that one was wasting the most money. With the budget spent, avalanche is both,
+and the test now says so.
+
+The replacement is more careful about what it claims. Winner agreement does not
+make the goal redundant — blizzard and ice slide tie on months and sit $340 apart
+on interest, so which of them looks worse still depends entirely on what is being
+asked. That is the honest version of the point the original test was reaching for.
+
+**The fixture grew from 308 KB to 439 KB**, holding three suites where it held
+two. The uncorrected runs are kept deliberately: `rounding.test.ts` measures
+half-up against half-even and must not have the budget correction mixed into that
+comparison, and keeping the pre-correction figures is what stops the size of this
+departure becoming folklore. Single-loan cases are generated once rather than
+three times, because a lone loan retiring has nobody to hand a surplus to and the
+correction provably cannot reach it.

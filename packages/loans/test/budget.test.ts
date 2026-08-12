@@ -79,12 +79,11 @@ describe('the budget is fully spent every month, under every strategy', () => {
     it(`${strategy} never spends more or less than it was given`, () => {
       const result = repay(EVENLY_INDIVISIBLE, { strategy, budget });
 
-      // Only up to the month the first loan retires: after that a loan takes
-      // less than its share because less is owed, which is the point of a final
-      // installment rather than a rounding failure.
-      const firstRetirement = Math.min(...result.schedules.map((s) => s.installments.length));
-
-      for (let month = 1; month < firstRetirement; month += 1) {
+      // Every month except the last, including the months a loan retires. That
+      // exception used to be here, and it was hiding the §13.6 defect: a
+      // retiring loan took only what it owed and the difference was never
+      // spent. §14 removed it, and this assertion is what keeps it removed.
+      for (let month = 1; month < result.months; month += 1) {
         expect(spentInMonth(result.schedules, month).toString(), `month ${month}`).toBe(
           budget.toString(),
         );
@@ -166,5 +165,94 @@ describe('a budget that cannot cover the minimums', () => {
 
   it('refuses to repay nothing', () => {
     expect(() => repay([], { strategy: 'avalanche', budget: m('1000') })).toThrow(RangeError);
+  });
+});
+
+
+/**
+ * The two properties §14.1 promises.
+ *
+ * These are statements about the world rather than about agreement with another
+ * program, which is exactly what the parity suite cannot give: both
+ * implementations of the correction were written by the same person, so they
+ * could be wrong together. These could not.
+ */
+describe('a retiring loan hands back what it does not need', () => {
+  // Deliberately lopsided: a budget large enough to clear the two small loans
+  // outright in early months, so the surplus is big and arrives more than once.
+  const LOPSIDED = [
+    loan('Tiny', '400', 0.2199),
+    loan('Small', '900', 0.1899),
+    loan('Large', '18000', 0.055),
+  ];
+  const budget = m('2000');
+  const strategies: readonly Strategy[] = ['avalanche', 'blizzard', 'snowball', 'cascade', 'ice-slide'];
+
+  for (const strategy of strategies) {
+    it(`${strategy} leaves nothing unspent while anything is still owed`, () => {
+      const result = repay(LOPSIDED, { strategy, budget });
+
+      for (let month = 1; month < result.months; month += 1) {
+        const spent = spentInMonth(result.schedules, month);
+        expect(spent.toString(), `${strategy} month ${month}`).toBe(budget.toString());
+      }
+    });
+
+    it(`${strategy} never pays a loan more than it owes`, () => {
+      // The other half of the fix. Redistributing a surplus must not simply
+      // move the overpayment somewhere else.
+      const result = repay(LOPSIDED, { strategy, budget });
+
+      for (const schedule of result.schedules) {
+        let owed = schedule.openingBalance;
+        for (const i of schedule.installments) {
+          expect(i.principal.compare(owed), `${schedule.terms.title} #${i.number}`).toBeLessThanOrEqual(0);
+          owed = i.balance;
+        }
+        expect(schedule.finalBalance.isZero()).toBe(true);
+      }
+    });
+  }
+
+  it('can retire more than one loan in a single month without losing the change', () => {
+    // $2,000 against $400 and $900 clears both at once, with money left for the
+    // third. Two hand-offs in one month is what makes the fix a fixed point
+    // rather than a single special case.
+    const result = repay(LOPSIDED, { strategy: 'snowball', budget });
+    const retirements = result.schedules.map((s) => s.installments.length).sort((a, b) => a - b);
+
+    expect(retirements[0]).toBe(retirements[1]);
+    expect(spentInMonth(result.schedules, retirements[0]!).toString()).toBe(budget.toString());
+  });
+
+  it('costs less than leaving the surplus unspent did', () => {
+    // The whole point: money that was being modelled as never leaving the
+    // borrower's hands now goes against the debt.
+    const result = repay(LOPSIDED, { strategy: 'avalanche', budget });
+    expect(result.interestPaid.isPositive()).toBe(true);
+    expect(result.principalPaid.toString()).toBe(
+      Money.sum(LOPSIDED.map((l) => l.principal)).toString(),
+    );
+  });
+});
+
+describe('avalanche is optimal again', () => {
+  // §13.6 found cascade beating avalanche, which contradicts the theory and the
+  // financetools README. The cause was the wasted surplus, not the ordering.
+  const LEDGER = [loan('Car', '17000', 0.06), loan('Card', '4000', 0.1899)];
+  const budget = m('900');
+
+  it('pays the least interest of the five, on the ledger that used to break it', () => {
+    const results = (['avalanche', 'blizzard', 'snowball', 'cascade', 'ice-slide'] as const).map(
+      (strategy) => repay(LEDGER, { strategy, budget }),
+    );
+    const avalanche = results.find((r) => r.strategy === 'avalanche')!;
+
+    for (const other of results) {
+      expect(
+        avalanche.interestPaid.compare(other.interestPaid),
+        `avalanche vs ${other.strategy}`,
+      ).toBeLessThanOrEqual(0);
+    }
   });
 });

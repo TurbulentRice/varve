@@ -47,6 +47,79 @@ REPO_DEFAULT = Path.home() / "Dev" / "financetools"
 ROUNDING_MODES = {"half_up": ROUND_HALF_UP, "half_even": ROUND_HALF_EVEN}
 
 
+def allocate_spending_everything(LoanQueue, Loan, queue, key, minimum):
+    """Set every loan's payment for one month, spending the whole budget.
+
+    The library hands a targeted loan its full share and then pays only what is
+    owed, letting the difference evaporate — not redirected, not carried forward.
+    Working doc §13.6 measured that at $692 in a single month, enough to reverse
+    the ranking of two strategies.
+
+    This is the same correction the TypeScript makes, written independently here
+    so the two can be reconciled (§14.2). Deal out the budget; settle anyone
+    whose share exceeds what they need to finish at exactly that; deal the rest
+    again across who is left. Terminates because each pass that changes anything
+    removes a loan from the pool.
+    """
+    settled = {}
+    pool = list(queue.Q)
+    available = queue.budget
+
+    while pool:
+        sub = LoanQueue(list(pool), available, title=queue.title)
+        remainder = sub.set_all_payments(minimum)
+        sub.distribute(key, remainder)
+
+        payoff = {id(l): Loan.Dec(l.get_int_due() + l.current_bal) for l in pool}
+        over = [l for l in pool if l.payment_amt > payoff[id(l)]]
+
+        if not over:
+            for l in pool:
+                settled[id(l)] = l.payment_amt
+            break
+
+        for l in over:
+            settled[id(l)] = payoff[id(l)]
+            available -= payoff[id(l)]
+            pool.remove(l)
+
+    for l in queue.Q:
+        l.payment_amt = settled.get(id(l), Loan.Dec(0))
+
+
+def corrected_debt_solve(LoanQueue, Loan):
+    """`debt_solve`, with the month's budget actually spent."""
+
+    def debt_solve(self, key, minimum):
+        order_once = key in ("avalanche", "snowball")
+        order_every = key == "blizzard"
+
+        temp_queue = self.branch()
+        completed_queue = LoanQueue([], self.budget, title=self.title)
+
+        if order_once:
+            temp_queue.prioritize(key)
+
+        while temp_queue.size > 0:
+            while all(not l.is_complete() for l in temp_queue.Q):
+                if order_every:
+                    temp_queue.prioritize(key)
+
+                allocate_spending_everything(LoanQueue, Loan, temp_queue, key, minimum)
+
+                for loan in temp_queue.Q:
+                    loan.pay_month()
+
+            paid_off = [l for l in temp_queue.Q if l.is_complete()]
+            for l in paid_off:
+                completed_queue.add_loan(l)
+                temp_queue.Q.remove(l)
+
+        return completed_queue.prioritize()
+
+    return debt_solve
+
+
 def set_rounding(Loan, mode):
     """Swap the library's quantizer. It is a staticmethod used by every path."""
 
@@ -227,9 +300,12 @@ def main() -> int:
             "Generated from financetools by tools/generate-fixtures.py. Every "
             "amount is a decimal string at two places, which is the scale the "
             "Python quantizes to and the scale the port matches. The suite is "
-            "run under both rounding modes: the port must match `half_even` "
-            "exactly, and `half_up` records what the library ships with. "
-            "Invented loans only."
+            "run under both rounding modes: `half_up` is what the library "
+            "ships with, `half_even` holds the rounding convention constant, "
+            "and `half_even_corrected` additionally spends the whole budget in "
+            "the month a loan is retired (see the working doc, sections 13.6 "
+            "and 14). The port matches `half_even` on single loans and "
+            "`half_even_corrected` on queues. Invented loans only."
         ),
         "oracle_revision": revision or "unknown",
     }
@@ -237,6 +313,17 @@ def main() -> int:
     for mode in ROUNDING_MODES:
         set_rounding(Loan, mode)
         document[mode] = suite()
+
+    # And once more with the budget actually spent (§14.2). Queues only: a lone
+    # loan retiring has nobody to hand its surplus to, so every single-loan case
+    # is provably unchanged and stays covered by the half_even suite above.
+    set_rounding(Loan, "half_even")
+    original = LoanQueue.debt_solve
+    LoanQueue.debt_solve = corrected_debt_solve(LoanQueue, Loan)
+    try:
+        document["half_even_corrected"] = {"queues": suite()["queues"]}
+    finally:
+        LoanQueue.debt_solve = original
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(document, indent=2) + "\n")

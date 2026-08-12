@@ -162,20 +162,13 @@ describe('comparing strategies across a ledger', () => {
     expect(interest).toEqual([...interest].sort((a, b) => a - b));
   });
 
-  it('does not always crown avalanche, and the reason is a real defect', () => {
-    // Avalanche targets the highest rate, which is provably optimal — and here
-    // it loses to cascade by $17.56. The cause is not the ordering but the
-    // month a target is retired: the loan takes only what it still owes and the
-    // rest of the budget is simply not spent. Avalanche leaves $692.44 unspent
-    // in month 6; cascade, spreading, leaves $160.73.
-    //
-    // Inherited from financetools, whose pay_month clamps the payment to the
-    // balance and never redistributes the difference. Documented in §13.6 and
-    // deliberately not fixed here, because the fix changes every strategy's
-    // output and would invalidate the parity suite in the same commit that
-    // integrates loans.
+  it('crowns avalanche, as the theory says it should', () => {
+    // This asserted `cascade` for one commit, and the comment explained why:
+    // a retiring loan handed back none of its surplus, so avalanche wasted
+    // $692.44 in a single month and lost by $17.56. §14 spends the whole budget,
+    // and targeting the highest rate is optimal again.
     const comparison = compareLedger(ledger(), { budget: m('900') })!;
-    expect(comparison.best.strategy).toBe('cascade');
+    expect(comparison.best.strategy).toBe('avalanche');
   });
 
   it('leaves unobserved and cleared loans out', () => {

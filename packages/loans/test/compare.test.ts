@@ -58,15 +58,26 @@ describe('ranking by something other than money', () => {
     expect(counts).toEqual([...counts].sort((a, b) => a - b));
   });
 
-  it('can disagree with itself about what is best', () => {
-    // Cheapest and fastest are not the same strategy here, which is the reason
-    // a comparison exists rather than a single recommendation.
+  it('agrees on the winner, because avalanche is optimal on both', () => {
+    // This asserted the opposite before §14, and the disagreement was an
+    // artifact: a retiring loan wasted its surplus, so the cheapest strategy was
+    // not the one that targets the dearest debt. With the whole budget spent,
+    // avalanche is cheapest and fastest, which is what the theory says.
     const cheapest = compareStrategies(LOANS, { budget: BUDGET, goal: 'interest' }).best;
     const fastest = compareStrategies(LOANS, { budget: BUDGET, goal: 'time' }).best;
 
-    expect(cheapest.strategy).not.toBe(fastest.strategy);
-    expect(fastest.months).toBeLessThanOrEqual(cheapest.months);
-    expect(fastest.interestPaid.compare(cheapest.interestPaid)).toBe(1);
+    expect(cheapest.strategy).toBe('avalanche');
+    expect(fastest.months).toBe(cheapest.months);
+  });
+
+  it('still ranks the losers differently, which is why the goal is a choice', () => {
+    // The winner agreeing does not make the goal redundant. Blizzard and ice
+    // slide tie on months and are far apart on interest, so which of them looks
+    // worse depends entirely on what is being asked.
+    const byInterest = compareStrategies(LOANS, { budget: BUDGET, goal: 'interest' }).ranked;
+    const byTime = compareStrategies(LOANS, { budget: BUDGET, goal: 'time' }).ranked;
+
+    expect(byInterest.map((r) => r.strategy)).not.toEqual(byTime.map((r) => r.strategy));
   });
 });
 
