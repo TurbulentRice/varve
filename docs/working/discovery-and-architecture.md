@@ -1446,3 +1446,113 @@ than left to whichever comparison someone typed first.
 That convention also settles what "stale" means: a balance is out of date when a
 payment is recorded strictly *after* the most recent observation. Same-day is not
 stale, because a same-day payment is already inside the period that closed.
+
+---
+
+## 17. Net worth
+
+Savings and debts have been two separate screens since §13. This puts them in one
+figure, which is the first thing in the app that is about the household rather
+than about one module of it.
+
+### 17.1 The calculation goes in `core`, and knows about neither module
+
+`retirement` and `loans` are peers, and neither imports the other — that was the
+point of Decision 4 and it is worth not spending. A net worth derivation living
+in either one would make the first peer-to-peer dependency in the repository, and
+a package of its own is a lot of ceremony for what starts as one function.
+
+So `core` takes it, on the condition that it learns nothing new. It already holds
+`summarizePeriod`, which nets dated balances against dated flows; this sits
+beside it and nets **two series of dated amounts** against each other. It has no
+idea one series came from investment accounts and the other from loans, and it
+does not need one. Both modules already produce exactly that shape, and the app
+hands over both.
+
+That constraint is doing real work rather than being tidy. A function that cannot
+see the difference between an asset and a debt cannot grow a special case for
+either, and net worth is precisely the place where a special case would be a
+subtle lie.
+
+### 17.2 Zero owed and nothing known are different, and only the caller can tell
+
+Ground rule 3 has an awkward corner here. A household with no debts genuinely
+owes zero. A household with three loans and no balances recorded owes an unknown
+amount — and subtracting zero would report a net worth that is too high, in the
+flattering direction, which is the worst way to be wrong about this.
+
+The function cannot distinguish them: both arrive as an empty series. So it does
+not try. Each point reports whether that side had been observed by that date, and
+the *caller* — which knows whether any loans exist at all — decides what that
+means. An app with no loans shows a net worth. An app with unobserved loans says
+so and declines to imply precision it does not have.
+
+Pushing the judgement to the caller is right here rather than lazy. `core` is
+where facts about arithmetic live; "this household has loans it has never told us
+about" is a fact about a ledger, and the ledger layer is where it can be known.
+
+### 17.3 The dashboard gains a fact and loses nothing
+
+Net worth appears beside the retirement hero, not instead of it.
+
+The hero says "chance of reaching $X by YYYY", and that number is about
+retirement savings and labels itself that way. It was also tuned by eye against
+real bugs — a version once read 100% before anyone touched a control — and the
+fan chart beneath it went through the colour and banding work in §10. Redefining
+what those mean, in the same phase that first introduces debts to the screen, is
+two changes wearing one coat.
+
+So net worth is its own clearly-marked figure with its two halves shown
+separately, and the projection continues to project savings. Whether the headline
+should eventually *be* net worth is a real question and a later one — and it is a
+better question once there is a net worth series to look at, which there was not
+before this.
+
+### 17.4 What is deliberately not projected
+
+The fan chart simulates savings forward and will keep doing so. It does not
+subtract projected debt, and it should not yet.
+
+Debt has a *schedule*: it falls in a way that is contractual and nearly certain,
+which is the opposite of the distribution the Monte Carlo draws from. Overlaying
+one on the other means either drawing a near-deterministic line inside a
+probability fan — implying uncertainty that is not there — or netting them and
+producing a band whose width means two different things at once. Neither is
+honest, and getting it right needs its own thinking rather than an afternoon.
+
+The historical net worth series has no such problem, because both sides are
+observed. That is what this phase draws.
+
+### 17.5 What the work turned up
+
+406 tests. This one went in cleanly, which is worth saying plainly rather than
+manufacturing a finding: the shape had been argued out in §17.1–17.4 before any
+code, and the code did what the argument said it would.
+
+**The ignorance constraint bought a test that would not otherwise exist.**
+Because `netWorthSeries` cannot tell an asset from a debt, swapping its two
+arguments must negate the result exactly. That property is now asserted, and it
+is a stronger guarantee than any example: it cannot hold if a special case for
+either side has crept in anywhere. A function that knew which side was which
+could not be checked this way at all.
+
+**The caveat fired on real data, which is the only way to trust it.** The browser
+was holding a ledger where one loan had lost its observations during the previous
+phase's testing. The dashboard said so — *"One loan has no balance recorded, so
+it is subtracting nothing"* — and the net worth figure above it was, correctly,
+too high. That is ground rule 3 catching the exact case §17.2 was written about,
+without anyone constructing it.
+
+**One judgement call worth recording.** Where some debts are observed and some
+are not, the Debts tile shows the figure it knows rather than a dash. Hiding a
+real $16,020 because a second loan is unrecorded would trade a number that is
+incomplete for no number at all, which is worse: the reader loses information and
+still has to read the caveat to understand why. The tile shows what is known and
+says what is missing, and the banner above it says it again in the direction that
+matters — the total is too *high*.
+
+**The default household reads correctly**, which was the case most likely to be
+got wrong by a feature built while thinking about debts. No loans at all gives
+net worth equal to assets, debts of `$0`, and the words "nothing owed" rather
+than a dash — because that household genuinely owes nothing, and it is the
+caller, not `core`, that can tell.
