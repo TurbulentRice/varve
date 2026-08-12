@@ -7,6 +7,7 @@ import {
   isoDate,
   loanId,
   loanObservationId,
+  loanPaymentId,
   m,
   observationId,
   ownerId,
@@ -237,8 +238,12 @@ describe('schema version 2 adds loans without breaking version 1', () => {
   });
 
   it('writes it back at the current version, so it upgrades once and stays', () => {
+    // Deliberately not pinned to a literal here: this test is about a version 1
+    // document reaching whatever the current version is, and it should not need
+    // touching every time a collection is added. The literal lives with the
+    // version that introduced it, below.
     expect(decodeSnapshot(v1).schemaVersion).toBe(SNAPSHOT_SCHEMA_VERSION);
-    expect(SNAPSHOT_SCHEMA_VERSION).toBe(2);
+    expect(SNAPSHOT_SCHEMA_VERSION).toBeGreaterThanOrEqual(2);
   });
 
   it('round-trips loans and what is owed', () => {
@@ -283,6 +288,84 @@ describe('schema version 2 adds loans without breaking version 1', () => {
 
     // Same rule as everywhere: a float has already lost precision by the time
     // it is parsed, so accepting one silently is how corruption gets in.
+    expect(() => decodeSnapshot(bad)).toThrow(/must be strings/);
+  });
+});
+
+describe('schema version 3 adds payments without breaking versions 1 or 2', () => {
+  const v2 = JSON.stringify({
+    schemaVersion: 2,
+    revision: 4,
+    exportedAt: '2026-06-01T00:00:00.000Z',
+    household: { id: 'h1', name: 'Test' },
+    owners: [],
+    accounts: [],
+    observations: [],
+    flows: [],
+    notes: [],
+    loans: [
+      {
+        id: 'l1',
+        householdId: 'h1',
+        name: 'Card',
+        ownerIds: [],
+        kind: 'credit-card',
+        annualRate: 0.1899,
+        termMonths: 24,
+      },
+    ],
+    loanObservations: [
+      { id: 'lo1', loanId: 'l1', asOf: '2026-05-31', amount: '4800.00', source: 'manual' },
+    ],
+  });
+
+  it('opens a document written before payments existed', () => {
+    const snapshot = decodeSnapshot(v2);
+
+    expect(snapshot.loans).toHaveLength(1);
+    expect(snapshot.loanObservations).toHaveLength(1);
+    expect(snapshot.loanPayments).toEqual([]);
+  });
+
+  it('keeps what version 2 did record', () => {
+    // The point of a cheap migration: the new collection is added and nothing
+    // already populated changes meaning.
+    const snapshot = decodeSnapshot(v2);
+    expect(snapshot.loanObservations[0]!.amount.toString()).toBe('4800.0000');
+    expect(snapshot.loans[0]!.annualRate).toBe(0.1899);
+  });
+
+  it('upgrades on write, once', () => {
+    expect(decodeSnapshot(v2).schemaVersion).toBe(SNAPSHOT_SCHEMA_VERSION);
+    expect(SNAPSHOT_SCHEMA_VERSION).toBe(3);
+  });
+
+  it('round-trips a payment', () => {
+    const withPayment = {
+      ...emptySnapshot({ id: householdId('h1'), name: 'Test' }),
+      loanPayments: [
+        {
+          id: loanPaymentId('lp1'),
+          loanId: loanId('l1'),
+          paidOn: isoDate('2026-06-15'),
+          amount: m('350.75'),
+          note: 'extra',
+        },
+      ],
+    };
+
+    const back = decodeSnapshot(encodeSnapshot(withPayment));
+    expect(back.loanPayments[0]!.amount.toString()).toBe('350.7500');
+    expect(back.loanPayments[0]!.note).toBe('extra');
+  });
+
+  it('still refuses a payment written as a JSON number', () => {
+    const bad = JSON.stringify({
+      schemaVersion: 3,
+      household: { id: 'h1', name: 'Test' },
+      loanPayments: [{ id: 'lp1', loanId: 'l1', paidOn: '2026-06-15', amount: 350.75 }],
+    });
+
     expect(() => decodeSnapshot(bad)).toThrow(/must be strings/);
   });
 });

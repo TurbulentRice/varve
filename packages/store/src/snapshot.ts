@@ -45,6 +45,7 @@ import {
   type Household,
   type Loan,
   type LoanObservation,
+  type LoanPayment,
   type Note,
   type Owner,
 } from '@varve/core';
@@ -53,11 +54,17 @@ import {
 /**
  * Bump when the on-disk shape changes in a way older readers cannot handle.
  *
- * 2 adds `loans` and `loanObservations`. Version 1 documents still open: both
- * are read as empty when absent, which is the honest reading rather than a
- * lenient one — a ledger written before loans existed genuinely has none.
+ * 2 adds `loans` and `loanObservations`; 3 adds `loanPayments`. Older documents
+ * still open, with each absent collection read as empty — the honest reading
+ * rather than a lenient one, since a ledger written before a concept existed
+ * genuinely has none of it.
+ *
+ * Three versions in three phases is not churn. Each added a collection that did
+ * not exist and broke nothing that did, which is the cheap kind of migration;
+ * the expensive kind changes what an already-populated field means, and none of
+ * these has.
  */
-export const SNAPSHOT_SCHEMA_VERSION = 2;
+export const SNAPSHOT_SCHEMA_VERSION = 3;
 
 export interface Snapshot {
   readonly schemaVersion: number;
@@ -74,6 +81,7 @@ export interface Snapshot {
   readonly notes: readonly Note[];
   readonly loans: readonly Loan[];
   readonly loanObservations: readonly LoanObservation[];
+  readonly loanPayments: readonly LoanPayment[];
 }
 
 export function emptySnapshot(household: Household): Snapshot {
@@ -89,6 +97,7 @@ export function emptySnapshot(household: Household): Snapshot {
     notes: [],
     loans: [],
     loanObservations: [],
+    loanPayments: [],
   };
 }
 
@@ -164,6 +173,19 @@ export function decodeSnapshot(text: string): Snapshot {
       doc.loanObservations,
       'loanObservations',
     ).map(decodeLoanObservation),
+    loanPayments: array<Record<string, unknown>>(doc.loanPayments, 'loanPayments').map(
+      decodeLoanPayment,
+    ),
+  };
+}
+
+function decodeLoanPayment(raw: Record<string, unknown>, i: number): LoanPayment {
+  return {
+    id: raw.id as LoanPayment['id'],
+    loanId: raw.loanId as LoanPayment['loanId'],
+    paidOn: isoDate(String(raw.paidOn)),
+    amount: amount(raw.amount, `loanPayments[${i}]`),
+    ...(typeof raw.note === 'string' ? { note: raw.note } : {}),
   };
 }
 

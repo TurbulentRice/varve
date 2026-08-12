@@ -20,7 +20,15 @@
  * next month sits alongside the old figure rather than erasing it.
  */
 
-import { Money, type IsoDate, type Loan, type LoanId, type LoanObservation } from '@varve/core';
+import {
+  Money,
+  daysBetween,
+  type IsoDate,
+  type Loan,
+  type LoanId,
+  type LoanObservation,
+  type LoanPayment,
+} from '@varve/core';
 import { compareStrategies, type Comparison, type ComparisonGoal } from './compare.js';
 import { amortize, analyzeSchedule, canAmortize, minimumPayment } from './amortize.js';
 import type { MinimumMode } from './strategy.js';
@@ -30,6 +38,7 @@ import { loanId as toLoanId, type LoanTerms, type Schedule, type ScheduleAnalysi
 export interface LoanLedger {
   readonly loans: readonly Loan[];
   readonly loanObservations: readonly LoanObservation[];
+  readonly loanPayments?: readonly LoanPayment[];
 }
 
 export interface LoanState {
@@ -159,4 +168,173 @@ export function compareLedger(
       ...(plan.goal === undefined ? {} : { goal: plan.goal }),
     },
   );
+}
+
+// ------------------------------------------------------ what it actually cost
+
+/**
+ * What a loan has cost between two observations of it.
+ *
+ * The measurement, not the projection. `summarizePeriod` does the equivalent for
+ * an account: growth is whatever the balance did that the flows do not explain.
+ * Inverted for a debt, the same arithmetic gives the interest actually charged —
+ * what was paid, less how far the balance fell.
+ *
+ * That matters more than it sounds. A quoted APR is not what a lender charges:
+ * there are fees, daily rather than monthly compounding, a rate that moved
+ * mid-cycle, a payment applied late. The nominal rate says what should have
+ * happened. This says what did, and where they disagree this is right. It is the
+ * loan-side answer to §3.1, which is the finding the whole project grew from.
+ */
+export interface LoanPeriod {
+  readonly from: IsoDate;
+  readonly to: IsoDate;
+  readonly openingBalance: Money;
+  readonly closingBalance: Money;
+  /** Everything paid between the two observations. */
+  readonly paid: Money;
+  /** How far what is owed actually fell. Negative if it grew. */
+  readonly balanceReduction: Money;
+  /**
+   * Paid, less the reduction in the balance.
+   *
+   * `null` when nothing was paid in the period — a balance that moved on its own
+   * says something happened, but not that it was interest, and guessing would be
+   * the whole mistake this is here to avoid.
+   */
+  readonly interestCharged: Money | null;
+  /**
+   * Interest charged over the balance carried, annualized — the rate the lender
+   * actually applied.
+   *
+   * A `number`, because it is a rate (§11.3). `null` where there is nothing to
+   * divide by, or no interest figure to divide.
+   */
+  readonly effectiveAnnualRate: number | null;
+}
+
+export interface LoanCost {
+  readonly periods: readonly LoanPeriod[];
+  readonly totalPaid: Money;
+  /** Summed across every period that could be measured. */
+  readonly interestCharged: Money;
+  readonly principalRepaid: Money;
+  /** Weighted by how long each balance was carried. `null` if never measurable. */
+  readonly effectiveAnnualRate: number | null;
+  /**
+   * Whether a payment has been recorded since the most recent balance.
+   *
+   * A payment does not move the balance — only an observation does (§16.4) — so
+   * this is how the interface knows to say "what is owed is out of date" rather
+   * than quietly showing a figure that has been overtaken.
+   */
+  readonly balanceStale: boolean;
+}
+
+const DAYS_PER_YEAR = 365.25;
+
+/**
+ * Reconcile a loan's payments against its observed balances.
+ *
+ * Consecutive observations bracket each period; payments falling inside are what
+ * was handed over. Two observations are the minimum for any of this to mean
+ * anything, which is the same rule `YearRow.measurable` enforces for accounts and
+ * for the same reason.
+ */
+export function loanCost(
+  loan: Loan,
+  observations: readonly LoanObservation[],
+  payments: readonly LoanPayment[],
+): LoanCost {
+  const seen = observations
+    .filter((o) => o.loanId === loan.id)
+    .slice()
+    .sort((a, b) => (a.asOf < b.asOf ? -1 : a.asOf > b.asOf ? 1 : 0));
+
+  const mine = payments
+    .filter((p) => p.loanId === loan.id)
+    .slice()
+    .sort((a, b) => (a.paidOn < b.paidOn ? -1 : a.paidOn > b.paidOn ? 1 : 0));
+
+  const periods: LoanPeriod[] = [];
+
+  for (let i = 1; i < seen.length; i += 1) {
+    const from = seen[i - 1]!;
+    const to = seen[i]!;
+
+    // Half-open at the start: a payment on the opening date belongs to the
+    // period that closed on it, not the one beginning there.
+    const within = mine.filter((p) => p.paidOn > from.asOf && p.paidOn <= to.asOf);
+    const paid = Money.sum(within.map((p) => p.amount));
+    const balanceReduction = from.amount.minus(to.amount);
+
+    const interestCharged = within.length === 0 ? null : paid.minus(balanceReduction);
+
+    periods.push({
+      from: from.asOf,
+      to: to.asOf,
+      openingBalance: from.amount,
+      closingBalance: to.amount,
+      paid,
+      balanceReduction,
+      interestCharged,
+      effectiveAnnualRate: annualizedRate(interestCharged, from.amount, to.amount, from.asOf, to.asOf),
+    });
+  }
+
+  const measured = periods.filter((p) => p.interestCharged !== null);
+  const interestCharged = Money.sum(measured.map((p) => p.interestCharged!));
+  const totalPaid = Money.sum(periods.map((p) => p.paid));
+
+  const latestObservation = seen[seen.length - 1];
+  const latestPayment = mine[mine.length - 1];
+
+  return {
+    periods,
+    totalPaid,
+    interestCharged,
+    principalRepaid: totalPaid.minus(interestCharged),
+    effectiveAnnualRate: blendedRate(measured),
+    balanceStale:
+      latestPayment !== undefined &&
+      latestObservation !== undefined &&
+      latestPayment.paidOn > latestObservation.asOf,
+  };
+}
+
+/** Interest over the average balance carried, scaled to a year. */
+function annualizedRate(
+  interest: Money | null,
+  opening: Money,
+  closing: Money,
+  from: IsoDate,
+  to: IsoDate,
+): number | null {
+  if (interest === null) return null;
+
+  const days = daysBetween(from, to);
+  if (days <= 0) return null;
+
+  // The mean of the two ends, which is the right denominator for a balance that
+  // falls roughly linearly across a month. Nothing finer is justified when the
+  // only evidence is two observations.
+  const average = opening.plus(closing).dividedBy(2);
+  if (!average.isPositive()) return null;
+
+  return interest.ratio(average) * (DAYS_PER_YEAR / days);
+}
+
+/** Each period's rate, weighted by how long its balance was actually carried. */
+function blendedRate(periods: readonly LoanPeriod[]): number | null {
+  const usable = periods.filter((p) => p.effectiveAnnualRate !== null);
+  if (usable.length === 0) return null;
+
+  let weighted = 0;
+  let total = 0;
+  for (const p of usable) {
+    const days = daysBetween(p.from, p.to);
+    weighted += p.effectiveAnnualRate! * days;
+    total += days;
+  }
+  return total > 0 ? weighted / total : null;
 }

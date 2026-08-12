@@ -30,5 +30,6 @@ export function toSnapshot(result: ImportResult): Snapshot {
     // savings. Empty here is a fact about the source, not a gap in the import.
     loans: [],
     loanObservations: [],
+    loanPayments: [],
   };
 }

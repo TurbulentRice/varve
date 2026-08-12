@@ -1324,3 +1324,125 @@ thing being served.
 
 The upstream defect is not this repository's to carry either. It is reported
 there, and this port is correct here.
+
+---
+
+## 16. Recording payments
+
+The ledger knows what is owed and nothing about what has been paid against it.
+§13.2 deferred this deliberately and said the shape would take it without moving:
+payments are flows against a loan, exactly as contributions are flows against an
+account. This is that, and the shape did hold.
+
+### 16.1 What recording payments actually buys
+
+Not a prettier history. The balance observations already say what is owed, and a
+list of payments beside them is only bookkeeping.
+
+What it buys is the **interest actually charged**, which nothing in the model can
+currently see. `summarizePeriod` already does the equivalent for an account:
+
+```
+organic gain = end − start − what crossed the boundary
+```
+
+Growth is whatever the balance did that the flows do not explain. Invert it for a
+debt and the same arithmetic gives:
+
+```
+interest charged = what was paid − how far the balance fell
+```
+
+If $4,000 of payments moved the balance down by $3,100, the lender charged $900.
+That is a measurement, not a projection — and it is the loan-side answer to §3.1,
+which is the finding this whole project grew out of: **measure what actually
+happened rather than trusting the formula.**
+
+The difference matters more here than it looks. A quoted APR is not what a
+lender charges. There are fees, daily rather than monthly compounding, a rate
+that changed mid-cycle, a payment applied late. The nominal rate says what should
+have happened; the ledger says what did. Where they disagree, the ledger is
+right, and nobody currently has any way to notice.
+
+That also gives the effective rate — interest charged over the average balance
+carried — which is the number to compare against the quoted one, and the number
+worth showing when they differ.
+
+### 16.2 Derived, not entered
+
+A statement helpfully breaks each payment into interest and principal, which is a
+standing invitation to store it that way. The invitation should be declined, for
+the reason §3.3 gives: a stored split is derivable state that can drift from the
+observations it is supposed to agree with, which is what `Q0` was.
+
+So a payment records **what was paid, and when**. The split against any period
+falls out of the balances either side of it. Storing less makes the model say
+more, because now the interest figure cannot silently disagree with the balances.
+
+The one case this loses is a lender whose statement disagrees with arithmetic —
+where the split as printed does not reconcile with the balance movement. That is
+a genuinely interesting event and the right response is to surface it, not to
+store both numbers and let one quietly win. Not in this slice; noted so the
+absence is a decision rather than an oversight.
+
+### 16.3 Schema version 3
+
+`loanPayments` joins `loans` and `loanObservations`. Version 1 and 2 documents
+both still open, with the field read as empty when absent — same reasoning as
+§13.5, and the same one-way upgrade on write.
+
+That is the third schema version in three phases, which is worth a note. It is
+not churn: each one added a collection that did not exist before and broke
+nothing that did, which is the cheap kind of migration. The expensive kind
+changes the meaning of a field that is already populated, and none of these has.
+
+### 16.4 What a payment is not
+
+It does not move the balance. The balance is what the observations say, and a
+payment recorded without a fresh observation leaves what is owed exactly where it
+was — correctly, because nobody has looked.
+
+This will feel wrong for about a second and then feel right. A payment is
+evidence that money left; only a statement is evidence of what is now owed.
+Deriving one from the other would put the model back in the business of guessing,
+and the whole ledger exists to avoid that. Where a payment is recorded and the
+balance has not been re-observed, the interface says the balance is stale rather
+than moving it.
+
+### 16.5 What the work turned up
+
+395 tests. The derivation works end to end and was verified by driving it: a
+payment recorded through the form, a two-statement history, and the interest
+figure checked against arithmetic done by hand.
+
+**The measurement does what it was built to do.** On a car loan quoted at 6%,
+$310 paid against a balance that fell $230 gives $80 of interest and an effective
+rate of **5.84%** — the loan cost *less* than its sticker rate over that period.
+Whether it reads high or low is not the point; the point is that the number is
+now visible at all, and it comes from what happened rather than from applying a
+rate to a formula.
+
+**The migration was tested by accident, which is the best way.** The browser was
+still holding a schema version 2 document from the previous phase, so opening it
+in a version 3 build was a real upgrade rather than a synthetic one. It opened,
+read its loans and balances, and rewrote itself as version 3 on the first save.
+That is the third such upgrade and the third that needed no migration step,
+because each has added a collection rather than changed the meaning of one.
+
+**Two ids, two different rules, and the difference is the domain.** A balance
+observation's id is derived from the loan and the date, so saving twice in a day
+*corrects* the day's reading — a second look at the same statement supersedes the
+first. A payment's id is random, so two payments in one day are two payments.
+Same-looking records, opposite behaviour, and getting it backwards either way
+would be a silent data bug. Worth stating because the derived-id trick from the
+year editor is easy to copy one function too far.
+
+**A period boundary needed a convention and now has one.** A payment dated on an
+observation date belongs to the period that *closed* on it, not the one starting.
+Half-open at the start. Either choice is defensible and the cost of not choosing
+is a payment counted twice or not at all, so it is written down and tested rather
+than left to whichever comparison someone typed first.
+
+That convention also settles what "stale" means: a balance is out of date when a
+payment is recorded strictly *after* the most recent observation. Same-day is not
+stale, because a same-day payment is already inside the period that closed.
