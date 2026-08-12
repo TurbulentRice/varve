@@ -49,6 +49,27 @@ jobs:
       - name: Build web app
         run: pnpm --filter @varve/web build
 
+  docs:
+    name: Documentation references resolve
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # No install: the check reads files and needs nothing from npm.
+      #
+      # Two invariants, and the second is the one that could not otherwise fail.
+      # Relative links must resolve — three broken ones have already shipped,
+      # one of which had never worked. And every §-reference cited from code
+      # must name a real section of the working doc: `CLAUDE.md` calls that
+      # numbering load-bearing, and a renumbering would leave every citation
+      # pointing somewhere plausible and wrong with nothing to notice.
+      - name: Links and section references
+        run: node .github/scripts/check-docs.mjs
+
   bundle:
     name: No real data in the bundle
     runs-on: ubuntu-latest
