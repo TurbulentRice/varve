@@ -5,7 +5,7 @@ want the history of how the thinking changed, that is
 [the working doc](working/discovery-and-architecture.md) — this file only ever
 describes now.
 
-Last updated: 2026-08-12, after net worth.
+Last updated: 2026-08-12. The first era is closed; the second is being planned.
 
 ## Where things stand
 
@@ -34,35 +34,42 @@ CI running tests, the bundle guard and the documentation checks on every PR.
 9. ✅ Retired most of the parity fixture (§15)
 10. ✅ Recording payments — interest measured rather than assumed (§16)
 11. ✅ Net worth — assets against debts, beside the hero rather than instead of it (§17)
-12. ⬅ **Next: an open choice — see below.**
+12. ⬅ **Next: the interface era — see
+    [interface-and-experience.md](working/interface-and-experience.md).**
 
 Deferred behind a stated seam: server, auth, sync, institution APIs. None is
 worth building for a user who does not exist yet.
 
 ## What's next
 
-No single obvious next piece, which is itself worth noting — the modules that
-were missing are now present. Three candidates, roughly in order of what they
-buy:
+**A second working document opens here:**
+[interface-and-experience.md](working/interface-and-experience.md). The model is
+correct; the question now is whether anyone would want to use it.
 
-### 1. Net worth over time
+The first era's document is **closed** — extended only to correct something known
+to be wrong. Its numbering continues into the new file rather than restarting,
+because 61 citations in the codebase depend on `§8.1` meaning one thing (§18.4).
 
-§17 draws the figure for today and the series exists behind it, but nothing plots
-it. A net worth line running back through the record is the first chart in the
-app about the household rather than one module of it, and needs no new data.
+The diagnosis, measured on the running app: the landing page is **2.6 screens**,
+the account list — the best thing in the app — begins **1.7 screens down** inside
+a collapsed disclosure, and a projection control sits **2.4 screens** from the
+numbers it drives. The page is a changelog of what got built rather than an
+answer to what someone came to find out.
 
-### 2. Are the payments on schedule?
+The proposal is a persistent shell with four destinations — Overview, Accounts,
+Debts, Plan — separating the *record* from the *model*, and making positions
+first-class instead of a table row and a button. §19 has the shape; §19.4 lists
+the forks that want deciding before anything is built.
 
-The ledger knows what was paid and what it cost (§16) but not whether that is
-ahead of or behind the contractual plan. Cheap on top of what exists, and it is
-the question a borrower actually asks.
+Outstanding product work is carried forward in §20 so a STATUS rewrite cannot
+lose it. The near-term pieces, in order of what they buy:
 
-### 3. Projecting debt alongside savings
-
-The honest hard one, and deliberately deferred in §17.4. Debt falls on a
-near-certain schedule; savings are a distribution. Drawing them on one axis means
-either implying uncertainty that is not there or producing a band whose width
-means two things at once. Needs its own thinking, not an afternoon.
+1. **Net worth over time** — the series exists behind today's figure and nothing
+   plots it. Needs no new data, and is the natural anchor for an Overview.
+2. **Are the payments on schedule?** — cheap on top of §16, and the question a
+   borrower actually asks.
+3. **A statement whose split disagrees with the balances** (§16.2) — a genuinely
+   interesting event, currently invisible.
 
 ## Known debt, deliberately deferred
 
@@ -71,8 +78,6 @@ means two things at once. Needs its own thinking, not an afternoon.
   contractual plan. Cheap to add on top of §16.
 - **A statement whose printed split disagrees with the balances is not
   surfaced** (§16.2). It is a genuinely interesting event and currently invisible.
-- **Net worth does not exist.** Savings and debts are shown side by side and
-  never combined.
 - **Routing is hand-rolled** (§12.3). Fine at four views with one parameter each.
   The signal to adopt a real router is a route needing something the union cannot
   express — a query string, genuine nesting, a loading state. Call sites already

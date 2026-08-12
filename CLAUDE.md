@@ -15,20 +15,22 @@ Repo: https://github.com/TurbulentRice/varve (public, MIT)
 | Read | For |
 |---|---|
 | [`docs/STATUS.md`](docs/STATUS.md) | Where things stand, what's next, known debt. Living — rewritten each phase. |
-| [`docs/working/discovery-and-architecture.md`](docs/working/discovery-and-architecture.md) | **The single source of reasoning.** Discovery, decisions with their trade-offs, findings, roadmap. Long because the reasoning is the point. |
+| [`docs/working/interface-and-experience.md`](docs/working/interface-and-experience.md) | **The current working doc** (§18+). Where the interface is going, and why. |
+| [`docs/working/discovery-and-architecture.md`](docs/working/discovery-and-architecture.md) | **The first era, closed** (§1–§17). How the model was arrived at: discovery, decisions with their trade-offs, findings. Long because the reasoning is the point. |
 | [`docs/README.md`](docs/README.md) | What else is in `docs/` and where new documents go. |
 
-Code comments cite that working doc by section — `§8.1`, `§11.2`, `Decision 4`.
-Those references are load-bearing: **keep the section numbering stable**, and
-extend rather than renumber. CI enforces it, along with every relative link in
-the documentation:
+Code comments cite those docs by section — `§8.1`, `§11.2`, `Decision 4`. The
+numbering runs continuously across both files and is load-bearing: **keep it
+stable, extend rather than renumber, and never restart it in a new document.**
+
+CI checks every citation and every relative link, and so can you:
 
 ```bash
 node .github/scripts/check-docs.mjs
 ```
 
-A renumbering would otherwise leave each citation pointing somewhere plausible
-and wrong, with nothing failing to say so.
+Without it a renumbering leaves each citation pointing somewhere plausible and
+wrong, with nothing failing to say so.
 
 ## Ground rules
 
@@ -102,8 +104,9 @@ not have sampled.
 **Phases, with the reasoning written down first.** Work proceeds in discrete
 phases. Before writing code:
 
-1. **Write the decision down** — extend the working doc with what is being built,
-   the options, the trade-offs, and the choice. Prose, not bullets. If a decision
+1. **Write the decision down** — extend the *current* working doc (§18 onward,
+   [interface-and-experience.md](docs/working/interface-and-experience.md)) with
+   what is being built, the options, the trade-offs, and the choice. Prose, not bullets. If a decision
    has a genuine fork, say so and *recommend* rather than quietly picking; ask
    when the answer would materially change the work.
 2. **Build it**, tests alongside the code rather than after.

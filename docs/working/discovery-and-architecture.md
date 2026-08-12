@@ -9,7 +9,7 @@ For where things stand right now, see [`docs/STATUS.md`](../STATUS.md).
 
 **Scope:** understand the two legacy assets, extract everything portable, and set foundational direction for a cross-platform port.
 
-**Decisions taken:** TypeScript core (§4.2) · observations + flows (§4.1) · local-first with a sync seam (§4.3) · monorepo, module-shaped (§4.4) · platform framing, retirement first · multi-tenancy modelled from the start · loans as a peer over the same core (§11).
+**Decisions taken:** TypeScript core (Decision 2) · observations + flows (Decision 1) · local-first with a sync seam (Decision 3) · monorepo, module-shaped (Decision 4) · platform framing, retirement first · multi-tenancy modelled from the start · loans as a peer over the same core (§11).
 
 > **The section numbering here is load-bearing.** Code comments cite it directly
 > — `§8.1` for the money conventions, `§11.2` for the loans rounding argument,
@@ -386,11 +386,17 @@ And the control holds — on real data, every account-year with **no** external 
 
 The layout above is already the target shape from Decision 4, so promoting this spike is mostly moving and renaming.
 
-**1. Name it.** `retirement-tracker` no longer describes it, and the package scope `@varve/*` throughout is a deliberate placeholder — it names the layer, not the product. Worth choosing before `git init`, since it touches the directory name, the scope, and eventually the domain. (`RepayMint` suggests a family, but Mint is a retired Intuit product and the association may be more liability than asset.)
+### 9.1 Name it
 
-**2. Split the repo from the archive.** ✅ Done — the `.accdb`, the `.xlsx`, and `extracted/` now live under `legacy/`.
+`retirement-tracker` no longer describes it, and the package scope `@varve/*` throughout is a deliberate placeholder — it names the layer, not the product. Worth choosing before `git init`, since it touches the directory name, the scope, and eventually the domain. (`RepayMint` suggests a family, but Mint is a retired Intuit product and the association may be more liability than asset.)
 
-**3. Keep the real data out of git.** ⚠️ *This supersedes an earlier draft of this section, which suggested committing `extracted/csv/` so the reconciliation test would travel with the repo. That was wrong.*
+### 9.2 Split the repo from the archive
+
+✅ Done — the `.accdb`, the `.xlsx`, and `extracted/` now live under `legacy/`.
+
+### 9.3 Keep the real data out of git
+
+⚠️ *This supersedes an earlier draft of this section, which suggested committing `extracted/csv/` so the reconciliation test would travel with the repo. That was wrong.*
 
 The account numbers in the source were already masked, but the balances are real, the owner names are real, and `tblYear.Notes` records quarterly net worth by initial. Git history is effectively permanent, and this repository is meant to become public. Committing it once is a decision that cannot be taken back without rewriting history everywhere it has been cloned.
 
@@ -405,13 +411,15 @@ The reconciliation suite detects whether the data is present: it runs locally, a
 
 **3a. Then replace it with a synthetic fixture.** Skipping is a stopgap, not an answer — a flagship test that silently does nothing on every clone and in every CI run will rot. The fix is a small hand-authored dataset in the Access shape that reproduces each structural quirk the real data taught us: a rollover matching a closure, a many-to-one consolidation, a partial current year, a dormant account that never reconciles, fees, and a benchmark. Obviously-fake round numbers, committed, always runs. The real data then becomes an *additional* local pass that must agree with it.
 
-**4. Then build outward, in this order:**
+### 9.4 Then build outward, in this order
 
 - `packages/store` — repository interface + a local adapter, plus import/export of a plain open file. This is what makes the thing a real successor to the `.accdb`: his data, in a file he holds.
 - `apps/web` — the first UI. Anchored on whichever two or three views actually get used (open question #10), not on all 20 forms.
 - `packages/loans` — `financetools` ported. Peer to `retirement` over the same core, which is what makes RepayMint an addition rather than a merge.
 
-**5. Deferred deliberately, with the seam left open:** the server (needed only when institution linking arrives, since API tokens cannot live in a browser), auth, and sync. Building any of them now would be building for a user who does not exist yet.
+### 9.5 Deferred deliberately, with the seam left open
+
+the server (needed only when institution linking arrives, since API tokens cannot live in a browser), auth, and sync. Building any of them now would be building for a user who does not exist yet.
 
 ✅ Done. `packages/store`, `packages/retirement`, and a throwaway view all exist, and the model survived contact with a UI — see §10 for what comes next.
 
@@ -1000,7 +1008,7 @@ changes, and nothing in `retirement` needs auditing.
 
 Modelling loans separately is not licence to abandon Decision 1. The obvious
 shortcut — a mutable `balance` field on the loan record — is exactly the
-period-snapshot shape §4.1 rejected, and it would drift the same way `Q0` did.
+period-snapshot shape Decision 1 rejected, and it would drift the same way `Q0` did.
 
 So a loan is **terms plus observations**, mirroring an account:
 

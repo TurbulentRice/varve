@@ -32,7 +32,19 @@
 import { readdir, readFile } from 'node:fs/promises';
 import { join, relative, resolve } from 'node:path';
 
-const WORKING_DOC = 'docs/working/discovery-and-architecture.md';
+/**
+ * Every working document, resolved as one numbering space.
+ *
+ * The second era starts a new file rather than a new section, and its numbering
+ * *continues* rather than restarting — because 61 citations in the codebase
+ * depend on `§8.1` meaning exactly one thing. A second document beginning at §1
+ * would make a dozen references ambiguous overnight, and the failure would be
+ * silent, which is the shape this check exists to prevent. See §18.4.
+ */
+const WORKING_DOCS = [
+  'docs/working/discovery-and-architecture.md',
+  'docs/working/interface-and-experience.md',
+];
 const SKIP = new Set(['node_modules', 'dist', '.git']);
 
 const failures = [];
@@ -75,10 +87,15 @@ for (const file of markdown) {
 
 // --------------------------------------------------------- section references
 
-const doc = await readFile(WORKING_DOC, 'utf8').catch(() => null);
-if (doc === null) {
-  fail(`${WORKING_DOC} is missing — every § reference in the codebase points at it.`);
-}
+const parts = await Promise.all(
+  WORKING_DOCS.map(async (path) => {
+    const text = await readFile(path, 'utf8').catch(() => null);
+    if (text === null) fail(`${path} is missing — § references in the codebase point at it.`);
+    return text;
+  }),
+);
+
+const doc = parts.every((p) => p !== null) ? parts.join('\n') : null;
 
 if (doc !== null) {
   const sections = new Set();
@@ -91,27 +108,29 @@ if (doc !== null) {
     [...doc.matchAll(/^#{2,4}\s+Decision\s+(\d+)/gm)].map((m) => m[1]),
   );
 
-  if (sections.size === 0) fail(`No numbered sections found in ${WORKING_DOC} — has its heading style changed?`);
+  if (sections.size === 0) fail('No numbered sections found in the working docs — has the heading style changed?');
 
   const sources = await walk('.', (n) => /\.(ts|tsx|js|mjs|py|md)$/.test(n));
   let citationsChecked = 0;
 
   for (const file of sources) {
-    if (resolve(file) === resolve(WORKING_DOC)) continue;
+    // Working docs are *not* skipped. They cite each other across the era
+    // boundary — this file's §18.4 points at §11.2 and §15.3 in the first — and
+    // a cross-document citation is exactly the kind that rots unnoticed.
     const text = await readFile(file, 'utf8');
 
     for (const m of text.matchAll(/§\s?(\d+)(?:\.(\d+))?/g)) {
       citationsChecked += 1;
       const cited = m[2] ? `${m[1]}.${m[2]}` : m[1];
       if (!sections.has(cited)) {
-        fail(`${file}\n      cites §${cited}, which is not a section of the working doc`);
+        fail(`${file}\n      cites §${cited}, which is not a section of any working doc`);
       }
     }
 
     for (const m of text.matchAll(/\bDecision\s+(\d+)\b/g)) {
       citationsChecked += 1;
       if (!decisions.has(m[1])) {
-        fail(`${file}\n      cites Decision ${m[1]}, which is not in the working doc`);
+        fail(`${file}\n      cites Decision ${m[1]}, which is not in any working doc`);
       }
     }
   }
