@@ -1,4 +1,15 @@
-import { accountId, m, type Account, type Money } from '@varve/core';
+import {
+  accountId,
+  isoDate,
+  loanId as toLoanId,
+  loanObservationId,
+  m,
+  Money,
+  type Account,
+  type Loan,
+  type LoanId,
+} from '@varve/core';
+import { findLoanState, loanStates, payable } from '@varve/loans';
 import {
   InMemoryRepository,
   PersistingRepository,
@@ -35,7 +46,11 @@ import { AccountDetail } from './components/AccountDetail.js';
 import { AccountsTable } from './components/AccountsTable.js';
 import { StatTiles } from './components/StatTiles.js';
 import { YearEditor } from './components/YearEditor.js';
+import { LoansView } from './components/LoansView.js';
+import { LoanDetail } from './components/LoanDetail.js';
+import { LoanEditor, type LoanDraft } from './components/LoanEditor.js';
 import { downloadSnapshot } from './lib/download.js';
+import { money } from './lib/format.js';
 import sampleSnapshot from './data/sample-snapshot.json';
 
 /**
@@ -117,6 +132,9 @@ function Ledger({
 
   const [error, setError] = useState<string | null>(null);
   const route = useRoute();
+  // Editing is a mode within a loan route rather than a route of its own: a
+  // half-typed form is not a place worth linking someone to.
+  const [editingLoan, setEditingLoan] = useState<LoanId | 'new' | null>(null);
 
   const [settings, setSettings] = useState<Settings>(() => ({
     contribution: 10_000,
@@ -170,6 +188,13 @@ function Ledger({
     [snapshot],
   );
 
+  // What the masthead shows beside "Debts" — nothing at all when there is none,
+  // rather than a decorative $0.
+  const owedTotal = useMemo(
+    () => Money.sum(loanStates(snapshot).filter(payable).map((s) => s.balance)),
+    [snapshot],
+  );
+
   // A Snapshot satisfies Ledger structurally, so no conversion is needed.
   const accountHistories = useMemo(
     () => deriveAccountHistories(snapshot, history.currentValue),
@@ -195,6 +220,57 @@ function Ledger({
       ),
     ]);
     await commit();
+  }
+
+  /**
+   * Save a drafted loan, and record what is owed as an observation.
+   *
+   * Two writes rather than one, because they are two different facts: the loan's
+   * terms, and a dated statement of its balance. The observation id is derived
+   * from the loan and the date, so saving twice in a day corrects that day's
+   * figure instead of stacking duplicates — the same forgiving behaviour the
+   * year editor has.
+   */
+  async function saveLoan(draft: LoanDraft, existing: Loan | null) {
+    const id = existing?.id ?? toLoanId(`loan:${crypto.randomUUID()}`);
+    const today = isoDate(new Date().toISOString().slice(0, 10));
+
+    await repo.saveLoans([
+      {
+        id,
+        householdId: snapshot.household.id,
+        name: draft.name.trim(),
+        ownerIds: snapshot.owners.map((o) => o.id),
+        kind: draft.kind,
+        // Percent in the form, fraction in the ledger. Converted once, here.
+        //
+        // Rounded to six places only to keep float noise out of the exported
+        // document — 18.99 / 100 is 0.18989999999999999 in IEEE 754, which
+        // looks broken in a file someone opens. This is not money-rounding a
+        // rate: six places is a ten-thousandth of a percent, far finer than any
+        // rate is ever quoted.
+        annualRate: Number((draft.ratePercent / 100).toFixed(6)),
+        termMonths: draft.termMonths,
+      },
+    ]);
+
+    await repo.saveLoanObservations([
+      {
+        id: loanObservationId(`lobs:${id}:${today}`),
+        loanId: id,
+        asOf: today,
+        amount: m(draft.balance.trim()),
+        source: 'manual',
+      },
+    ]);
+
+    await commit();
+  }
+
+  async function deleteLoan(id: LoanId) {
+    await repo.deleteLoans([id]);
+    await commit();
+    navigate({ view: 'loans' });
   }
 
   async function openFile(file: File) {
@@ -229,6 +305,56 @@ function Ledger({
     return (
       <div className="page">
         <AccountDetail history={selected} onClose={() => navigate(DASHBOARD)} />
+      </div>
+    );
+  }
+
+  if (route.view === 'loans') {
+    return (
+      <div className="page">
+        {editingLoan === null ? (
+          <LoansView
+            ledger={snapshot}
+            onOpen={(id) => navigate({ view: 'loan', loanId: id })}
+            onAdd={() => setEditingLoan('new')}
+            onClose={() => navigate(DASHBOARD)}
+          />
+        ) : (
+          <LoanEditor existing={null} onSave={saveLoan} onClose={() => setEditingLoan(null)} />
+        )}
+      </div>
+    );
+  }
+
+  if (route.view === 'loan') {
+    const loan = snapshot.loans.find((l) => l.id === route.loanId);
+    if (!loan) {
+      return (
+        <div className="page">
+          <div className="error" role="status">
+            <strong>That loan is not in this ledger</strong>
+            The link names a loan this document does not contain.
+          </div>
+          <button type="button" className="ghost" onClick={() => navigate({ view: 'loans' })}>
+            ← All debts
+          </button>
+        </div>
+      );
+    }
+
+    const state = findLoanState(snapshot, route.loanId);
+    return (
+      <div className="page">
+        {editingLoan === null ? (
+          <LoanDetail
+            state={state}
+            onEdit={() => setEditingLoan(route.loanId)}
+            onDelete={deleteLoan}
+            onClose={() => navigate({ view: 'loans' })}
+          />
+        ) : (
+          <LoanEditor existing={state} onSave={saveLoan} onClose={() => setEditingLoan(null)} />
+        )}
       </div>
     );
   }
@@ -271,6 +397,13 @@ function Ledger({
             onClick={() => navigate({ view: 'year', year: new Date().getUTCFullYear() - 1 })}
           >
             Update numbers
+          </button>
+          <button
+            type="button"
+            className="ghost"
+            onClick={() => navigate({ view: 'loans' })}
+          >
+            Debts{owedTotal.isPositive() ? ` · ${money(owedTotal)}` : ''}
           </button>
           <button
             type="button"

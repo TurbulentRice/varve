@@ -40,4 +40,18 @@ export {
   type ComparisonPlan,
 } from './compare.js';
 
+export {
+  loanState,
+  loanStates,
+  findLoanState,
+  projectLoan,
+  compareLedger,
+  minimumBudget,
+  payable,
+  type LoanLedger,
+  type LoanState,
+  type LoanProjection,
+  type RepaymentPlanInput,
+} from './ledger.js';
+
 export { isWholeCents, toCents, scaleToCents, divideToCents, allocateCents } from './cents.js';

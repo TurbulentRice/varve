@@ -954,3 +954,196 @@ One thing deliberately not solved. Opening a deep link as the very first page an
 then pressing back leaves the app, because there is no history to return to. That
 is correct browser behaviour and not something a router should fake; the
 persistent "← All accounts" control is what covers it.
+
+---
+
+## 13. Loans in the ledger
+
+`packages/loans` has been finished and unused since §11, deliberately: the
+integration API should be designed against a real consumer rather than guessed
+at, which is the `history.ts` lesson. This is that consumer.
+
+### 13.1 A loan is its own entity, not an account with a negative balance
+
+The tempting option is `kind: 'loan'` on `Account`, balances stored negative.
+Everything already built would carry it — observations, flows, the repository,
+persistence — and net worth would fall out of a sum that already exists.
+
+It is the wrong shape, and the reason is written in §3.3. The legacy model had
+no way to say *this money moved* as distinct from *this money was earned*, so
+`Q0` became a plug and per-account returns went wrong across every rollover. The
+lesson generalises: **when two concepts differ in kind, giving them one
+representation does not unify them, it hides the difference until something
+downstream gets it wrong.**
+
+A loan differs from an asset account in ways that are not about sign:
+
+- **Interest is a cost, not a return.** `summarizeSeries` would compute a
+  time-weighted return and an "earned" figure for a debt. Both are meaningless,
+  and worse, both are *plausible-looking*.
+- **A loan has a contract.** A rate and a term that say what is supposed to
+  happen. No asset account has that.
+- **"Paid off" is success; "closed" is neutral.** A zero balance means opposite
+  things in the two cases.
+- **`shareOfHousehold` goes negative**, and every filter that currently reads
+  `kind !== 'benchmark'` would need to learn a second exception.
+
+That last point is the tell. The benchmark already demonstrates the pattern —
+`deriveHistory` and `deriveAccountHistories` both special-case it — and one
+exception carried gracefully is not evidence that a second will be. It is
+evidence that the type is being asked to mean two things.
+
+So loans get their own collection in the snapshot. Nothing in `retirement`
+changes, and nothing in `retirement` needs auditing.
+
+### 13.2 But the record half is still observations
+
+Modelling loans separately is not licence to abandon Decision 1. The obvious
+shortcut — a mutable `balance` field on the loan record — is exactly the
+period-snapshot shape §4.1 rejected, and it would drift the same way `Q0` did.
+
+So a loan is **terms plus observations**, mirroring an account:
+
+```
+Loan             identity, rate, term remaining, kind
+LoanObservation  "this much was owed on this date"
+```
+
+What is owed *now* is the latest observation, derived the same way
+`balanceAsOf` derives an account's value. The entry form writes an observation
+rather than mutating a field, so a balance corrected next month sits alongside
+the old one instead of erasing it.
+
+Payment flows are deliberately **not** in this slice. A loan's interesting
+output is forward — what it costs, how long it takes, which strategy wins — and
+that needs the balance, the rate, and the remaining term, none of which are
+payment history. Recording actual payments and reconciling them against the
+schedule is a real feature and its own phase, and the shape above accommodates it
+without moving: payments are flows against a loan, exactly as contributions are
+flows against an account.
+
+### 13.3 What the form asks for is what a statement says
+
+`LoanTerms` in `packages/loans` takes a principal, a rate, and a term in months.
+The temptation is to store what was *originally* borrowed and derive the rest.
+
+That is the wrong question to ask a person. Nobody reliably remembers what they
+borrowed in 2019; everyone can read what they owe today off a statement, along
+with the rate and how many payments are left. So the record holds **months
+remaining**, and the observation holds **what is owed now** — which maps onto
+`LoanTerms` with no conversion at all and no arithmetic that could be wrong.
+
+Original principal is a nice figure for a "how far along am I" display later. It
+is not needed to answer any question this slice asks, and inventing it from a
+back-calculation would be worse than not having it.
+
+### 13.4 Where the types live
+
+`Loan` and `LoanObservation` go in `core/types.ts`, beside `Account` and
+`BalanceObservation`. `packages/loans` keeps the calculations.
+
+This preserves the dependency shape from Decision 4 exactly: `store` depends on
+`core` alone and does not learn about amortization, while `loans` stays a peer of
+`retirement` over the same `core`. The alternative — putting the ledger record in
+`packages/loans` — would force `store` to depend on a calculation package to know
+how to serialize a document, which inverts the layering for no benefit.
+
+`toTerms` is the seam: it turns a ledger `Loan` plus its latest observation into
+the `LoanTerms` the pure functions already take. One small function, one obvious
+place for the mapping to live.
+
+### 13.5 Schema version 2
+
+The snapshot gains `loans` and `loanObservations`, so `SNAPSHOT_SCHEMA_VERSION`
+goes to 2.
+
+Version 1 documents remain readable: both fields are treated as empty when
+absent, since a ledger written before loans existed genuinely has none. That is
+the honest reading rather than a lenient one, and it means every exported file
+anyone is holding still opens. Writing always emits the current version, so a
+document round-trips forward exactly once and stays there.
+
+### 13.6 A real defect in the ported algorithm, found by using it
+
+Integrating loans surfaced something the parity suite could not, because it is
+not a parity failure: `financetools` and this port agree exactly, and both are
+wrong.
+
+The first realistic ledger — a $17,000 car loan at 6% over 60 months and a
+$4,800 card at 18.99% over 24 — produced a comparison where **cascade beat
+avalanche**. That contradicts the whole theory of avalanche, which targets the
+highest rate and is provably the cheapest ordering. It also contradicts the
+`financetools` README, which says avalanche "consistently results in the lowest
+interest paid".
+
+The ordering was not the problem. The problem is the month a targeted loan is
+retired. `payMonth` clamps the principal payment to the balance owed, so the
+loan takes only what it still needs — and **the rest of the budget is not spent
+at all.** It is not redirected to the remaining loans, and it is not carried
+forward. It simply does not happen.
+
+Measured on that ledger: avalanche leaves **$692.44** unspent in month 6, when
+the card clears. Cascade, which spreads and therefore overshoots by less, leaves
+$160.73. The $531 difference is most of the $17.56 interest gap between them.
+Avalanche loses not because targeting the dearest debt is wrong, but because it
+retires loans in a way that wastes more budget on the way past.
+
+This is inherited, not introduced. The Python does the same thing, for the same
+reason, and its own tests never noticed because they assert totals rather than
+comparing strategies against theory.
+
+**It is not fixed here, deliberately.** The fix — reallocating a retiring loan's
+surplus to the remaining loans within the same month — changes the output of
+every strategy on every queue, which would invalidate the parity fixture in the
+same commit that integrates loans. Two large changes tangled together is how a
+regression hides. §11.5 established the pattern for this: reproduce, name the
+departure, correct it deliberately and on its own.
+
+It is worth doing next, and it is more than a tidy-up. The app tells someone to
+pay $900 a month and then quietly models a month where only $207.56 is spent, so
+every strategy's cost is overstated and the comparison between them is distorted
+by an artifact rather than by the strategies. The correction is the same
+principle as the `allocateCents` fix in §11.5: **the budget someone typed is the
+budget that gets spent.**
+
+### 13.7 What the work turned up
+
+469 tests. The vertical works end to end — a loan typed into a form, persisted to
+`localStorage`, resolved through the ledger seam, amortized, and compared five
+ways — and it was verified by driving it rather than by reasoning about it.
+
+**Two display bugs that only rendering could find.** A rate entered as 18.99%
+read back as `19.0%`, because the shared `percent` helper rounds to one decimal;
+quoted rates carry two, and someone who types 18.99 and is shown 19.0 has been
+told their figure was approximate when it was not. And a contractual payment
+displayed as `$329`, because the money helper drops cents — which is right for a
+balance and wrong for a payment, and specifically undercuts §11.2, where
+installments are quantized to cents precisely because an installment is a
+transaction someone makes. Both now have their own formatter.
+
+**Two more that were pure carelessness, and equally invisible without looking.**
+The summary tiles rendered their label, value and detail on one run-together
+line, because the shared styles assume block elements and they had been written
+as spans. And the chart legend's swatch for accumulated interest was invisible,
+because it reused `band-inner` — which styles an SVG path and has no background —
+instead of `key-swatch-inner`. Ground rule 5 exists for exactly this class of
+thing: nothing was wrong with the numbers, and the page was still wrong.
+
+**Float noise reached the document.** `18.99 / 100` is `0.18989999999999999` in
+IEEE 754, which is correct and looks broken in an exported ledger someone opens
+in a text editor. The stored rate is rounded to six places — a ten-thousandth of
+a percent, far finer than any rate is quoted, and emphatically not money-rounding
+a rate. Worth noting that the seam held: this was cosmetic in a `number`, and no
+amount was ever at risk, because amounts never travel as floats at all.
+
+**The derived-id trick carried over intact.** Saving a loan twice in one day
+corrects that day's balance instead of stacking two observations, because the
+observation id is derived from the loan and the date — the same forgiving
+behaviour the year editor has, and the reason a corrected figure does not
+silently become a second data point.
+
+**What is still missing, and named rather than hidden.** Payment flows are not
+recorded, so the ledger knows what is owed and not what has been paid against
+it. Net worth does not combine savings and debts. Neither is a gap in this
+slice; both are the next two, and §13.2 explains why the shape accommodates them
+without moving.

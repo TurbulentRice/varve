@@ -1,0 +1,231 @@
+/**
+ * One loan, played forward.
+ *
+ * Two questions worth answering here and nowhere else: what does this cost if
+ * nothing changes, and what changes if I pay more. The second is the reason the
+ * page has a control at all — a fixed schedule is something a bank already
+ * sends, and the interesting number is how much of it disappears for an extra
+ * fifty a month.
+ */
+
+import { Money, m, type LoanId } from '@varve/core';
+import { projectLoan, type LoanProjection, type LoanState } from '@varve/loans';
+import { useState } from 'react';
+import { longDate, money, payment, rate } from '../lib/format.js';
+import { Disclosure } from './Disclosure.js';
+import { ScheduleChart } from '../charts/ScheduleChart.js';
+
+export function LoanDetail({
+  state,
+  onEdit,
+  onDelete,
+  onClose,
+}: {
+  state: LoanState;
+  onEdit: () => void;
+  onDelete: (id: LoanId) => void;
+  onClose: () => void;
+}) {
+  const [extra, setExtra] = useState(0);
+
+  const contractual = projectLoan(state);
+  const accelerated =
+    extra > 0 ? projectLoan(state, state.scheduledPayment.plus(m(String(extra)))) : null;
+  const shown = accelerated ?? contractual;
+
+  return (
+    <>
+      <div className="detail-head">
+        <button type="button" className="ghost" onClick={onClose}>
+          ← All debts
+        </button>
+        <div className="editor-actions">
+          <button type="button" className="ghost" onClick={onEdit}>
+            Edit
+          </button>
+          <button
+            type="button"
+            className="ghost"
+            onClick={() => {
+              // Deleting a loan destroys its observations too, so it is worth
+              // one question. The ledger is the only copy until it is exported.
+              if (confirm(`Delete ${state.loan.name}? Everything recorded about it goes too.`)) {
+                onDelete(state.loan.id);
+              }
+            }}
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+
+      <h1 className="detail-title">{state.loan.name}</h1>
+      <p className="subtitle">
+        {state.loan.kind.replace('-', ' ')} · {rate(state.loan.annualRate)} ·{' '}
+        {state.loan.termMonths} payments left
+        {state.asOf ? ` · as of ${longDate(state.asOf)}` : ''}
+      </p>
+
+      {!state.observed ? (
+        <div className="error" role="status">
+          <strong>No balance recorded</strong>
+          Nothing is known about what is owed, so there is nothing to project. Edit the loan and
+          enter what the statement says.
+        </div>
+      ) : state.balance.isZero() ? (
+        <div className="editor-lead">
+          <p>
+            <strong>Cleared.</strong> Nothing left owing on this one.
+          </p>
+        </div>
+      ) : (
+        <>
+          <section className="tiles" aria-label="Summary">
+            <Tile label="Owed" value={money(state.balance)} detail="outstanding balance" />
+            <Tile
+              label="Contractual payment"
+              value={payment(state.scheduledPayment)}
+              detail={`clears it in ${state.loan.termMonths} payments`}
+            />
+            <Tile
+              label="Interest to come"
+              value={contractual ? money(contractual.analysis.interestPaid) : '—'}
+              detail="if nothing changes"
+            />
+            <Tile
+              label="Total to pay"
+              value={contractual ? money(contractual.analysis.totalPaid) : '—'}
+              detail="principal and interest"
+            />
+          </section>
+
+          <section className="controls" aria-label="Pay more each month">
+            <div className="control">
+              <span className="control-label">Paying extra each month</span>
+              <span className="control-value">{money(m(String(extra)))}</span>
+              <input
+                type="range"
+                aria-label="Extra monthly payment"
+                min={0}
+                max={Math.max(500, Math.ceil(state.scheduledPayment.toNumber()))}
+                step={10}
+                value={extra}
+                onChange={(e) => setExtra(Number(e.target.value))}
+              />
+              <span className="control-label">
+                {accelerated && contractual ? (
+                  <Saving contractual={contractual} accelerated={accelerated} />
+                ) : (
+                  'on top of the contractual payment'
+                )}
+              </span>
+            </div>
+          </section>
+
+          {shown ? (
+            <>
+              <ScheduleChart schedule={shown.schedule} />
+
+              <div className="details">
+                <Disclosure
+                  summary="Every payment"
+                  hint={`${shown.analysis.months} payments`}
+                >
+                  <ScheduleTable projection={shown} />
+                </Disclosure>
+              </div>
+            </>
+          ) : null}
+        </>
+      )}
+    </>
+  );
+}
+
+function Saving({
+  contractual,
+  accelerated,
+}: {
+  contractual: LoanProjection;
+  accelerated: LoanProjection;
+}) {
+  const saved = contractual.analysis.interestPaid.minus(accelerated.analysis.interestPaid);
+  const sooner = contractual.analysis.months - accelerated.analysis.months;
+
+  if (saved.isZero() && sooner === 0) return <>on top of the contractual payment</>;
+
+  return (
+    <>
+      saves {money(saved)} and finishes {sooner} {sooner === 1 ? 'month' : 'months'} sooner
+    </>
+  );
+}
+
+function Tile({ label, value, detail }: { label: string; value: string; detail: string }) {
+  return (
+    <div className="tile">
+      {/* Blocks, not spans: the shared .tile-* rules assume each is its own
+          line, and inline elements run the three together. */}
+      <div className="tile-label">{label}</div>
+      <div className="tile-value">{value}</div>
+      <div className="tile-detail">{detail}</div>
+    </div>
+  );
+}
+
+function ScheduleTable({ projection }: { projection: LoanProjection }) {
+  // A long schedule is 360 rows. Showing the first and last two years covers
+  // what anyone actually reads — the shape at the start and the end — without
+  // asking a browser to lay out hundreds of rows nobody scrolls through.
+  const rows = projection.schedule.installments;
+  const head = rows.slice(0, 24);
+  const tail = rows.length > 48 ? rows.slice(-24) : [];
+  const hidden = rows.length - head.length - tail.length;
+
+  return (
+    <div className="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col" className="num">#</th>
+            <th scope="col" className="num">Payment</th>
+            <th scope="col" className="num">Interest</th>
+            <th scope="col" className="num">Principal</th>
+            <th scope="col" className="num">Balance</th>
+          </tr>
+        </thead>
+        <tbody>
+          {head.map((i) => (
+            <Row key={i.number} installment={i} />
+          ))}
+          {hidden > 0 ? (
+            <tr className="unrecorded">
+              <td colSpan={5}>{hidden} payments not shown</td>
+            </tr>
+          ) : null}
+          {tail.map((i) => (
+            <Row key={i.number} installment={i} />
+          ))}
+        </tbody>
+      </table>
+      <p className="table-note">
+        Interest is charged on the balance outstanding that month, so the split between interest and
+        principal shifts across the schedule even though the payment does not.
+      </p>
+    </div>
+  );
+}
+
+function Row({ installment }: { installment: LoanProjection['schedule']['installments'][number] }) {
+  return (
+    <tr>
+      <td className="num">{installment.number}</td>
+      <td className="num">{payment(installment.interest.plus(installment.principal))}</td>
+      <td className="num">{payment(installment.interest)}</td>
+      <td className="num">{payment(installment.principal)}</td>
+      <td className="num">{money(installment.balance)}</td>
+    </tr>
+  );
+}
+
+export type { Money };

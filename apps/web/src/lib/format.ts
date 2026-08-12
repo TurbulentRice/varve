@@ -19,6 +19,19 @@ const MINUS = '−';
 
 const withMinus = (text: string) => text.replace('-', MINUS);
 
+/**
+ * `$1,234.56` — for an amount someone actually hands over.
+ *
+ * Whole dollars are right for a balance, where cents are noise against six
+ * figures. They are wrong for a payment: §11.2 quantizes installments to cents
+ * precisely because an installment is a transaction someone makes, and a
+ * contractual payment displayed as `$329` is not the number that leaves the
+ * account.
+ */
+export function payment(amount: Money): string {
+  return withMinus(amount.format({ minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+}
+
 /** `$1,234,567` — full precision to the dollar. */
 export function money(amount: Money): string {
   return withMinus(amount.format({ maximumFractionDigits: 0 }));
@@ -41,6 +54,19 @@ export function compactNumber(value: number): string {
       maximumFractionDigits: 1,
     }).format(value),
   );
+}
+
+/**
+ * `18.99%`.
+ *
+ * Rates get two decimals rather than one, because quoted rates carry them and
+ * they are recognisable: someone who typed 18.99 and reads back 19.0 has been
+ * told their number was approximate when it was not. Trailing zeros are dropped
+ * so a round 6% does not become `6.00%`.
+ */
+export function rate(value: number): string {
+  const shown = Number((value * 100).toFixed(2));
+  return `${value < 0 ? MINUS : ''}${Math.abs(shown)}%`;
 }
 
 export function percent(value: number, digits = 1): string {

@@ -43,12 +43,21 @@ import {
   type Flow,
   type FlowKind,
   type Household,
+  type Loan,
+  type LoanObservation,
   type Note,
   type Owner,
 } from '@varve/core';
 
 /** Bump when the on-disk shape changes in a way older readers cannot handle. */
-export const SNAPSHOT_SCHEMA_VERSION = 1;
+/**
+ * Bump when the on-disk shape changes in a way older readers cannot handle.
+ *
+ * 2 adds `loans` and `loanObservations`. Version 1 documents still open: both
+ * are read as empty when absent, which is the honest reading rather than a
+ * lenient one — a ledger written before loans existed genuinely has none.
+ */
+export const SNAPSHOT_SCHEMA_VERSION = 2;
 
 export interface Snapshot {
   readonly schemaVersion: number;
@@ -63,6 +72,8 @@ export interface Snapshot {
   readonly observations: readonly BalanceObservation[];
   readonly flows: readonly Flow[];
   readonly notes: readonly Note[];
+  readonly loans: readonly Loan[];
+  readonly loanObservations: readonly LoanObservation[];
 }
 
 export function emptySnapshot(household: Household): Snapshot {
@@ -76,6 +87,8 @@ export function emptySnapshot(household: Household): Snapshot {
     observations: [],
     flows: [],
     notes: [],
+    loans: [],
+    loanObservations: [],
   };
 }
 
@@ -133,7 +146,8 @@ export function decodeSnapshot(text: string): Snapshot {
   if (!household?.id) throw new SnapshotFormatError('Missing household');
 
   return {
-    schemaVersion: version,
+    // Read at whatever version it claims; written back at ours.
+    schemaVersion: SNAPSHOT_SCHEMA_VERSION,
     revision: typeof doc.revision === 'number' ? doc.revision : 0,
     exportedAt: typeof doc.exportedAt === 'string' ? doc.exportedAt : new Date(0).toISOString(),
     household,
@@ -144,6 +158,22 @@ export function decodeSnapshot(text: string): Snapshot {
     ),
     flows: array<Record<string, unknown>>(doc.flows, 'flows').map(decodeFlow),
     notes: array<Note>(doc.notes, 'notes'),
+    // Absent in a version 1 document, and absent is genuinely none.
+    loans: array<Loan>(doc.loans, 'loans'),
+    loanObservations: array<Record<string, unknown>>(
+      doc.loanObservations,
+      'loanObservations',
+    ).map(decodeLoanObservation),
+  };
+}
+
+function decodeLoanObservation(raw: Record<string, unknown>, i: number): LoanObservation {
+  return {
+    id: raw.id as LoanObservation['id'],
+    loanId: raw.loanId as LoanObservation['loanId'],
+    asOf: isoDate(String(raw.asOf)),
+    amount: amount(raw.amount, `loanObservations[${i}]`),
+    source: (raw.source as LoanObservation['source']) ?? 'manual',
   };
 }
 

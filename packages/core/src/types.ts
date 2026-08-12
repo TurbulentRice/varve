@@ -31,6 +31,8 @@ export type AccountId = Id<'Account'>;
 export type ObservationId = Id<'Observation'>;
 export type FlowId = Id<'Flow'>;
 export type NoteId = Id<'Note'>;
+export type LoanId = Id<'Loan'>;
+export type LoanObservationId = Id<'LoanObservation'>;
 
 export const householdId = (v: string) => v as HouseholdId;
 export const ownerId = (v: string) => v as OwnerId;
@@ -38,6 +40,8 @@ export const accountId = (v: string) => v as AccountId;
 export const observationId = (v: string) => v as ObservationId;
 export const flowId = (v: string) => v as FlowId;
 export const noteId = (v: string) => v as NoteId;
+export const loanId = (v: string) => v as LoanId;
+export const loanObservationId = (v: string) => v as LoanObservationId;
 
 // ------------------------------------------------------------------ entities
 
@@ -220,4 +224,54 @@ export function validateFlow(flow: Flow): string[] {
   // per-account attribution is left incomplete.
 
   return problems;
+}
+
+// --------------------------------------------------------------------- loans
+
+export type LoanKind = 'mortgage' | 'auto' | 'student' | 'credit-card' | 'personal';
+
+/**
+ * Money owed, with the contract governing it.
+ *
+ * A loan is *not* an account with a negative balance, and §13.1 of the working
+ * doc argues that at length. The short version: interest is a cost rather than a
+ * return, a loan carries a contract no asset account has, and "paid off" means
+ * the opposite of "closed". Every derivation in `retirement` assumes growth is
+ * good, so a loan wearing an `Account` would make each of them produce a
+ * plausible-looking wrong answer.
+ *
+ * What it *does* share is the record shape. Terms live here; what is owed lives
+ * in {@link LoanObservation}, exactly as an account's value lives in a
+ * {@link BalanceObservation}. A mutable `balance` field would be the
+ * period-snapshot model Decision 1 rejected, and would drift the way `Q0` did.
+ *
+ * ## Why `termMonths` is what remains, not what was signed
+ *
+ * Nobody reliably remembers what they borrowed or when. Everyone can read what
+ * they owe, the rate, and how many payments are left off a statement. Those three
+ * map onto `LoanTerms` in `@varve/loans` with no conversion and no arithmetic
+ * that could be wrong. See §13.3.
+ */
+export interface Loan {
+  readonly id: LoanId;
+  readonly householdId: HouseholdId;
+  readonly name: string;
+  /** Who owes it. One owner is an individual debt; several is a joint one. */
+  readonly ownerIds: readonly OwnerId[];
+  readonly kind: LoanKind;
+  /** Nominal annual rate as a fraction: `0.061` is 6.1%. Never a percentage. */
+  readonly annualRate: number;
+  /** Payments **remaining**, not the original term. */
+  readonly termMonths: number;
+  readonly institution?: string;
+}
+
+/** "This much was still owed on this date." Always positive. */
+export interface LoanObservation {
+  readonly id: LoanObservationId;
+  readonly loanId: LoanId;
+  readonly asOf: IsoDate;
+  /** Outstanding balance. Positive — the sign lives in the type, not the number. */
+  readonly amount: Money;
+  readonly source: ObservationSource;
 }

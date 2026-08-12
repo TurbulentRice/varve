@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { accountId } from '@varve/core';
+import { accountId, loanId } from '@varve/core';
 import { DASHBOARD, formatRoute, parseRoute, sameRoute, type Route } from '../src/routing/route.js';
 
 describe('reading a URL', () => {
@@ -133,5 +133,31 @@ describe('comparing routes', () => {
     expect(sameRoute({ view: 'year', year: 2024 }, { view: 'year', year: 2025 })).toBe(false);
     expect(sameRoute({ view: 'year', year: 2024 }, DASHBOARD)).toBe(false);
     expect(sameRoute(DASHBOARD, DASHBOARD)).toBe(true);
+  });
+});
+
+describe('the loans surface', () => {
+  it('reads the list and a single loan', () => {
+    expect(parseRoute('#/loans')).toEqual({ view: 'loans' });
+    expect(parseRoute('#/loans/loan:1')).toEqual({ view: 'loan', loanId: loanId('loan:1') });
+  });
+
+  it('round-trips both', () => {
+    for (const route of [{ view: 'loans' } as const, { view: 'loan', loanId: loanId('loan:1') } as const]) {
+      expect(parseRoute(formatRoute(route))).toEqual(route);
+    }
+  });
+
+  it('treats a bare #/loans as the list rather than a missing loan', () => {
+    // `#/accounts` with no id is nonsense and falls back; `#/loans` is a real
+    // destination, because the list is a place you can be.
+    expect(parseRoute('#/loans/')).toEqual({ view: 'loans' });
+  });
+
+  it('keeps the two apart when comparing', () => {
+    expect(sameRoute({ view: 'loans' }, { view: 'loan', loanId: loanId('loan:1') })).toBe(false);
+    expect(
+      sameRoute({ view: 'loan', loanId: loanId('loan:1') }, { view: 'loan', loanId: loanId('loan:2') }),
+    ).toBe(false);
   });
 });
