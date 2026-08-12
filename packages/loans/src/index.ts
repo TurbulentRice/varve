@@ -52,6 +52,9 @@ export {
   type LoanState,
   type LoanProjection,
   type RepaymentPlanInput,
+  loanCost,
+  type LoanCost,
+  type LoanPeriod,
 } from './ledger.js';
 
 export { isWholeCents, toCents, scaleToCents, divideToCents, allocateCents } from './cents.js';

@@ -33,6 +33,7 @@ export type FlowId = Id<'Flow'>;
 export type NoteId = Id<'Note'>;
 export type LoanId = Id<'Loan'>;
 export type LoanObservationId = Id<'LoanObservation'>;
+export type LoanPaymentId = Id<'LoanPayment'>;
 
 export const householdId = (v: string) => v as HouseholdId;
 export const ownerId = (v: string) => v as OwnerId;
@@ -42,6 +43,7 @@ export const flowId = (v: string) => v as FlowId;
 export const noteId = (v: string) => v as NoteId;
 export const loanId = (v: string) => v as LoanId;
 export const loanObservationId = (v: string) => v as LoanObservationId;
+export const loanPaymentId = (v: string) => v as LoanPaymentId;
 
 // ------------------------------------------------------------------ entities
 
@@ -264,6 +266,32 @@ export interface Loan {
   /** Payments **remaining**, not the original term. */
   readonly termMonths: number;
   readonly institution?: string;
+}
+
+/**
+ * "This much was paid against the loan on this date." Always positive.
+ *
+ * Deliberately *not* split into interest and principal. A statement prints the
+ * split, which is a standing invitation to store it — declined for the reason
+ * §3.3 gives: a stored split is derivable state that can drift from the balances
+ * it is supposed to agree with, which is exactly what `Q0` was.
+ *
+ * The split falls out of the observations either side. Storing less makes the
+ * model say more, because the interest figure then cannot silently disagree with
+ * what was owed.
+ *
+ * A payment does not move the balance. Only an observation does that. Money
+ * leaving is evidence about money leaving; what is now owed is what the lender
+ * says it is, and deriving one from the other would put the model back in the
+ * business of guessing. See §16.4.
+ */
+export interface LoanPayment {
+  readonly id: LoanPaymentId;
+  readonly loanId: LoanId;
+  readonly paidOn: IsoDate;
+  /** What left the account. Positive. */
+  readonly amount: Money;
+  readonly note?: string;
 }
 
 /** "This much was still owed on this date." Always positive. */

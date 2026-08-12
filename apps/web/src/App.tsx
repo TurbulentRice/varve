@@ -3,13 +3,14 @@ import {
   isoDate,
   loanId as toLoanId,
   loanObservationId,
+  loanPaymentId,
   m,
   Money,
   type Account,
   type Loan,
   type LoanId,
 } from '@varve/core';
-import { findLoanState, loanStates, payable } from '@varve/loans';
+import { findLoanState, loanCost, loanStates, payable } from '@varve/loans';
 import {
   InMemoryRepository,
   PersistingRepository,
@@ -267,6 +268,27 @@ function Ledger({
     await commit();
   }
 
+  /**
+   * Record that money left, and nothing more.
+   *
+   * Deliberately does not touch the balance: a payment is evidence about a
+   * payment, and what is owed is whatever the lender says next (§16.4). The id
+   * is random rather than derived from the date, because two payments in one day
+   * are two payments — unlike a balance, where the second reading of a day
+   * corrects the first.
+   */
+  async function recordPayment(id: LoanId, amount: string) {
+    await repo.saveLoanPayments([
+      {
+        id: loanPaymentId(`lpay:${crypto.randomUUID()}`),
+        loanId: id,
+        paidOn: isoDate(new Date().toISOString().slice(0, 10)),
+        amount: m(amount),
+      },
+    ]);
+    await commit();
+  }
+
   async function deleteLoan(id: LoanId) {
     await repo.deleteLoans([id]);
     await commit();
@@ -348,8 +370,10 @@ function Ledger({
         {editingLoan === null ? (
           <LoanDetail
             state={state}
+            cost={loanCost(loan, snapshot.loanObservations, snapshot.loanPayments)}
             onEdit={() => setEditingLoan(route.loanId)}
             onDelete={deleteLoan}
+            onRecordPayment={(amount) => recordPayment(route.loanId, amount)}
             onClose={() => navigate({ view: 'loans' })}
           />
         ) : (

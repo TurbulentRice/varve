@@ -5,19 +5,19 @@ want the history of how the thinking changed, that is
 [the working doc](working/discovery-and-architecture.md) — this file only ever
 describes now.
 
-Last updated: 2026-08-12, after retiring most of the parity fixture.
+Last updated: 2026-08-12, after recording loan payments.
 
 ## Where things stand
 
-Nine phases done. **375 tests**, clean typecheck, clean production build, and CI
+Ten phases done. **395 tests**, clean typecheck, clean production build, and CI
 running both on every PR.
 
 | Package | What it holds | Tests |
 |---|---|---|
 | [`packages/core`](../packages/core) | Money, dates, domain types, returns, aggregation, projection. Zero dependencies. | 80 |
-| [`packages/store`](../packages/store) | Snapshot format (v2), repository interface, in-memory + persisting adapters. | 34 |
+| [`packages/store`](../packages/store) | Snapshot format (v3), repository interface, in-memory + persisting adapters. | 39 |
 | [`packages/retirement`](../packages/retirement) | Ledger, household + per-account derivation, year entry, Monte Carlo. | 83 |
-| [`packages/loans`](../packages/loans) | Amortization, five repayment strategies, comparison, ledger seam. | 121 |
+| [`packages/loans`](../packages/loans) | Amortization, strategies, comparison, ledger seam, what a loan actually cost. | 136 |
 | [`packages/legacy-import`](../packages/legacy-import) | One-way migration from Access, with a synthetic fixture. | 23 |
 | [`apps/web`](../apps/web) | React + Vite. Dashboard, projections, year editor, account views, debts, hash routing. | 34 |
 
@@ -31,21 +31,16 @@ running both on every PR.
 6. ✅ Routing — hash-based, hand-rolled, bookmarkable surfaces
 7. ✅ Loans in the ledger — schema v2, entry, schedule, strategy comparison
 8. ✅ The wasted-budget defect — the whole budget is spent every month (§14)
-9. ⬅ **Next: recording payments, then net worth.**
+9. ✅ Retired most of the parity fixture (§15)
+10. ✅ Recording payments — interest measured rather than assumed (§16)
+11. ⬅ **Next: net worth.**
 
 Deferred behind a stated seam: server, auth, sync, institution APIs. None is
 worth building for a user who does not exist yet.
 
-## What's next, in order
+## What's next
 
-### 1. Recording payments
-
-The ledger knows what is owed and not what has been paid against it. Payments are
-flows against a loan, exactly as contributions are flows against an account, so
-the shape accommodates them without moving (§13.2). This is what makes "am I on
-schedule?" answerable.
-
-### 2. Net worth
+### Net worth
 
 Savings and debts in one figure. `Money` handles the sign, but the dashboard hero
 and the fan chart were both tuned by eye against real bugs, so changing what they
@@ -53,8 +48,11 @@ and the fan chart were both tuned by eye against real bugs, so changing what the
 
 ## Known debt, deliberately deferred
 
-- **No payment history for loans.** Balances are observed; what was paid against
-  them is not recorded yet.
+- **Nothing compares payments to the schedule.** The ledger now knows what was
+  paid and what it cost, but not whether that is ahead of or behind the
+  contractual plan. Cheap to add on top of §16.
+- **A statement whose printed split disagrees with the balances is not
+  surfaced** (§16.2). It is a genuinely interesting event and currently invisible.
 - **Net worth does not exist.** Savings and debts are shown side by side and
   never combined.
 - **Routing is hand-rolled** (§12.3). Fine at four views with one parameter each.
@@ -82,5 +80,5 @@ and the fan chart were both tuned by eye against real bugs, so changing what the
    how a derivation is structured, and how `recorded` / `measurable` handle
    absent data.
 6. [`packages/loans/test/parity.test.ts`](../packages/loans/test/parity.test.ts)
-   and [`rounding.test.ts`](../packages/loans/test/rounding.test.ts) — the testing
-   style, and how a deliberate departure gets pinned rather than hidden.
+   and [`cost.test.ts`](../packages/loans/test/cost.test.ts) — the testing style,
+   and how a measurement is asserted rather than a formula re-run.

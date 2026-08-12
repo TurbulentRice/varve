@@ -9,6 +9,7 @@
  */
 
 import { Money, m, type LoanId } from '@varve/core';
+import type { LoanCost } from '@varve/loans';
 import { projectLoan, type LoanProjection, type LoanState } from '@varve/loans';
 import { useState } from 'react';
 import { longDate, money, payment, rate } from '../lib/format.js';
@@ -17,13 +18,17 @@ import { ScheduleChart } from '../charts/ScheduleChart.js';
 
 export function LoanDetail({
   state,
+  cost,
   onEdit,
   onDelete,
+  onRecordPayment,
   onClose,
 }: {
   state: LoanState;
+  cost: LoanCost;
   onEdit: () => void;
   onDelete: (id: LoanId) => void;
+  onRecordPayment: (amount: string) => Promise<void>;
   onClose: () => void;
 }) {
   const [extra, setExtra] = useState(0);
@@ -65,6 +70,15 @@ export function LoanDetail({
         {state.loan.termMonths} payments left
         {state.asOf ? ` · as of ${longDate(state.asOf)}` : ''}
       </p>
+
+      {cost.balanceStale ? (
+        <div className="error" role="status">
+          <strong>What is owed is out of date</strong>
+          A payment has been recorded since the last balance. A payment is evidence that money
+          left, not that the lender agrees — enter the balance from your next statement and this
+          will square up.
+        </div>
+      ) : null}
 
       {!state.observed ? (
         <div className="error" role="status">
@@ -122,6 +136,10 @@ export function LoanDetail({
             </div>
           </section>
 
+          <RecordPayment suggested={state.scheduledPayment} onRecord={onRecordPayment} />
+
+          {cost.periods.length > 0 ? <WhatItCost cost={cost} quoted={state.loan.annualRate} /> : null}
+
           {shown ? (
             <>
               <ScheduleChart schedule={shown.schedule} />
@@ -157,6 +175,135 @@ function Saving({
   return (
     <>
       saves {money(saved)} and finishes {sooner} {sooner === 1 ? 'month' : 'months'} sooner
+    </>
+  );
+}
+
+function RecordPayment({
+  suggested,
+  onRecord,
+}: {
+  suggested: Money;
+  onRecord: (amount: string) => Promise<void>;
+}) {
+  const [amount, setAmount] = useState(() => suggested.toNumber().toFixed(2));
+  const [saving, setSaving] = useState(false);
+  const valid = /^\d+(\.\d{1,2})?$/.test(amount.trim()) && Number(amount) > 0;
+
+  return (
+    <section className="controls" aria-label="Record a payment">
+      <div className="control">
+        <span className="control-label">Record a payment</span>
+        <div className="editor-actions">
+          <input
+            type="text"
+            inputMode="decimal"
+            aria-label="Payment amount"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+          />
+          <button
+            type="button"
+            className="primary"
+            disabled={!valid || saving}
+            onClick={async () => {
+              setSaving(true);
+              try {
+                await onRecord(amount.trim());
+              } finally {
+                setSaving(false);
+              }
+            }}
+          >
+            {saving ? 'Saving…' : 'Paid'}
+          </button>
+        </div>
+        <span className="control-label">
+          Dated today. This records that money left — it does not change what you owe, which is
+          whatever your next statement says.
+        </span>
+      </div>
+    </section>
+  );
+}
+
+/**
+ * What the lender actually charged, as opposed to what the rate claims.
+ *
+ * Interest here is measured — paid, less how far the balance fell — so where it
+ * disagrees with the quoted rate, this is the side that watched it happen.
+ */
+function WhatItCost({ cost, quoted }: { cost: LoanCost; quoted: number }) {
+  const effective = cost.effectiveAnnualRate;
+  const gap = effective === null ? null : effective - quoted;
+
+  return (
+    <>
+      <section className="tiles" aria-label="What it has cost">
+        <Tile label="Paid so far" value={money(cost.totalPaid)} detail="across recorded payments" />
+        <Tile
+          label="Interest charged"
+          value={money(cost.interestCharged)}
+          detail="measured, not assumed"
+        />
+        <Tile
+          label="Principal repaid"
+          value={money(cost.principalRepaid)}
+          detail="what actually came off the debt"
+        />
+        <Tile
+          label="Effective rate"
+          value={effective === null ? '—' : rate(effective)}
+          detail={
+            gap === null
+              ? 'needs two balances and a payment'
+              : Math.abs(gap) < 0.001
+                ? `matches the quoted ${rate(quoted)}`
+                : `quoted ${rate(quoted)} — ${gap > 0 ? 'costing more' : 'costing less'}`
+          }
+        />
+      </section>
+
+      <div className="details">
+        <Disclosure summary="Between statements" hint={`${cost.periods.length} ${cost.periods.length === 1 ? 'period' : 'periods'}`}>
+          <div className="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">From</th>
+                  <th scope="col">To</th>
+                  <th scope="col" className="num">Paid</th>
+                  <th scope="col" className="num">Came off</th>
+                  <th scope="col" className="num">Interest</th>
+                  <th scope="col" className="num">Rate</th>
+                </tr>
+              </thead>
+              <tbody>
+                {cost.periods.map((p) => (
+                  <tr key={`${p.from}-${p.to}`} className={p.interestCharged ? undefined : 'unrecorded'}>
+                    <td>{longDate(p.from)}</td>
+                    <td>{longDate(p.to)}</td>
+                    <td className="num">{payment(p.paid)}</td>
+                    <td className="num">{payment(p.balanceReduction)}</td>
+                    {/* Ground rule 3: no payment recorded means no interest
+                        figure, not a figure of zero. */}
+                    <td className="num">{p.interestCharged ? payment(p.interestCharged) : '—'}</td>
+                    <td className="num">
+                      {p.effectiveAnnualRate === null ? '—' : rate(p.effectiveAnnualRate)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <p className="table-note">
+              <strong>Interest</strong> is what was paid less what came off the balance — a
+              measurement rather than the rate applied to a formula. Where the two disagree, this is
+              the one that watched it happen: fees, daily compounding, a rate that moved, a payment
+              applied late.
+            </p>
+          </div>
+        </Disclosure>
+      </div>
     </>
   );
 }
