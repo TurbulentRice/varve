@@ -241,3 +241,44 @@ describe('a single loan in a queue', () => {
     expect(result.schedules[0]!.installments[0]!.principal.format()).toBe('$450.00');
   });
 });
+
+/**
+ * Pinned totals for a full queue run.
+ *
+ * This is what replaces the queue half of the parity fixture (§15.2). Every
+ * other test here asserts a *property* — the budget is spent, avalanche wins,
+ * the split follows the rates — and properties do not notice a cent of drift in
+ * the driver. A figure does.
+ *
+ * These are not sacred numbers. If one moves, that is the question being asked:
+ * *why*, and is the new number better? Ground rule 5. Update them deliberately,
+ * with the reason in the commit, and never to make a red suite go green.
+ */
+describe('what this queue actually costs, to the cent', () => {
+  const expected: Record<string, { interest: string; months: number; payments: number }> = {
+    avalanche: { interest: '$1,536.03', months: 28, payments: 42 },
+    cascade: { interest: '$1,623.11', months: 29, payments: 48 },
+    blizzard: { interest: '$2,234.65', months: 29, payments: 82 },
+    'ice-slide': { interest: '$1,892.19', months: 29, payments: 80 },
+    snowball: { interest: '$1,536.03', months: 28, payments: 42 },
+  };
+
+  for (const strategy of STRATEGIES) {
+    it(`${strategy} costs exactly what it costs`, () => {
+      const result = repay(MIXED, { strategy, budget: BUDGET });
+      const want = expected[strategy]!;
+
+      expect(result.interestPaid.format()).toBe(want.interest);
+      expect(result.months).toBe(want.months);
+      expect(result.payments).toBe(want.payments);
+    });
+  }
+
+  it('repays the debt and not a cent more, whichever way round', () => {
+    const owed = Money.sum(MIXED.map((l) => l.principal));
+    for (const strategy of STRATEGIES) {
+      const result = repay(MIXED, { strategy, budget: BUDGET });
+      expect(result.principalPaid.toString(), strategy).toBe(owed.toString());
+    }
+  });
+});

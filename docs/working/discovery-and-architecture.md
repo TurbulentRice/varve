@@ -1258,3 +1258,69 @@ comparison, and keeping the pre-correction figures is what stops the size of thi
 departure becoming folklore. Single-loan cases are generated once rather than
 three times, because a lone loan retiring has nobody to hand a surplus to and the
 correction provably cannot reach it.
+
+---
+
+## 15. Retiring most of the parity apparatus
+
+§11.4 built a fixture that reconciles this port against `financetools` line for
+line, and it did its job. This removes most of it. The reasoning is worth writing
+down because it is not "the file got big" — the file is fine — it is that parity
+stopped meaning what it originally meant.
+
+### 15.1 What parity was for, and when it stopped
+
+The claim was: an independent implementation exists, so a port that reproduces it
+exactly cannot be carrying a transcription error. That is a strong claim and it
+was true when it was made.
+
+Three deliberate departures later it is much weaker. Rates stopped being rounded
+like money (§11.3); the proportional split started preserving the budget
+(§11.5); and the retirement month started spending it (§14). Each divergence
+narrowed what parity could still speak to.
+
+The last one broke the claim outright. Keeping queue parity through §14 required
+writing the same correction a second time, in Python, in the fixture generator —
+which §14.2 admitted at the time. Two implementations by the same author of the
+same idea do not independently verify each other. They verify that the idea was
+transcribed twice without a typo, which is worth something and is not worth
+209 KB and a permanent negotiation with every future correction.
+
+`rounding.test.ts` had drifted further still: it compared two Python runs against
+each other and asserted nothing whatever about this codebase. A test that cannot
+fail because of our code is not a test, it is a frozen measurement — and the
+measurement is already written up, with its numbers, in §11.2.
+
+### 15.2 What is kept, and why exactly that
+
+**Single-loan schedules against the unmodified library.** Seven cases, about
+14 KB. This is the one place no divergence has happened, and it is where the
+arithmetic that matters lives: interest on a balance, half-even to the cent, the
+overpayment clamp on a final installment, negative amortization when a payment
+cannot cover interest. There, `financetools` is still a genuinely independent
+implementation, and reconciling against it still means what §11.4 said it meant.
+
+Everything else goes: both rounding-mode suites, all queue cases, the corrected
+Python in the generator, and `rounding.test.ts`.
+
+What replaces the queue coverage is what should have been carrying it anyway.
+The properties are already asserted directly — the budget is spent every month,
+no loan is paid more than it owes, every figure lands on the cent grid, avalanche
+is optimal, cascade splits by rate and ice slide by monthly cost — and those are
+claims about the world rather than about agreement with another program. The one
+genuine gap was that no test pinned a full queue run's totals to a figure, so
+cent-level drift in the driver could pass unnoticed. That gap is closed with
+explicit expected totals for all five strategies on one fixture: a golden, minus
+the 209 KB and the external repository.
+
+### 15.3 The general point
+
+A test that exists to prove a migration is finished when the migration is
+finished. Keeping it past that point is not free: it made the correctness fix in
+§14 more expensive than it should have been, and it came close to being an
+argument for *not* fixing a real defect. That is the tell. When a test starts
+arguing against a change that is otherwise clearly right, the test has become the
+thing being served.
+
+The upstream defect is not this repository's to carry either. It is reported
+there, and this port is correct here.

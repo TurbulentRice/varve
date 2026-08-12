@@ -1,35 +1,33 @@
 #!/usr/bin/env python3
-"""Generate parity fixtures by running the original `financetools`.
+"""Generate the single-loan parity fixture by running `financetools`.
 
 The Access migration is trusted because it reconciles against an independent
-implementation (working doc §8.3). This port earns the same standing the same
-way: the Python produces complete amortization schedules — every installment,
-not just the totals — and the TypeScript must reproduce them line for line.
+implementation (working doc §8.3), and this port earned the same standing the
+same way. Most of that apparatus has since been retired — §15 explains why —
+because three deliberate departures left parity speaking to less and less, and
+the last of them (§14) required writing the correction a second time in Python,
+which independently verifies nothing.
+
+What remains is the part where `financetools` is still an independent
+implementation and this port still agrees with it exactly: **one loan, played
+forward.** Interest on a balance, half-even to the cent, the overpayment clamp on
+a final installment, and negative amortization when a payment cannot cover the
+interest. No divergence has ever happened here.
 
     python3 tools/generate-fixtures.py [--financetools ~/Dev/financetools]
 
-The output is committed, so the parity test runs on a fresh clone with no Python
-and no `financetools` checkout. Regenerate only when the oracle changes.
+The output is committed, so the test runs on a fresh clone with no Python and no
+`financetools` checkout. Regenerate only when the oracle changes.
 
-Rates carry at most two decimal places throughout. That is not decoration: the
-Python passes the interest rate through the same helper it uses for money, so
-`Loan(1000, 4.875)` silently becomes a 4.88% loan. The port keeps rates
-unrounded, and would disagree — correctly — on any rate this file could not
-express. See §11.3.
+Rates carry at most two decimal places. That is not decoration: the Python passes
+the interest rate through the same helper it uses for money, so `Loan(1000,
+4.875)` silently becomes a 4.88% loan. The port keeps rates unrounded, and would
+disagree — correctly — on any rate this file could not express. See §11.3.
 
-## Why the oracle is generated twice
-
-`financetools` quantizes with `ROUND_HALF_UP`; this codebase rounds half-even.
-Those agree on every realistic quoted rate, because the monthly rate is a
-non-terminating division and never lands on the tie they disagree about. They do
-*not* agree at round rates — 6% is exactly 0.005 a month, and one balance in two
-hundred then puts the interest precisely on a half-cent.
-
-Conflating the two questions would make the fixture useless for both. So the
-whole suite is generated under each rounding mode. The port is held to the
-half-even run **exactly**, which tests the algorithm with the rounding
-convention held constant; the half-up run is kept alongside it to measure what
-the convention itself costs. See §11.2.
+Rounding is half-even throughout, matching the house convention, so the fixture
+tests the algorithm with the convention held constant. What the convention itself
+costs was measured once and written up in §11.2; it is not re-derived on every
+CI run.
 """
 from __future__ import annotations
 
@@ -39,94 +37,24 @@ import io
 import json
 import os
 import sys
-from decimal import Decimal, ROUND_HALF_EVEN, ROUND_HALF_UP
+from decimal import Decimal, ROUND_HALF_EVEN
 from pathlib import Path
 
 REPO_DEFAULT = Path.home() / "Dev" / "financetools"
 
-ROUNDING_MODES = {"half_up": ROUND_HALF_UP, "half_even": ROUND_HALF_EVEN}
 
+def use_half_even(Loan):
+    """Swap the library's quantizer to the house convention.
 
-def allocate_spending_everything(LoanQueue, Loan, queue, key, minimum):
-    """Set every loan's payment for one month, spending the whole budget.
-
-    The library hands a targeted loan its full share and then pays only what is
-    owed, letting the difference evaporate — not redirected, not carried forward.
-    Working doc §13.6 measured that at $692 in a single month, enough to reverse
-    the ranking of two strategies.
-
-    This is the same correction the TypeScript makes, written independently here
-    so the two can be reconciled (§14.2). Deal out the budget; settle anyone
-    whose share exceeds what they need to finish at exactly that; deal the rest
-    again across who is left. Terminates because each pass that changes anything
-    removes a loan from the pool.
+    `financetools` rounds half-up; this codebase rounds half-even (§8.1). Holding
+    the convention constant is what makes the fixture test the algorithm rather
+    than the rounding mode.
     """
-    settled = {}
-    pool = list(queue.Q)
-    available = queue.budget
-
-    while pool:
-        sub = LoanQueue(list(pool), available, title=queue.title)
-        remainder = sub.set_all_payments(minimum)
-        sub.distribute(key, remainder)
-
-        payoff = {id(l): Loan.Dec(l.get_int_due() + l.current_bal) for l in pool}
-        over = [l for l in pool if l.payment_amt > payoff[id(l)]]
-
-        if not over:
-            for l in pool:
-                settled[id(l)] = l.payment_amt
-            break
-
-        for l in over:
-            settled[id(l)] = payoff[id(l)]
-            available -= payoff[id(l)]
-            pool.remove(l)
-
-    for l in queue.Q:
-        l.payment_amt = settled.get(id(l), Loan.Dec(0))
-
-
-def corrected_debt_solve(LoanQueue, Loan):
-    """`debt_solve`, with the month's budget actually spent."""
-
-    def debt_solve(self, key, minimum):
-        order_once = key in ("avalanche", "snowball")
-        order_every = key == "blizzard"
-
-        temp_queue = self.branch()
-        completed_queue = LoanQueue([], self.budget, title=self.title)
-
-        if order_once:
-            temp_queue.prioritize(key)
-
-        while temp_queue.size > 0:
-            while all(not l.is_complete() for l in temp_queue.Q):
-                if order_every:
-                    temp_queue.prioritize(key)
-
-                allocate_spending_everything(LoanQueue, Loan, temp_queue, key, minimum)
-
-                for loan in temp_queue.Q:
-                    loan.pay_month()
-
-            paid_off = [l for l in temp_queue.Q if l.is_complete()]
-            for l in paid_off:
-                completed_queue.add_loan(l)
-                temp_queue.Q.remove(l)
-
-        return completed_queue.prioritize()
-
-    return debt_solve
-
-
-def set_rounding(Loan, mode):
-    """Swap the library's quantizer. It is a staticmethod used by every path."""
 
     def Dec(n):
         if not isinstance(n, Decimal):
             n = Decimal(str(n))
-        return n.quantize(Decimal("0.01"), ROUNDING_MODES[mode])
+        return n.quantize(Decimal("0.01"), ROUND_HALF_EVEN)
 
     Loan.Dec = staticmethod(Dec)
 
@@ -183,71 +111,10 @@ def schedule_case(Loan, name, principal, rate, term, payment=None, months=None) 
     }
 
 
-def queue_case(Loan, LoanQueue, name, specs, budget, minimum) -> dict:
-    def fresh():
-        return [Loan(b, r, title=t, term=n) for (t, b, r, n) in specs]
-
-    strategies = {}
-    for strategy in ("avalanche", "blizzard", "snowball", "cascade", "ice_slide"):
-        queue = LoanQueue(fresh(), budget, title=name)
-        done = quiet(getattr(queue, strategy), minimum)
-        strategies[strategy] = {
-            "duration": done.get_duration(),
-            "num_payments": done.get_num_payments(),
-            "interest_paid": str(done.get_interest_paid()),
-            "principal_paid": str(done.get_principal_paid()),
-            "total_paid": str(done.get_total_paid()),
-            "order": [loan.title for loan in done.Q],
-            "loans": [
-                {
-                    "title": loan.title,
-                    "start_balance": str(loan.start_balance),
-                    "installments": installments(loan),
-                }
-                for loan in done.Q
-            ],
-        }
-
-    return {
-        "name": name,
-        "budget": str(Loan.Dec(budget)),
-        "minimum": minimum,
-        "loans": [
-            {"title": t, "principal": str(Loan.Dec(b)), "annual_rate_percent": str(Loan.Dec(r)), "term_months": n}
-            for (t, b, r, n) in specs
-        ],
-        "strategies": strategies,
-    }
 
 
-# Invented loans. Nothing here is anyone's real debt — see ground rule 1.
-DOCUMENTED = [
-    ("2014", 2406.65, 4.41, 120),
-    ("2013", 2472.91, 3.61, 120),
-    ("2012", 6282.30, 6.10, 120),
-    ("2011", 5930.42, 6.10, 120),
-]
 
-TIED_RATES = [
-    ("Alpha", 8000.00, 5.00, 60),
-    ("Beta", 8000.00, 5.00, 60),
-    ("Gamma", 3000.00, 5.00, 60),
-]
 
-LOPSIDED = [
-    ("Mortgageish", 240000.00, 3.25, 360),
-    ("Card", 4800.00, 22.99, 24),
-    ("Auto", 18500.00, 6.75, 72),
-]
-
-# Whole-number rates, whose monthly value terminates in decimal — 6% is exactly
-# 0.005 a month. These are the only loans where half-up and half-even can
-# disagree at all, and quoted rates really are round, so they belong here.
-ROUND_RATES = [
-    ("Six", 12000.00, 6.00, 60),
-    ("Twelve", 8000.00, 12.00, 48),
-    ("Eighteen", 5000.00, 18.00, 36),
-]
 
 SINGLE = [
     ("Round numbers", 10000.00, 6.00, 60, None, None),
@@ -278,70 +145,31 @@ def main() -> int:
         return 1
 
     sys.path.insert(0, str(args.financetools))
-    from financetools import Loan, LoanQueue  # noqa: E402
+    from financetools import Loan  # noqa: E402
 
     revision = os.popen(f"git -C {args.financetools} rev-parse --short HEAD 2>/dev/null").read().strip()
 
-    def suite():
-        return {
-            "schedules": [schedule_case(Loan, *case) for case in SINGLE],
-            "queues": [
-                queue_case(Loan, LoanQueue, "documented fixture", DOCUMENTED, 1200, "int"),
-                queue_case(Loan, LoanQueue, "documented fixture, scheduled minimums", DOCUMENTED, 1200, "min"),
-                queue_case(Loan, LoanQueue, "tied rates and balances", TIED_RATES, 1500, "int"),
-                queue_case(Loan, LoanQueue, "lopsided", LOPSIDED, 3000, "int"),
-                queue_case(Loan, LoanQueue, "lopsided, even split", LOPSIDED, 3000, "avg"),
-                queue_case(Loan, LoanQueue, "round rates, where ties happen", ROUND_RATES, 2000, "int"),
-            ],
-        }
+    use_half_even(Loan)
 
     document = {
         "_comment": (
             "Generated from financetools by tools/generate-fixtures.py. Every "
             "amount is a decimal string at two places, which is the scale the "
-            "Python quantizes to and the scale the port matches. The suite is "
-            "run under both rounding modes: `half_up` is what the library "
-            "ships with, `half_even` holds the rounding convention constant, "
-            "and `half_even_corrected` additionally spends the whole budget in "
-            "the month a loan is retired (see the working doc, sections 13.6 "
-            "and 14). The port matches `half_even` on single loans and "
-            "`half_even_corrected` on queues. Invented loans only."
+            "Python quantizes to and the scale the port matches. Single loans "
+            "only: see section 15 of the working doc for why the queue suites "
+            "were retired. Rounding is half-even throughout, matching the house "
+            "convention. Invented loans only."
         ),
         "oracle_revision": revision or "unknown",
+        "schedules": [schedule_case(Loan, *case) for case in SINGLE],
     }
-
-    for mode in ROUNDING_MODES:
-        set_rounding(Loan, mode)
-        document[mode] = suite()
-
-    # And once more with the budget actually spent (§14.2). Queues only: a lone
-    # loan retiring has nobody to hand its surplus to, so every single-loan case
-    # is provably unchanged and stays covered by the half_even suite above.
-    set_rounding(Loan, "half_even")
-    original = LoanQueue.debt_solve
-    LoanQueue.debt_solve = corrected_debt_solve(LoanQueue, Loan)
-    try:
-        document["half_even_corrected"] = {"queues": suite()["queues"]}
-    finally:
-        LoanQueue.debt_solve = original
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(document, indent=2) + "\n")
 
-    def count(suite_doc):
-        lines = sum(len(s["installments"]) for s in suite_doc["schedules"])
-        return lines + sum(
-            len(loan["installments"])
-            for q in suite_doc["queues"]
-            for s in q["strategies"].values()
-            for loan in s["loans"]
-        )
-
-    lines = count(document["half_even"])
-    print(f"wrote {args.out} — {lines} installments per rounding mode, "
-          f"{len(ROUNDING_MODES)} modes, across "
-          f"{len(document['half_even']['schedules'])} schedules and "
-          f"{len(document['half_even']['queues'])} queues")
+    lines = sum(len(s["installments"]) for s in document["schedules"])
+    print(f"wrote {args.out} — {lines} installments across "
+          f"{len(document['schedules'])} single-loan schedules")
     return 0
 
 
