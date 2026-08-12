@@ -20,7 +20,15 @@ Repo: https://github.com/TurbulentRice/varve (public, MIT)
 
 Code comments cite that working doc by section — `§8.1`, `§11.2`, `Decision 4`.
 Those references are load-bearing: **keep the section numbering stable**, and
-extend rather than renumber.
+extend rather than renumber. CI enforces it, along with every relative link in
+the documentation:
+
+```bash
+node .github/scripts/check-docs.mjs
+```
+
+A renumbering would otherwise leave each citation pointing somewhere plausible
+and wrong, with nothing failing to say so.
 
 ## Ground rules
 
