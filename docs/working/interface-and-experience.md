@@ -245,3 +245,85 @@ was written to anchor the interface and never got an answer:
 That question is worth more now than when it was written. An era about what
 people want to look at should probably begin by asking the one person who has
 been looking at this data for twenty years.
+
+---
+
+## 21. The licence, decided before there are contributors
+
+Not an interface question, and it belongs here anyway: it is a decision with a
+deadline, and the deadline is quiet. The repository was MIT-licensed from the
+first commit — the reflex choice, made without examining it. Examining it now is
+cheap because the copyright is held by one person. It stops being cheap the first
+time an outside pull request is merged, because from then on each contributor
+holds copyright in their patch and relicensing needs every one of them to agree.
+Projects that discover this late either chase signatures for years or never
+change at all. So the question gets answered while the answer is still a commit.
+
+**What was actually weighed.** Three families were on the table.
+
+*Stay permissive.* MIT and Apache-2.0 grant the same practical freedoms: use,
+modify, redistribute, sell, no obligation to publish anything back. The
+difference is entirely in what the text says beyond that.
+
+*Go copyleft.* AGPL-3.0 would force anyone running a modified Varve as a network
+service to publish their changes. It was considered seriously and rejected on the
+facts of this codebase, not on ideology. §12 made this app local-first with no
+server, which means the network clause has almost nothing to bite on today — its
+only real effect would be on a fork that adds the hosted mode this project has
+deliberately deferred. Against that thin benefit, AGPL makes the code
+unusable inside most companies, which is exactly where the people who have opinions
+about twenty-year retirement arithmetic tend to work. Paying a real cost in
+contributors for a clause that currently governs nothing is a bad trade. Worth
+revisiting *if* a hosted Varve is ever built — at which point the same
+sole-copyright-holder window will have closed, which is a reason to note the
+possibility here rather than assume it stays open.
+
+*Go source-available* (BSL, Polyform, and relatives). Rejected quickly. These
+exist to stop a competitor commercialising your work, and there is nothing here
+to protect commercially. The cost is that the project stops being open source in
+any sense a reviewer would recognise, which for a repository whose main output is
+a written record of reasoning is a loss with no matching gain.
+
+**The choice: Apache-2.0.** It is MIT after a lawyer's pass, and each of the
+three things it adds turns out to be pointed at this project specifically.
+
+The **patent grant** (§3 of the licence) is the substantive one. MIT is silent on
+patents: it grants copyright permission and leaves open the theory that a
+contributor could contribute code and later assert a patent reading on it.
+Apache-2.0 grants that licence explicitly and terminates it for anyone who files
+a patent suit over the work. Financial calculation methods are a patented and
+litigated space — retirement projection and amortisation are not a quiet corner
+of the art — and Varve implements exactly that kind of arithmetic. This is the
+gap MIT leaves that is most plausibly load-bearing here.
+
+The **limitation of liability** (§8) matters more than it would for a utility
+library. MIT disclaims warranty in one paragraph and says little about liability.
+Apache-2.0 disclaims warranty *and* caps liability separately and explicitly.
+This software's whole purpose is to produce numbers someone may act on when
+deciding whether they can retire. Ground rule 5 exists because these numbers have
+been wrong before and were caught only by looking. A licence that says plainly
+this comes with no warranty and no liability is the honest match to a codebase
+that already documents its own near-misses.
+
+The **trademark reservation** (§6) is small and worth having. It means the code
+can be forked freely while the name stays attached to this project — the fork
+gets everything except the ability to call itself Varve. `NOTICE` says so in one
+sentence, along with the plainer point that this is a tool for looking at your
+own records, not financial advice.
+
+The cost of all this is a 200-line licence file instead of a 20-line one, and a
+`NOTICE` file to keep current. That is the entire downside.
+
+**On the docs.** A split was considered — code under Apache-2.0, `docs/` under
+CC BY 4.0 — on the reasoning that code licences fit prose awkwardly (what is
+"source form" for an essay?) and that these documents are a substantial artifact
+in their own right. It was not done. Apache-2.0's definitions are broad enough to
+cover documentation, a second licence is a second thing to explain and to get
+wrong at the boundary, and no concrete problem motivated the split. Noted rather
+than done, so that a future reader knows it was weighed.
+
+**Compatibility.** Apache-2.0 permits everything MIT permitted, so nothing built
+against the earlier releases breaks. Those releases remain MIT-licensed under
+their own terms; a relicence is not retroactive and cannot revoke a grant already
+made. Anyone who prefers the MIT terms can keep using the tagged commits that
+carried them.

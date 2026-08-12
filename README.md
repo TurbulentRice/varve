@@ -109,4 +109,11 @@ deferral is in [the working doc](docs/working/discovery-and-architecture.md).
 
 ## License
 
-MIT.
+[Apache License 2.0](LICENSE). Permissive, like MIT, with three additions that
+matter for software that does financial arithmetic: an explicit patent grant
+from contributors, a limitation of liability alongside the warranty disclaimer,
+and no grant of trademark rights in the name. See [`NOTICE`](NOTICE), and §21 of
+[the working doc](docs/working/interface-and-experience.md) for the reasoning.
+
+The project was MIT-licensed until August 2026. Apache-2.0 permits everything MIT
+did, so anything built on the earlier releases keeps working.
