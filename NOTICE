@@ -1,0 +1,15 @@
+Varve
+Copyright 2026 Sean Russell
+
+This product includes software developed by Sean Russell
+(https://github.com/TurbulentRice/varve).
+
+Licensed under the Apache License, Version 2.0. See LICENSE for the full terms.
+
+"Varve" is a name used by this project. The Apache License grants no trademark
+rights (see section 6); a fork is welcome to the code and should carry its own
+name.
+
+Varve computes and displays financial figures. It is a tool for looking at your
+own records, not financial advice, and it is distributed WITHOUT WARRANTIES OR
+CONDITIONS OF ANY KIND. Check anything you intend to act on.

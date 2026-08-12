@@ -8,7 +8,7 @@ retirement savings quarterly since 2006, and the Excel workbook that condensed
 it. That archaeology produced findings that shape every design decision here —
 they are not colour, and they are written down.
 
-Repo: https://github.com/TurbulentRice/varve (public, MIT)
+Repo: https://github.com/TurbulentRice/varve (public, Apache-2.0 — see §21)
 
 ## Start here
 
