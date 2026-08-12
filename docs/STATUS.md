@@ -5,11 +5,11 @@ want the history of how the thinking changed, that is
 [the working doc](working/discovery-and-architecture.md) — this file only ever
 describes now.
 
-Last updated: 2026-08-12, after the budget-redistribution fix.
+Last updated: 2026-08-12, after retiring most of the parity fixture.
 
 ## Where things stand
 
-Nine phases done. **483 tests**, clean typecheck, clean production build, and CI
+Nine phases done. **375 tests**, clean typecheck, clean production build, and CI
 running both on every PR.
 
 | Package | What it holds | Tests |
@@ -17,7 +17,7 @@ running both on every PR.
 | [`packages/core`](../packages/core) | Money, dates, domain types, returns, aggregation, projection. Zero dependencies. | 80 |
 | [`packages/store`](../packages/store) | Snapshot format (v2), repository interface, in-memory + persisting adapters. | 34 |
 | [`packages/retirement`](../packages/retirement) | Ledger, household + per-account derivation, year entry, Monte Carlo. | 83 |
-| [`packages/loans`](../packages/loans) | Amortization, five repayment strategies, comparison, ledger seam. | 229 |
+| [`packages/loans`](../packages/loans) | Amortization, five repayment strategies, comparison, ledger seam. | 121 |
 | [`packages/legacy-import`](../packages/legacy-import) | One-way migration from Access, with a synthetic fixture. | 23 |
 | [`apps/web`](../apps/web) | React + Vite. Dashboard, projections, year editor, account views, debts, hash routing. | 34 |
 
@@ -65,8 +65,9 @@ and the fan chart were both tuned by eye against real bugs, so changing what the
   household" wrapping. Legible, not elegant.
 - **`localStorage` is not durable.** Export is the real backup. A "last exported"
   nudge would be the honest version.
-- **The loans parity fixture is 308 KB.** The price of a committed oracle, with
-  the encoding already compacted 3×. Fine for now; worth revisiting if it grows.
+- **`financetools` upstream still wastes a retiring loan's budget** (§14). The
+  defect is fixed here and reported there; nothing in this repository depends on
+  it being fixed upstream.
 
 ## Orientation for a cold start
 

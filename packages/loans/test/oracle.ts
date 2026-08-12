@@ -1,13 +1,13 @@
 /**
  * Reading the `financetools` fixture.
  *
- * Shared by the parity and rounding suites, which ask different questions of
- * the same generated data.
+ * Only the single-loan suite survives (§15), so this is small: turn a fixture
+ * record into `LoanTerms`, and render installments in the fixture's own compact
+ * encoding for comparison.
  */
 
 import { Money } from '@varve/core';
 import { loanId, type Installment, type LoanTerms } from '../src/types.js';
-import type { MinimumMode, Strategy } from '../src/strategy.js';
 
 export interface FixtureTerms {
   readonly title: string;
@@ -38,22 +38,5 @@ export function renderInstallments(installments: readonly Installment[]): string
   return installments.map((i) => `${cents(i.interest)} ${cents(i.principal)} ${cents(i.balance)}`);
 }
 
-/** Interest, principal and balance from one fixture line. */
-export function parseInstallment(line: string): [number, number, number] {
-  const [interest, principal, balance] = line.split(' ').map(Number);
-  return [interest!, principal!, balance!];
-}
 
-export const PYTHON_STRATEGY: Record<Strategy, string> = {
-  avalanche: 'avalanche',
-  blizzard: 'blizzard',
-  snowball: 'snowball',
-  cascade: 'cascade',
-  'ice-slide': 'ice_slide',
-};
 
-export const MINIMUM_MODE: Record<string, MinimumMode> = {
-  int: 'interest-only',
-  min: 'scheduled',
-  avg: 'even-split',
-};
