@@ -1,7 +1,7 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 3,
   "revision": 1,
-  "exportedAt": "2026-08-11T00:37:38.511Z",
+  "exportedAt": "2026-08-12T22:25:13.998Z",
   "household": {
     "id": "h1",
     "name": "Sample Household"
@@ -2111,5 +2111,8 @@
       "year": 2022,
       "text": "Consolidated Ben’s two IRAs."
     }
-  ]
+  ],
+  "loans": [],
+  "loanObservations": [],
+  "loanPayments": []
 }
