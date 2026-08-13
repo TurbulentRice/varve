@@ -14,6 +14,7 @@ import { projectLoan, type LoanProjection, type LoanState } from '@varve/loans';
 import { useState } from 'react';
 import { longDate, money, payment, rate } from '../lib/format.js';
 import { Disclosure } from './Disclosure.js';
+import { BackLink, PageTitle } from './ui.js';
 import { ScheduleChart } from '../charts/ScheduleChart.js';
 
 export function LoanDetail({
@@ -41,9 +42,7 @@ export function LoanDetail({
   return (
     <>
       <div className="detail-head">
-        <button type="button" className="ghost" onClick={onClose}>
-          ← All debts
-        </button>
+        <BackLink label="All debts" onClick={onClose} />
         <div className="editor-actions">
           <button type="button" className="ghost" onClick={onEdit}>
             Edit

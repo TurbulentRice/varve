@@ -1,19 +1,27 @@
+/**
+ * The application: one shell, four destinations, and the writes that reach the
+ * repository.
+ *
+ * What used to be here was a 120-line render doing five jobs on one page, which
+ * §18.3 diagnosed as a changelog of what got built rather than an answer to what
+ * someone came to find out. Each job is now a page under `pages/`, and what is
+ * left in this file is the part that genuinely belongs to the application: the
+ * ledger, the derivations every surface reads from, and the handful of functions
+ * that write. See §22.2 for where each piece of the old page went.
+ */
+
 import {
-  accountId,
   isoDate,
   loanId as toLoanId,
   loanObservationId,
   loanPaymentId,
   m,
   Money,
-  netWorthNow,
-  netWorthSeries,
   type Account,
   type Loan,
   type LoanId,
 } from '@varve/core';
-import { findLoanState, loanCost, loanStates, payable } from '@varve/loans';
-import { NetWorth, NetWorthCaveat } from './components/NetWorth.js';
+import { findLoanState, loanCost } from '@varve/loans';
 import {
   InMemoryRepository,
   PersistingRepository,
@@ -38,23 +46,22 @@ import {
   type YearEntry,
 } from '@varve/retirement';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { DASHBOARD } from './routing/route.js';
+import { OVERVIEW } from './routing/route.js';
 import { navigate, useRoute } from './routing/useRoute.js';
-import { anchorBands, ProjectionChart, type BandPoint } from './charts/ProjectionChart.js';
-import { Controls, type Settings } from './components/Controls.js';
-import { Disclosure } from './components/Disclosure.js';
-import { Hero } from './components/Hero.js';
-import { HistoryTable } from './components/HistoryTable.js';
-import { ProjectionTable } from './components/ProjectionTable.js';
+import { anchorBands, type BandPoint } from './charts/ProjectionChart.js';
+import { type Settings } from './components/Controls.js';
 import { AccountDetail } from './components/AccountDetail.js';
-import { AccountsTable } from './components/AccountsTable.js';
-import { StatTiles } from './components/StatTiles.js';
+import { Shell } from './components/Shell.js';
+import { BackLink } from './components/ui.js';
 import { YearEditor } from './components/YearEditor.js';
 import { LoansView } from './components/LoansView.js';
 import { LoanDetail } from './components/LoanDetail.js';
 import { LoanEditor, type LoanDraft } from './components/LoanEditor.js';
+import { Overview } from './pages/Overview.js';
+import { Accounts } from './pages/Accounts.js';
+import { Plan } from './pages/Plan.js';
 import { downloadSnapshot } from './lib/download.js';
-import { money } from './lib/format.js';
+import { householdNetWorth } from './lib/net-worth.js';
 import sampleSnapshot from './data/sample-snapshot.json';
 
 /**
@@ -192,45 +199,34 @@ function Ledger({
     [snapshot],
   );
 
-  // What the masthead shows beside "Debts" — nothing at all when there is none,
-  // rather than a decorative $0.
-  const owedTotal = useMemo(
-    () => Money.sum(loanStates(snapshot).filter(payable).map((s) => s.balance)),
-    [snapshot],
+  /**
+   * Assets against debts, at two resolutions — see `lib/net-worth.ts`.
+   *
+   * This was forty lines of `useMemo` here, quadratic and untestable, until §22.4
+   * gave it a home where it could be read.
+   */
+  const netWorth = useMemo(
+    () =>
+      householdNetWorth({
+        years: history.years,
+        loans: snapshot.loans,
+        loanObservations: snapshot.loanObservations,
+      }),
+    [history.years, snapshot.loans, snapshot.loanObservations],
   );
 
   /**
-   * Assets against debts.
+   * How far out of date the record is, in years.
    *
-   * Both sides are handed over as plain dated amounts, because `netWorthSeries`
-   * knows nothing about accounts or loans and should not (§17.1). Assets come
-   * from the year-end values already derived; debts from the total owed at each
-   * date any loan was observed.
+   * The Overview says so when it is two or more, because everything on that page
+   * then describes a household that has since moved on. Measured against the
+   * calendar rather than against the last row, since a ledger that stopped in
+   * 2019 has five stale years whether or not anyone opened it since.
    */
-  const netWorth = useMemo(() => {
-    const assets = history.years.map((y) => ({ asOf: y.endValueAsOf, amount: y.endValue }));
-
-    const states = loanStates(snapshot);
-    const dates = [...new Set(snapshot.loanObservations.map((o) => o.asOf))].sort();
-    const debts = dates.map((asOf) => ({
-      asOf,
-      amount: Money.sum(
-        states.map((s) => {
-          const seen = snapshot.loanObservations
-            .filter((o) => o.loanId === s.loan.id && o.asOf <= asOf)
-            .sort((a, b) => (a.asOf < b.asOf ? -1 : 1));
-          return seen[seen.length - 1]?.amount ?? Money.zero();
-        }),
-      ),
-    }));
-
-    return {
-      now: netWorthNow(netWorthSeries(assets, debts)),
-      // The distinction core cannot make and this layer can: a loan with no
-      // balance recorded subtracts nothing, and overstates net worth.
-      unobserved: states.filter((s) => !s.observed).length,
-    };
-  }, [history.years, snapshot]);
+  const lastRecorded = history.years.filter((y) => y.recorded).at(-1)?.year ?? null;
+  // No recorded year at all is not "stale", it is empty, and the Overview says
+  // that in its own words rather than reporting a two-thousand-year gap.
+  const staleYears = lastRecorded === null ? 0 : Math.max(new Date().getUTCFullYear() - lastRecorded, 0);
 
   // A Snapshot satisfies Ledger structurally, so no conversion is needed.
   const accountHistories = useMemo(
@@ -328,7 +324,7 @@ function Ledger({
   async function deleteLoan(id: LoanId) {
     await repo.deleteLoans([id]);
     await commit();
-    navigate({ view: 'loans' });
+    navigate({ view: 'debts' });
   }
 
   async function openFile(file: File) {
@@ -359,134 +355,15 @@ function Ledger({
   // stating rather than normalising away — the same instinct as ground rule 3.
   const missingAccount = route.view === 'account' && !selected;
 
-  if (selected) {
-    return (
-      <div className="page">
-        <AccountDetail history={selected} onClose={() => navigate(DASHBOARD)} />
-      </div>
-    );
-  }
-
-  if (route.view === 'loans') {
-    return (
-      <div className="page">
-        {editingLoan === null ? (
-          <LoansView
-            ledger={snapshot}
-            onOpen={(id) => navigate({ view: 'loan', loanId: id })}
-            onAdd={() => setEditingLoan('new')}
-            onClose={() => navigate(DASHBOARD)}
-          />
-        ) : (
-          <LoanEditor existing={null} onSave={saveLoan} onClose={() => setEditingLoan(null)} />
-        )}
-      </div>
-    );
-  }
-
-  if (route.view === 'loan') {
-    const loan = snapshot.loans.find((l) => l.id === route.loanId);
-    if (!loan) {
-      return (
-        <div className="page">
-          <div className="error" role="status">
-            <strong>That loan is not in this ledger</strong>
-            The link names a loan this document does not contain.
-          </div>
-          <button type="button" className="ghost" onClick={() => navigate({ view: 'loans' })}>
-            ← All debts
-          </button>
-        </div>
-      );
-    }
-
-    const state = findLoanState(snapshot, route.loanId);
-    return (
-      <div className="page">
-        {editingLoan === null ? (
-          <LoanDetail
-            state={state}
-            cost={loanCost(loan, snapshot.loanObservations, snapshot.loanPayments)}
-            onEdit={() => setEditingLoan(route.loanId)}
-            onDelete={deleteLoan}
-            onRecordPayment={(amount) => recordPayment(route.loanId, amount)}
-            onClose={() => navigate({ view: 'loans' })}
-          />
-        ) : (
-          <LoanEditor existing={state} onSave={saveLoan} onClose={() => setEditingLoan(null)} />
-        )}
-      </div>
-    );
-  }
-
-  if (route.view === 'year') {
-    const year = route.year;
-    return (
-      <div className="page">
-        <YearEditor
-          accounts={editableAccounts}
-          observations={snapshot.observations}
-          flows={snapshot.flows}
-          year={year}
-          // Stepping between years refines one destination rather than visiting
-          // several, so it overwrites the entry instead of stacking fifteen of
-          // them between the reader and the way out.
-          onYearChange={(next) => navigate({ view: 'year', year: next }, { replace: true })}
-          onSave={(entries) => saveYear(year, entries)}
-          onAddAccount={addAccount}
-          onClose={() => navigate(DASHBOARD)}
-        />
-      </div>
-    );
-  }
-
   return (
-    <div className="page">
-      <header className="masthead">
-        <div>
-          <h1>{history.householdName}</h1>
-          <p className="subtitle">
-            {history.owners.map((o) => o.name).join(' & ')} · {history.accounts.length} accounts ·{' '}
-            {history.years.length} years recorded
-          </p>
-        </div>
-        <div className="masthead-actions">
-          <button
-            type="button"
-            className="primary"
-            onClick={() => navigate({ view: 'year', year: new Date().getUTCFullYear() - 1 })}
-          >
-            Update numbers
-          </button>
-          <button
-            type="button"
-            className="ghost"
-            onClick={() => navigate({ view: 'loans' })}
-          >
-            Debts{owedTotal.isPositive() ? ` · ${money(owedTotal)}` : ''}
-          </button>
-          <button
-            type="button"
-            className="ghost"
-            onClick={() => downloadSnapshot(snapshot)}
-            title="Download everything as a file you keep"
-          >
-            Export
-          </button>
-          <label className="ghost open">
-            Open…
-            <input
-              type="file"
-              accept=".json"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) void openFile(file);
-              }}
-            />
-          </label>
-        </div>
-      </header>
-
+    <Shell
+      householdName={history.householdName}
+      owners={history.owners.map((o) => o.name).join(' & ')}
+      route={route}
+      onUpdateNumbers={() => navigate({ view: 'year', year: new Date().getUTCFullYear() - 1 })}
+      onExport={() => downloadSnapshot(snapshot)}
+      onOpenFile={(file) => void openFile(file)}
+    >
       {error ? (
         <div className="error" role="alert">
           <strong>Could not open that file</strong>
@@ -494,71 +371,129 @@ function Ledger({
         </div>
       ) : null}
 
-      {missingAccount ? (
-        <div className="error" role="status">
-          <strong>That account is not in this ledger</strong>
-          The link names an account this document does not contain. It may belong to a different
-          ledger, or the account may since have been removed.
-        </div>
-      ) : null}
-
-      {netWorth.now ? (
-        <>
-          <NetWorthCaveat unobservedDebts={netWorth.unobserved} />
-          <NetWorth point={netWorth.now} unobservedDebts={netWorth.unobserved} />
-        </>
-      ) : null}
-
-      <Hero
-        chance={chanceOfReaching(simulation, m(String(target)))}
-        target={m(String(target))}
-        targetYear={lastYear + settings.years}
-        median={simulation.finalValue.median}
-      />
-
-      <Controls
-        settings={{ ...settings, target }}
-        onChange={(next) => {
-          if (next.target !== target) setTargetTouched(true);
-          setSettings(next);
-        }}
-        observedCount={observed.length}
-      />
-
-      <ProjectionChart history={historyPoints} bands={bands} todayYear={lastYear} />
-
-      <StatTiles history={history} />
-
-      <div className="details">
-        <Disclosure summary="Every recorded year" hint={`${history.years.length} years`}>
-          <HistoryTable years={history.years} />
-        </Disclosure>
-
-        <Disclosure
-          summary="Account by account"
-          hint={`${accountHistories.length} accounts`}
-          open
-        >
-          <AccountsTable
-            accounts={accountHistories}
-            onSelect={(id) => navigate({ view: 'account', accountId: accountId(id) })}
-          />
-        </Disclosure>
-
-        <Disclosure
-          summary="The projection, as numbers"
-          hint={`${simulation.runs.toLocaleString()} runs`}
-        >
-          <ProjectionTable simulation={simulation} startYear={lastYear} />
-        </Disclosure>
-      </div>
-
-      <footer className="footnote">
-        Simulated from {observed.length} recorded years of this household&rsquo;s own returns. Past
-        returns are a small and biased sample — they are what happened to these accounts over one
-        particular stretch, not a forecast. Your ledger is saved in this browser, which is
-        convenient and not durable; <strong>Export</strong> is the copy you actually keep.
-      </footer>
-    </div>
+      {renderRoute()}
+    </Shell>
   );
+
+  function renderRoute() {
+    if (route.view === 'account') {
+      // The URL stands even when it names nothing, so the message and the way
+      // back are what this page is.
+      if (missingAccount) {
+        return (
+          <>
+            <div className="error" role="status">
+              <strong>That account is not in this ledger</strong>
+              The link names an account this document does not contain. It may belong to a
+              different ledger, or the account may since have been removed.
+            </div>
+            <BackLink label="All accounts" onClick={() => navigate({ view: 'accounts' })} />
+          </>
+        );
+      }
+
+      return (
+        <AccountDetail history={selected!} onClose={() => navigate({ view: 'accounts' })} />
+      );
+    }
+
+    if (route.view === 'accounts') {
+      return (
+        <Accounts
+          history={history}
+          accounts={accountHistories}
+          onUpdateNumbers={() => navigate({ view: 'year', year: new Date().getUTCFullYear() - 1 })}
+        />
+      );
+    }
+
+    if (route.view === 'debts') {
+      return editingLoan === null ? (
+        <LoansView
+          ledger={snapshot}
+          onOpen={(id) => navigate({ view: 'debt', loanId: id })}
+          onAdd={() => setEditingLoan('new')}
+        />
+      ) : (
+        <LoanEditor existing={null} onSave={saveLoan} onClose={() => setEditingLoan(null)} />
+      );
+    }
+
+    if (route.view === 'debt') {
+      const loan = snapshot.loans.find((l) => l.id === route.loanId);
+      if (!loan) {
+        return (
+          <>
+            <div className="error" role="status">
+              <strong>That loan is not in this ledger</strong>
+              The link names a loan this document does not contain.
+            </div>
+            <BackLink label="All debts" onClick={() => navigate({ view: 'debts' })} />
+          </>
+        );
+      }
+
+      const state = findLoanState(snapshot, route.loanId);
+      return editingLoan === null ? (
+        <LoanDetail
+          state={state}
+          cost={loanCost(loan, snapshot.loanObservations, snapshot.loanPayments)}
+          onEdit={() => setEditingLoan(route.loanId)}
+          onDelete={deleteLoan}
+          onRecordPayment={(amount) => recordPayment(route.loanId, amount)}
+          onClose={() => navigate({ view: 'debts' })}
+        />
+      ) : (
+        <LoanEditor existing={state} onSave={saveLoan} onClose={() => setEditingLoan(null)} />
+      );
+    }
+
+    if (route.view === 'year') {
+      return (
+        <YearEditor
+          accounts={editableAccounts}
+          observations={snapshot.observations}
+          flows={snapshot.flows}
+          year={route.year}
+          // Stepping between years refines one destination rather than visiting
+          // several, so it overwrites the entry instead of stacking fifteen of
+          // them between the reader and the way out.
+          onYearChange={(next) => navigate({ view: 'year', year: next }, { replace: true })}
+          onSave={(entries) => saveYear(route.year, entries)}
+          onAddAccount={addAccount}
+          onClose={() => navigate(OVERVIEW)}
+        />
+      );
+    }
+
+    if (route.view === 'plan') {
+      return (
+        <Plan
+          chance={chanceOfReaching(simulation, m(String(target)))}
+          target={m(String(target))}
+          targetYear={lastYear + settings.years}
+          median={simulation.finalValue.median}
+          settings={{ ...settings, target }}
+          onSettingsChange={(next) => {
+            if (next.target !== target) setTargetTouched(true);
+            setSettings(next);
+          }}
+          observedCount={observed.length}
+          history={historyPoints}
+          bands={bands}
+          todayYear={lastYear}
+          simulation={simulation}
+        />
+      );
+    }
+
+    return (
+      <Overview
+        netWorth={netWorth}
+        staleYears={staleYears}
+        onRecordDebts={() => navigate({ view: 'debts' })}
+        onUpdateNumbers={() => navigate({ view: 'year', year: new Date().getUTCFullYear() - 1 })}
+      />
+    );
+  }
 }

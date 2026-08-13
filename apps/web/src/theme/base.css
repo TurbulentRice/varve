@@ -21,6 +21,107 @@ body {
   gap: var(--space-6);
 }
 
+/* ------------------------------------------------------------------- shell */
+
+/*
+ * The persistent frame. Three groups on one row — who this is, where you can
+ * go, what you can do to the document — and they are set differently on
+ * purpose: §18.2 measured three *kinds* of action rendered as three identical
+ * buttons, which is the row claiming they are the same thing.
+ */
+.shell {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-5);
+  flex-wrap: wrap;
+  padding-bottom: var(--space-4);
+  border-bottom: var(--hairline);
+}
+
+.shell-identity {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.shell-household {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.shell-owners {
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+}
+
+.shell-nav {
+  display: flex;
+  gap: var(--space-1);
+  flex-wrap: wrap;
+}
+
+.shell-link {
+  font-size: 0.8125rem;
+  color: var(--ink-secondary);
+  text-decoration: none;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  /* The current section is marked by weight and a rule, not by colour alone:
+     the same reason the figures carry a sign (§10). */
+  border-bottom: 2px solid transparent;
+}
+
+.shell-link:hover {
+  background: var(--surface-sunken);
+  color: var(--ink);
+}
+
+.shell-link.current {
+  color: var(--ink);
+  font-weight: 600;
+  border-bottom-color: var(--data-line);
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.shell-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+/* Set apart from the primary action: these act on the file, not the numbers. */
+.shell-data {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.shell-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+/* --------------------------------------------------------------- page title */
+
+.page-title {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-5);
+  flex-wrap: wrap;
+}
+
+.page-title-actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+button.ghost.back {
+  align-self: flex-start;
+}
+
 /* ---------------------------------------------------------------- masthead */
 
 .masthead {
@@ -311,6 +412,16 @@ h1 {
   font-weight: 600;
 }
 
+/*
+ * Zero, when the plot straddles it. Solid and one shade stronger than the grid:
+ * a dashed rule reads as a projection or a threshold when it is neither (it is
+ * the origin), and this line is the difference between owing and owning.
+ */
+.zero-rule {
+  stroke: var(--axis);
+  stroke-width: 1.5;
+}
+
 /* ------------------------------------------------------------------- tiles */
 
 /*
@@ -515,6 +626,65 @@ tbody tr:hover {
   line-height: 1.6;
 }
 
+/* A note under a chart, set quieter than the chart and above the table twin. */
+.chart-caption {
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+  max-width: 46rem;
+  margin: calc(-1 * var(--space-4)) 0 0;
+}
+
+/* --------------------------------------------------------------- attention */
+
+/*
+ * Empty whenever nothing is wrong. A panel that always has something in it is
+ * decoration, and gets read as decoration on the day it matters.
+ */
+.attention {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.attention-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  background: var(--surface-raised);
+  border: var(--hairline);
+  /* One accent edge rather than a fully coloured box: these are worth noticing
+     and are not errors, and an app that shouts at every stale balance stops
+     being believed. */
+  border-left: 3px solid var(--negative);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3) var(--space-4);
+  font-size: 0.8125rem;
+  color: var(--ink-secondary);
+}
+
+.attention-item strong {
+  color: var(--ink);
+}
+
+.empty {
+  background: var(--surface-raised);
+  border: var(--hairline);
+  border-radius: var(--radius);
+  padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+  color: var(--ink-secondary);
+}
+
+.empty p {
+  margin: 0;
+  max-width: 34rem;
+}
+
 /* ------------------------------------------------------------------- misc */
 
 .footnote {
@@ -554,7 +724,8 @@ tbody tr:hover {
 
 button.primary,
 button.ghost,
-.masthead-actions .open {
+.masthead-actions .open,
+.shell-data .open {
   font: inherit;
   font-size: 0.8125rem;
   padding: var(--space-2) var(--space-4);

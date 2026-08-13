@@ -1,11 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import { accountId, loanId } from '@varve/core';
-import { DASHBOARD, formatRoute, parseRoute, sameRoute, type Route } from '../src/routing/route.js';
+import {
+  formatRoute,
+  OVERVIEW,
+  parseRoute,
+  sameRoute,
+  sectionOf,
+  type Route,
+} from '../src/routing/route.js';
 
 describe('reading a URL', () => {
-  it('treats an empty hash as the dashboard', () => {
+  it('treats an empty hash as the Overview', () => {
     for (const hash of ['', '#', '#/', '/']) {
-      expect(parseRoute(hash), hash).toEqual(DASHBOARD);
+      expect(parseRoute(hash), hash).toEqual(OVERVIEW);
     }
   });
 
@@ -35,14 +42,13 @@ describe('reading a URL', () => {
   });
 });
 
-describe('a URL it cannot read is the dashboard, not an error', () => {
+describe('a URL it cannot read is the Overview, not an error', () => {
   // There is no 404 in an app whose whole dataset is already in the browser.
   // Every one of these is something a real person could end up holding: a stale
   // link, a typo, a hand-edited hash, a route from a version that no longer
   // exists.
   const nonsense = [
     '#/nowhere',
-    '#/accounts', // no id
     '#/years', // no year
     '#/years/nineteen',
     '#/years/2024abc',
@@ -61,7 +67,7 @@ describe('a URL it cannot read is the dashboard, not an error', () => {
       // The trailing-segments case still names an account, which is the right
       // reading — extra junk after a valid route should not lose the route.
       if (hash.startsWith('#/accounts/acct:1')) expect(route.view).toBe('account');
-      else expect(route).toEqual(DASHBOARD);
+      else expect(route).toEqual(OVERVIEW);
     });
   }
 
@@ -74,8 +80,8 @@ describe('a URL it cannot read is the dashboard, not an error', () => {
 });
 
 describe('writing a URL', () => {
-  it('writes the dashboard as a bare hash', () => {
-    expect(formatRoute(DASHBOARD)).toBe('#/');
+  it('writes the Overview as a bare hash', () => {
+    expect(formatRoute(OVERVIEW)).toBe('#/');
   });
 
   it('leaves the colon in an account id alone', () => {
@@ -105,12 +111,16 @@ describe('writing a URL', () => {
 
 describe('parsing and printing are inverse', () => {
   const routes: Route[] = [
-    DASHBOARD,
+    OVERVIEW,
     { view: 'account', accountId: accountId('acct:1') },
     { view: 'account', accountId: accountId('acct:42') },
     { view: 'account', accountId: accountId('weird id/with slash') },
     { view: 'year', year: 2006 },
     { view: 'year', year: 2062 },
+    { view: 'accounts' },
+    { view: 'debts' },
+    { view: 'debt', loanId: loanId('loan:1') },
+    { view: 'plan' },
   ];
 
   for (const route of routes) {
@@ -131,33 +141,79 @@ describe('comparing routes', () => {
 
   it('distinguishes different years, and different views', () => {
     expect(sameRoute({ view: 'year', year: 2024 }, { view: 'year', year: 2025 })).toBe(false);
-    expect(sameRoute({ view: 'year', year: 2024 }, DASHBOARD)).toBe(false);
-    expect(sameRoute(DASHBOARD, DASHBOARD)).toBe(true);
+    expect(sameRoute({ view: 'year', year: 2024 }, OVERVIEW)).toBe(false);
+    expect(sameRoute(OVERVIEW, OVERVIEW)).toBe(true);
   });
 });
 
-describe('the loans surface', () => {
-  it('reads the list and a single loan', () => {
-    expect(parseRoute('#/loans')).toEqual({ view: 'loans' });
-    expect(parseRoute('#/loans/loan:1')).toEqual({ view: 'loan', loanId: loanId('loan:1') });
+describe('the debts surface', () => {
+  it('reads the list and a single debt', () => {
+    expect(parseRoute('#/debts')).toEqual({ view: 'debts' });
+    expect(parseRoute('#/debts/loan:1')).toEqual({ view: 'debt', loanId: loanId('loan:1') });
   });
 
   it('round-trips both', () => {
-    for (const route of [{ view: 'loans' } as const, { view: 'loan', loanId: loanId('loan:1') } as const]) {
+    for (const route of [
+      { view: 'debts' } as const,
+      { view: 'debt', loanId: loanId('loan:1') } as const,
+    ]) {
       expect(parseRoute(formatRoute(route))).toEqual(route);
     }
   });
 
-  it('treats a bare #/loans as the list rather than a missing loan', () => {
-    // `#/accounts` with no id is nonsense and falls back; `#/loans` is a real
-    // destination, because the list is a place you can be.
-    expect(parseRoute('#/loans/')).toEqual({ view: 'loans' });
+  it('treats a bare #/debts as the list rather than a missing debt', () => {
+    // The list is a place you can be, so it is a destination rather than a
+    // route with a parameter missing.
+    expect(parseRoute('#/debts/')).toEqual({ view: 'debts' });
   });
 
   it('keeps the two apart when comparing', () => {
-    expect(sameRoute({ view: 'loans' }, { view: 'loan', loanId: loanId('loan:1') })).toBe(false);
+    expect(sameRoute({ view: 'debts' }, { view: 'debt', loanId: loanId('loan:1') })).toBe(false);
     expect(
-      sameRoute({ view: 'loan', loanId: loanId('loan:1') }, { view: 'loan', loanId: loanId('loan:2') }),
+      sameRoute({ view: 'debt', loanId: loanId('loan:1') }, { view: 'debt', loanId: loanId('loan:2') }),
     ).toBe(false);
+  });
+});
+
+describe('the old #/loans links still work', () => {
+  // Renaming a route inside a total parser is not free: without the alias every
+  // existing bookmark would resolve to the Overview and look like it had simply
+  // gone somewhere else, which is the failure §12.5 corrected once already.
+  it('understands the old spelling for both the list and one debt', () => {
+    expect(parseRoute('#/loans')).toEqual({ view: 'debts' });
+    expect(parseRoute('#/loans/loan:1')).toEqual({ view: 'debt', loanId: loanId('loan:1') });
+  });
+
+  it('never writes the old spelling back out', () => {
+    expect(formatRoute({ view: 'debts' })).toBe('#/debts');
+    expect(formatRoute({ view: 'debt', loanId: loanId('loan:1') })).toBe('#/debts/loan:1');
+  });
+});
+
+describe('the accounts list is a destination of its own', () => {
+  it('reads a bare #/accounts as the list rather than a missing id', () => {
+    // It used to fall back to the landing page. Making positions first-class
+    // (§19.2) is most of what this era is for, and a list you cannot link to is
+    // not first-class.
+    expect(parseRoute('#/accounts')).toEqual({ view: 'accounts' });
+    expect(parseRoute('#/accounts/')).toEqual({ view: 'accounts' });
+    expect(formatRoute({ view: 'accounts' })).toBe('#/accounts');
+  });
+});
+
+describe('which section the shell should light up', () => {
+  it('keeps the section lit while you are inside it', () => {
+    expect(sectionOf({ view: 'account', accountId: accountId('acct:1') })).toBe('accounts');
+    expect(sectionOf({ view: 'debt', loanId: loanId('loan:1') })).toBe('debts');
+  });
+
+  it('lights nothing for the year editor, which is a task rather than a place', () => {
+    expect(sectionOf({ view: 'year', year: 2024 })).toBeNull();
+  });
+
+  it('lights each destination for itself', () => {
+    for (const view of ['overview', 'accounts', 'debts', 'plan'] as const) {
+      expect(sectionOf({ view })).toBe(view);
+    }
   });
 });

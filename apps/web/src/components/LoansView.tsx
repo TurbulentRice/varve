@@ -23,6 +23,7 @@ import {
 } from '@varve/loans';
 import { useMemo, useState } from 'react';
 import { longDate, money, payment, rate } from '../lib/format.js';
+import { PageTitle } from './ui.js';
 
 const STRATEGY_LABEL: Record<string, string> = {
   avalanche: 'Avalanche',
@@ -44,12 +45,10 @@ export function LoansView({
   ledger,
   onOpen,
   onAdd,
-  onClose,
 }: {
   ledger: LoanLedger;
   onOpen: (id: LoanId) => void;
   onAdd: () => void;
-  onClose: () => void;
 }) {
   const states = useMemo(() => loanStates(ledger), [ledger]);
   const active = states.filter(payable);
@@ -73,24 +72,19 @@ export function LoansView({
 
   return (
     <>
-      <header className="masthead">
-        <div>
-          <h1>Debts</h1>
-          <p className="subtitle">
-            {active.length === 0
-              ? 'Nothing owed'
-              : `${money(owed)} across ${active.length} ${active.length === 1 ? 'loan' : 'loans'}`}
-          </p>
-        </div>
-        <div className="masthead-actions">
+      <PageTitle
+        title="Debts"
+        subtitle={
+          active.length === 0
+            ? 'Nothing owed'
+            : `${money(owed)} across ${active.length} ${active.length === 1 ? 'loan' : 'loans'}`
+        }
+        actions={
           <button type="button" className="primary" onClick={onAdd}>
             Add a loan
           </button>
-          <button type="button" className="ghost" onClick={onClose}>
-            ← Savings
-          </button>
-        </div>
-      </header>
+        }
+      />
 
       {states.length === 0 ? (
         <Empty onAdd={onAdd} />
