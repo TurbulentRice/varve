@@ -46,7 +46,7 @@ import {
   type YearEntry,
 } from '@varve/retirement';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { OVERVIEW } from './routing/route.js';
+import { formatRoute, OVERVIEW } from './routing/route.js';
 import { navigate, useRoute } from './routing/useRoute.js';
 import { anchorBands, type BandPoint } from './charts/ProjectionChart.js';
 import { type Settings } from './components/Controls.js';
@@ -146,6 +146,26 @@ function Ledger({
   // Editing is a mode within a loan route rather than a route of its own: a
   // half-typed form is not a place worth linking someone to.
   const [editingLoan, setEditingLoan] = useState<LoanId | 'new' | null>(null);
+
+  /**
+   * A mode does not outlive the route it was opened from.
+   *
+   * §22's shell created this and §24.4 caught it: before there was persistent
+   * navigation, the only ways out of the loan editor were its own buttons, so a
+   * mode could not survive a navigation because a navigation could not happen.
+   * With a nav bar it can. Leaving Debts mid-edit and coming back reopened the
+   * form — and worse, opening the editor on one loan and then clicking Debts
+   * showed a blank *new loan* form, because that branch renders `existing={null}`
+   * for any non-null mode. Two different states rendering as one.
+   *
+   * Keyed on the formatted route rather than the object so that stepping within
+   * a route does not count, and so the dependency is a string rather than an
+   * identity that has to be trusted.
+   */
+  const here = formatRoute(route);
+  useEffect(() => {
+    setEditingLoan(null);
+  }, [here]);
 
   const [settings, setSettings] = useState<Settings>(() => ({
     contribution: 10_000,

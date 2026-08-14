@@ -1,16 +1,28 @@
 /**
- * The loans surface: what is owed, and which order to clear it in.
+ * The debts surface: what is owed, what it costs, and which order to clear it in.
  *
- * The comparison is the payoff and leads the page. A schedule for one loan is
- * arithmetic anybody's bank already shows; what nobody shows is the same budget
- * spent five different ways with the difference in pounds and months on screen.
+ * The comparison is the payoff. A schedule for one loan is arithmetic anybody's
+ * bank already shows; what nobody shows is the same budget spent five different
+ * ways with the difference in dollars and months on screen.
  *
- * The budget control is the only input, because it is the only thing the
- * borrower actually chooses. Everything else — rates, balances, what is left —
- * comes from the ledger.
+ * The budget control is the only input, because it is the only thing the borrower
+ * actually chooses. Everything else — rates, balances, what is left — comes from
+ * the ledger.
+ *
+ * ## The order of the page, and why the control is not at the top
+ *
+ * Facts, then the record, then the model with its control attached to it. §19.2
+ * asked for the budget control at the top and §24.1 overrules it: the budget
+ * drives the comparison and nothing else, so putting it above the loan table puts
+ * the whole table between a cause and its only effect. That is the defect §18.2
+ * measured on the old landing page and §22.2 paid to fix on Plan. What §22
+ * established is adjacency, not topness.
+ *
+ * The three tiles sit above the control precisely because none of them moves when
+ * it does.
  */
 
-import { Money, m, type Loan, type LoanId } from '@varve/core';
+import { m, type Loan, type LoanId } from '@varve/core';
 import {
   compareLedger,
   loanStates,
@@ -18,12 +30,12 @@ import {
   payable,
   type Comparison,
   type LoanLedger,
-  type LoanState,
   type Repayment,
 } from '@varve/loans';
 import { useMemo, useState } from 'react';
+import { summariseDebts, type DebtRow } from '../lib/debts.js';
 import { longDate, money, payment, rate } from '../lib/format.js';
-import { PageTitle } from './ui.js';
+import { PageTitle, ShareBar, Tile, Tiles } from './ui.js';
 
 const STRATEGY_LABEL: Record<string, string> = {
   avalanche: 'Avalanche',
@@ -51,6 +63,7 @@ export function LoansView({
   onAdd: () => void;
 }) {
   const states = useMemo(() => loanStates(ledger), [ledger]);
+  const summary = useMemo(() => summariseDebts(states), [states]);
   const active = states.filter(payable);
   const floor = useMemo(() => minimumBudget(active), [active]);
 
@@ -60,7 +73,6 @@ export function LoansView({
   const [budget, setBudget] = useState<number | null>(null);
   const chosen = budget ?? Math.ceil((floor.toNumber() * 1.5) / 50) * 50;
 
-  const owed = Money.sum(active.map((s) => s.balance));
 
   let comparison: Comparison | null = null;
   let tooLow: string | null = null;
@@ -75,9 +87,9 @@ export function LoansView({
       <PageTitle
         title="Debts"
         subtitle={
-          active.length === 0
+          summary.activeCount === 0
             ? 'Nothing owed'
-            : `${money(owed)} across ${active.length} ${active.length === 1 ? 'loan' : 'loans'}`
+            : `${money(summary.owed)} across ${summary.activeCount} ${summary.activeCount === 1 ? 'loan' : 'loans'}`
         }
         actions={
           <button type="button" className="primary" onClick={onAdd}>
@@ -90,7 +102,27 @@ export function LoansView({
         <Empty onAdd={onAdd} />
       ) : (
         <>
-          <LoanTable states={states} onOpen={onOpen} />
+          {summary.activeCount > 0 ? (
+            <Tiles label="What is owed">
+              <Tile
+                label="Owed"
+                value={money(summary.owed)}
+                detail={`across ${summary.activeCount} ${summary.activeCount === 1 ? 'loan' : 'loans'}`}
+              />
+              <Tile
+                label="Costing you"
+                value={money(summary.monthlyCost)}
+                detail="a month, before anything is repaid"
+              />
+              <Tile
+                label="Minimum"
+                value={money(floor)}
+                detail="the least that clears the interest"
+              />
+            </Tiles>
+          ) : null}
+
+          <LoanTable rows={summary.rows} onOpen={onOpen} />
 
           {active.length > 0 ? (
             <>
@@ -147,11 +179,35 @@ function Empty({ onAdd }: { onAdd: () => void }) {
   );
 }
 
+/**
+ * Every debt side by side, drawing something without a click.
+ *
+ * The meter is share of what is owed — the same one `AccountsTable` uses, and a
+ * meter rather than a chart for the reason recorded there: one quantity against
+ * its own whole, the figure carrying the value and the bar carrying the
+ * proportion. Reading the bar is never required.
+ *
+ * A sparkline per loan was the obvious alternative and is wrong on the data:
+ * most loans carry exactly one observation, and a sparkline of one point is a
+ * dot pretending to be a trend (§24.2).
+ *
+ * **Costs a month** is the column that earns the page. The bar and that number
+ * disagree routinely — a small balance at a punitive rate costs nearly what a
+ * far larger cheap one does — and seeing that disagreement is the point.
+ *
+ * It is *not*, though, a ranking. An earlier draft of this comment and of the
+ * table note said the mismatch is what the Blizzard strategy exploits, which is
+ * backwards and was caught by looking at real numbers (§24.4): Blizzard chases
+ * the largest monthly charge, that charge tracks the largest balance, and on a
+ * mortgage-plus-store-card ledger it comes last by a wide margin. Monthly cost
+ * says where the money is going. The rate says what to clear first, and the
+ * comparison below is what actually works it out.
+ */
 function LoanTable({
-  states,
+  rows,
   onOpen,
 }: {
-  states: readonly LoanState[];
+  rows: readonly DebtRow[];
   onOpen: (id: LoanId) => void;
 }) {
   return (
@@ -162,15 +218,17 @@ function LoanTable({
           <tr>
             <th scope="col">Loan</th>
             <th scope="col" className="num">Owed</th>
+            <th scope="col" className="num">Share</th>
             <th scope="col" className="num">Rate</th>
+            <th scope="col" className="num">Costs a month</th>
             <th scope="col" className="num">Payments left</th>
             <th scope="col" className="num">Contractual</th>
             <th scope="col">As of</th>
           </tr>
         </thead>
         <tbody>
-          {states.map((state) => (
-            <tr key={state.loan.id} className={payable(state) ? undefined : 'unrecorded'}>
+          {rows.map(({ state, active, monthlyCost, share }) => (
+            <tr key={state.loan.id} className={active ? undefined : 'unrecorded'}>
               <th scope="row">
                 <button type="button" className="link" onClick={() => onOpen(state.loan.id)}>
                   {state.loan.name}
@@ -182,20 +240,25 @@ function LoanTable({
                     a loan of nothing. Blank says unknown; $0 would say cleared. */}
                 {state.observed ? money(state.balance) : '—'}
               </td>
+              <td className="num muted">{share === null ? '—' : <ShareBar share={share} />}</td>
               <td className="num">{rate(state.loan.annualRate)}</td>
+              <td className="num strong">{monthlyCost === null ? '—' : money(monthlyCost)}</td>
               <td className="num">{state.loan.termMonths}</td>
-              <td className="num">
-                {state.observed && payable(state) ? payment(state.scheduledPayment) : '—'}
-              </td>
+              <td className="num">{active ? payment(state.scheduledPayment) : '—'}</td>
               <td>{state.asOf ? longDate(state.asOf) : <span className="muted">never recorded</span>}</td>
             </tr>
           ))}
         </tbody>
       </table>
       <p className="table-note">
-        <strong>Contractual</strong> is what clears the balance over the payments remaining.{' '}
-        <strong>As of</strong> matters: a payoff worked out from a balance six months stale is a
-        different claim from one made this morning.
+        <strong>Costs a month</strong> is the interest alone, at today&rsquo;s balance — what a
+        loan charges for existing, before a dollar comes off it. Read it against the share bar: a
+        small balance at a high rate can cost nearly as much each month as one several times its
+        size, and that gap is the rate at work. It is not the order to pay in, though — the
+        strategies below work that out, and the one that chases the biggest monthly charge is rarely
+        the one that wins. <strong>Contractual</strong> is what clears the balance over the payments
+        remaining. <strong>As of</strong> matters: a payoff worked out from a balance six months
+        stale is a different claim from one made this morning.
       </p>
     </div>
   );

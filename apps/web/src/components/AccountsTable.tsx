@@ -11,6 +11,7 @@
 
 import type { AccountHistory } from '@varve/retirement';
 import { money, percent } from '../lib/format.js';
+import { ShareBar } from './ui.js';
 
 export function AccountsTable({
   accounts,
@@ -93,23 +94,5 @@ function Row({
         {history.totalFees.isZero() ? '—' : money(history.totalFees)}
       </td>
     </tr>
-  );
-}
-
-/**
- * Share of the household, as a number with a bar behind it.
- *
- * The bar is a meter rather than a chart: one quantity against its own whole,
- * where the figure carries the value and the bar carries the proportion at a
- * glance. Reading it is never required — the percentage is right there.
- */
-function ShareBar({ share }: { share: number }) {
-  return (
-    <span className="share">
-      <span className="share-value">{percent(share, 0)}</span>
-      <span className="share-track" aria-hidden="true">
-        <span className="share-fill" style={{ width: `${Math.max(share * 100, 1)}%` }} />
-      </span>
-    </span>
   );
 }
