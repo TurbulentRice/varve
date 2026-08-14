@@ -1,5 +1,6 @@
 import type { History } from '@varve/retirement';
 import { longDate, money, percent, points } from '../lib/format.js';
+import { Tile, Tiles } from './ui.js';
 
 /**
  * The recorded facts, as figures rather than a chart.
@@ -13,7 +14,7 @@ export function StatTiles({ history }: { history: History }) {
   const ahead = benchmark !== null && history.averageReturn >= benchmark;
 
   return (
-    <section className="tiles" aria-label="Summary">
+    <Tiles label="Summary">
       <Tile
         label="Value"
         value={money(history.currentValue)}
@@ -45,17 +46,6 @@ export function StatTiles({ history }: { history: History }) {
         value={money(history.totalFees)}
         detail="the cost of ownership"
       />
-    </section>
-  );
-}
-
-function Tile({ label, value, detail }: { label: string; value: string; detail: string }) {
-  return (
-    <div className="tile">
-      <div className="tile-label">{label}</div>
-      {/* Proportional figures: tabular digits make a display number look gappy. */}
-      <div className="tile-value">{value}</div>
-      <div className="tile-detail">{detail}</div>
-    </div>
+    </Tiles>
   );
 }

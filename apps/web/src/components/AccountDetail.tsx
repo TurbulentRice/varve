@@ -2,6 +2,7 @@ import type { AccountHistory } from '@varve/retirement';
 import { ValueChart } from '../charts/ValueChart.js';
 import { longDate, money, percent, points } from '../lib/format.js';
 import { HistoryTable } from './HistoryTable.js';
+import { BackLink, PageTitle, Tile, Tiles } from './ui.js';
 
 const KIND_LABEL: Record<string, string> = {
   retirement: 'Retirement',
@@ -30,27 +31,21 @@ export function AccountDetail({
 
   return (
     <section className="detail">
-      <header className="detail-head">
-        <button type="button" className="ghost" onClick={onClose}>
-          ← All accounts
-        </button>
-      </header>
+      <BackLink label="All accounts" onClick={onClose} />
 
-      <div className="detail-title">
-        <h2>{account.name}</h2>
-        <p className="subtitle">
-          {KIND_LABEL[account.kind] ?? account.kind}
-          {history.owners.length > 0
-            ? ` · ${history.owners.map((o) => o.name).join(' & ')}`
-            : ''}
-          {history.firstYear !== null
+      <PageTitle
+        title={account.name}
+        subtitle={
+          (KIND_LABEL[account.kind] ?? account.kind) +
+          (history.owners.length > 0 ? ` · ${history.owners.map((o) => o.name).join(' & ')}` : '') +
+          (history.firstYear !== null
             ? ` · ${history.firstYear}–${history.closed ? history.lastYear : 'now'}`
-            : ''}
-          {history.closed ? ' · closed' : ''}
-        </p>
-      </div>
+            : '') +
+          (history.closed ? ' · closed' : '')
+        }
+      />
 
-      <section className="tiles" aria-label="Account summary">
+      <Tiles label="Account summary">
         <Tile
           label="Value"
           value={money(history.currentValue)}
@@ -91,21 +86,11 @@ export function AccountDetail({
           value={history.totalFees.isZero() ? '—' : money(history.totalFees)}
           detail="charged to this account"
         />
-      </section>
+      </Tiles>
 
       {chartPoints.length > 1 ? <ValueChart points={chartPoints} /> : null}
 
       <HistoryTable years={history.years} />
     </section>
-  );
-}
-
-function Tile({ label, value, detail }: { label: string; value: string; detail: string }) {
-  return (
-    <div className="tile">
-      <div className="tile-label">{label}</div>
-      <div className="tile-value">{value}</div>
-      <div className="tile-detail">{detail}</div>
-    </div>
   );
 }

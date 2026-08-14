@@ -5,11 +5,11 @@ want the history of how the thinking changed, that is
 [the working doc](working/discovery-and-architecture.md) — this file only ever
 describes now.
 
-Last updated: 2026-08-12. The first era is closed; the second is being planned.
+Last updated: 2026-08-12. The second era has begun; its first phase has landed.
 
 ## Where things stand
 
-Eleven phases done. **406 tests**, clean typecheck, clean production build, and
+Twelve phases done. **429 tests**, clean typecheck, clean production build, and
 CI running tests, the bundle guard and the documentation checks on every PR.
 
 | Package | What it holds | Tests |
@@ -19,7 +19,7 @@ CI running tests, the bundle guard and the documentation checks on every PR.
 | [`packages/retirement`](../packages/retirement) | Ledger, household + per-account derivation, year entry, Monte Carlo. | 83 |
 | [`packages/loans`](../packages/loans) | Amortization, strategies, comparison, ledger seam, what a loan actually cost. | 136 |
 | [`packages/legacy-import`](../packages/legacy-import) | One-way migration from Access, with a synthetic fixture. | 23 |
-| [`apps/web`](../apps/web) | React + Vite. Dashboard, projections, year editor, account views, debts, hash routing. | 34 |
+| [`apps/web`](../apps/web) | React + Vite. A four-destination shell — Overview, Accounts, Debts, Plan — plus account and debt detail, the year editor, and hash routing. | 57 |
 
 ## Roadmap
 
@@ -34,7 +34,9 @@ CI running tests, the bundle guard and the documentation checks on every PR.
 9. ✅ Retired most of the parity fixture (§15)
 10. ✅ Recording payments — interest measured rather than assumed (§16)
 11. ✅ Net worth — assets against debts, beside the hero rather than instead of it (§17)
-12. ⬅ **Next: the interface era — see
+12. ✅ The shell, and net worth over time — four destinations, the landing page
+    dissolved into them, the first chart about the household (§22)
+13. ⬅ **Next: a surface at a time. See
     [interface-and-experience.md](working/interface-and-experience.md).**
 
 Deferred behind a stated seam: server, auth, sync, institution APIs. None is
@@ -42,50 +44,55 @@ worth building for a user who does not exist yet.
 
 ## What's next
 
-**A second working document opens here:**
-[interface-and-experience.md](working/interface-and-experience.md). The model is
-correct; the question now is whether anyone would want to use it.
+The era's working document is
+[interface-and-experience.md](working/interface-and-experience.md); §20 carries
+everything outstanding so a rewrite of this file cannot lose it.
 
-The first era's document is **closed** — extended only to correct something known
-to be wrong. Its numbering continues into the new file rather than restarting,
-because 61 citations in the codebase depend on `§8.1` meaning one thing (§18.4).
+§22 settled the five forks §19.4 raised and built the shell. Two of them moved:
+projection settings stay **out** of the URL (§12.4 — parameters are identity,
+never data), which means the hand-rolled router survives untouched; and the
+component layer is bounded by **two call sites or it waits**, which yielded four
+small components rather than five speculative ones.
 
-The diagnosis, measured on the running app: the landing page is **2.6 screens**,
-the account list — the best thing in the app — begins **1.7 screens down** inside
-a collapsed disclosure, and a projection control sits **2.4 screens** from the
-numbers it drives. The page is a changelog of what got built rather than an
-answer to what someone came to find out.
+The near-term pieces, in order of what they buy:
 
-The proposal is a persistent shell with four destinations — Overview, Accounts,
-Debts, Plan — separating the *record* from the *model*, and making positions
-first-class instead of a table row and a button. §19 has the shape; §19.4 lists
-the forks that want deciding before anything is built.
-
-Outstanding product work is carried forward in §20 so a STATUS rewrite cannot
-lose it. The near-term pieces, in order of what they buy:
-
-1. **Net worth over time** — the series exists behind today's figure and nothing
-   plots it. Needs no new data, and is the natural anchor for an Overview.
+1. **The Debts page, redesigned** — budget control at the top, the strategy
+   comparison as the payoff below it (§19.2). Deliberately untouched in §22 so
+   that a phase moving every surface did not also redesign one.
 2. **Are the payments on schedule?** — cheap on top of §16, and the question a
    borrower actually asks.
-3. **A statement whose split disagrees with the balances** (§16.2) — a genuinely
+3. **In-place editing on the account page** (§22.1) — `#/years/:year` stays as
+   bulk entry; this is the single-correction case, and it is its own phase.
+4. **A statement whose split disagrees with the balances** (§16.2) — a genuinely
    interesting event, currently invisible.
+
+Still unanswered and now directly relevant: §6's third question, which asks the
+one person who has been reading this data for twenty years what he actually
+looks at. §20 has it.
 
 ## Known debt, deliberately deferred
 
 - **Nothing compares payments to the schedule.** The ledger now knows what was
   paid and what it cost, but not whether that is ahead of or behind the
   contractual plan. Cheap to add on top of §16.
+- **The net worth chart is annualised while the figure beside it is not** (§22.3).
+  Correct, and it means the line can end above the headline when a loan statement
+  postdates the last recorded balance. Said out loud under the chart rather than
+  papered over — see §22.5.
 - **A statement whose printed split disagrees with the balances is not
   surfaced** (§16.2). It is a genuinely interesting event and currently invisible.
-- **Routing is hand-rolled** (§12.3). Fine at four views with one parameter each.
-  The signal to adopt a real router is a route needing something the union cannot
-  express — a query string, genuine nesting, a loading state. Call sites already
-  speak in `Route` values, so that swap is mechanical.
+- **Routing is hand-rolled** (§12.3), and §22.1 argues the signal still has not
+  fired: a query string is a parser change, not a router. The genuine remaining
+  signals are nesting and loading states, neither of which local-first data
+  produces. Call sites speak in `Route` values, so the swap stays mechanical.
+- **The Debts page keeps its old order** — table, budget, comparison. §19.2 wants
+  the control at the top. Deliberately deferred out of §22 so one phase did not
+  both move every surface and redesign one.
 - **Account detail tiles get tight at 1280px** — six across, with "Share of
-  household" wrapping. Legible, not elegant.
+  household" wrapping. The shared `Tile` (§22.1) is now the one place to fix it.
 - **`localStorage` is not durable.** Export is the real backup. A "last exported"
-  nudge would be the honest version.
+  nudge would be the honest version, and the Overview's attention strip is now
+  the place it belongs.
 - **`financetools` upstream still wastes a retiring loan's budget** (§14). The
   defect is fixed here and reported there; nothing in this repository depends on
   it being fixed upstream.
@@ -93,8 +100,9 @@ lose it. The near-term pieces, in order of what they buy:
 ## Orientation for a cold start
 
 1. [`CLAUDE.md`](../CLAUDE.md) — goals, ground rules, working protocol. Read first.
-2. [The working doc](working/discovery-and-architecture.md) — all of it,
-   especially §4 (architecture), §10 (roadmap), §11 (the loans port).
+2. [The first working doc](working/discovery-and-architecture.md) — closed, but
+   read §4 (architecture), §10 (roadmap), §11 (the loans port). Then
+   [the current one](working/interface-and-experience.md), §18 onward.
 3. [`packages/core/src/money.ts`](../packages/core/src/money.ts) — the conventions
    every calculation inherits.
 4. [`packages/loans/src/cents.ts`](../packages/loans/src/cents.ts) — why loans use

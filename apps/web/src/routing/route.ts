@@ -29,19 +29,34 @@
  * behind ground rule 1 applies to what reaches a clipboard. Account ids are
  * opaque and local to the document, so they carry nothing.
  *
- * See §12 of the working doc.
+ * ## The interface says Debts; the domain says Loan
+ *
+ * Both are right, and the mapping is stated once, here. A URL is user-facing, so
+ * it uses the word a person would use for the thing they owe; the domain keeps
+ * `Loan`, which is what the entity is (§13.1). `debt` in this file always names
+ * a route and never a type.
+ *
+ * `loans` is still *parsed*, as an alias, and never printed. Renaming a route in
+ * a total parser is not free: every existing `#/loans` bookmark would fall
+ * through to the Overview and look like it had simply gone somewhere else. That
+ * is the failure §12.5 corrected once already — a URL that quietly resolves
+ * elsewhere destroys the evidence, and the reader cannot say what they tried.
+ *
+ * See §12 and §22.1 of the working doc.
  */
 
 import { accountId, loanId, type AccountId, type LoanId } from '@varve/core';
 
 export type Route =
-  | { readonly view: 'dashboard' }
+  | { readonly view: 'overview' }
+  | { readonly view: 'accounts' }
   | { readonly view: 'account'; readonly accountId: AccountId }
-  | { readonly view: 'year'; readonly year: number }
-  | { readonly view: 'loans' }
-  | { readonly view: 'loan'; readonly loanId: LoanId };
+  | { readonly view: 'debts' }
+  | { readonly view: 'debt'; readonly loanId: LoanId }
+  | { readonly view: 'plan' }
+  | { readonly view: 'year'; readonly year: number };
 
-export const DASHBOARD: Route = { view: 'dashboard' };
+export const OVERVIEW: Route = { view: 'overview' };
 
 /**
  * Years outside this are a malformed URL rather than a year someone meant.
@@ -76,47 +91,57 @@ function decodeSegment(value: string): string {
   }
 }
 
-/** Read a location hash. Total: anything unrecognised is the dashboard. */
+/** Read a location hash. Total: anything unrecognised is the Overview. */
 export function parseRoute(hash: string): Route {
   const path = hash.replace(/^#/, '').replace(/^\//, '');
   const segments = path.split('/').filter((s) => s.length > 0);
 
-  if (segments.length === 0) return DASHBOARD;
+  if (segments.length === 0) return OVERVIEW;
 
   const [head, tail] = segments;
 
-  if (head === 'accounts' && tail) {
-    return { view: 'account', accountId: accountId(decodeSegment(tail)) };
+  if (head === 'accounts') {
+    // A bare `#/accounts` is now a destination rather than a missing id: the
+    // list is a place you can be, which is most of what §19.2 means by making
+    // positions first-class.
+    return tail ? { view: 'account', accountId: accountId(decodeSegment(tail)) } : { view: 'accounts' };
   }
 
-  if (head === 'loans') {
-    return tail ? { view: 'loan', loanId: loanId(decodeSegment(tail)) } : { view: 'loans' };
+  // `loans` is the alias; `debts` is canonical. Both parse, only one prints.
+  if (head === 'debts' || head === 'loans') {
+    return tail ? { view: 'debt', loanId: loanId(decodeSegment(tail)) } : { view: 'debts' };
   }
+
+  if (head === 'plan') return { view: 'plan' };
 
   if (head === 'years' && tail) {
     // `Number` would accept '2024abc' as NaN but also ' 2024 ' and '0x7e8'.
     // Requiring digits keeps the URL meaning exactly what it looks like.
-    if (!/^\d+$/.test(tail)) return DASHBOARD;
+    if (!/^\d+$/.test(tail)) return OVERVIEW;
     const year = Number(tail);
-    if (year < EARLIEST_YEAR || year > LATEST_YEAR) return DASHBOARD;
+    if (year < EARLIEST_YEAR || year > LATEST_YEAR) return OVERVIEW;
     return { view: 'year', year };
   }
 
-  return DASHBOARD;
+  return OVERVIEW;
 }
 
 /** Render a route as a location hash. Inverse of {@link parseRoute}. */
 export function formatRoute(route: Route): string {
   switch (route.view) {
+    case 'accounts':
+      return '#/accounts';
     case 'account':
       return `#/accounts/${encodeSegment(route.accountId)}`;
     case 'year':
       return `#/years/${route.year}`;
-    case 'loans':
-      return '#/loans';
-    case 'loan':
-      return `#/loans/${encodeSegment(route.loanId)}`;
-    case 'dashboard':
+    case 'debts':
+      return '#/debts';
+    case 'debt':
+      return `#/debts/${encodeSegment(route.loanId)}`;
+    case 'plan':
+      return '#/plan';
+    case 'overview':
       return '#/';
   }
 }
@@ -126,6 +151,27 @@ export function sameRoute(a: Route, b: Route): boolean {
   if (a.view !== b.view) return false;
   if (a.view === 'account' && b.view === 'account') return a.accountId === b.accountId;
   if (a.view === 'year' && b.view === 'year') return a.year === b.year;
-  if (a.view === 'loan' && b.view === 'loan') return a.loanId === b.loanId;
+  if (a.view === 'debt' && b.view === 'debt') return a.loanId === b.loanId;
   return true;
+}
+
+/**
+ * Which nav destination a route belongs under.
+ *
+ * An account is *within* Accounts and a loan is within Debts, so the shell keeps
+ * the section lit rather than going dark the moment someone opens a detail page.
+ * The year editor belongs to no destination: it is reached from anywhere and is
+ * a task rather than a place, so nothing is marked current while it is open.
+ */
+export function sectionOf(route: Route): Route['view'] | null {
+  switch (route.view) {
+    case 'account':
+      return 'accounts';
+    case 'debt':
+      return 'debts';
+    case 'year':
+      return null;
+    default:
+      return route.view;
+  }
 }
