@@ -36,7 +36,7 @@ export function deriveHistory(ledger: Ledger): History {
     revision: ledger.revision,
     ...summarizeSeries({
       balances: series.balances,
-      externalFlows: series.externalFlows,
+      flows: series.externalFlows,
       allFlows: ledger.flows,
       benchmarkBalances: series.benchmarkBalances,
       notes: new Map(ledger.notes.map((n) => [n.year, n.text])),

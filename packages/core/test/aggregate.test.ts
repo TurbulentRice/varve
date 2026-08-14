@@ -192,3 +192,66 @@ describe('money aggregation stays exact', () => {
     expect(Money.sum(observations.map((o) => o.amount)).toString()).toBe('0.0400');
   });
 });
+
+describe('one definition of external, honoured consistently', () => {
+  // $10,000 grows to $11,000 across a year that also took $1,000 in and paid
+  // $100 of fees. Net of fees the account earned nothing; gross of them it
+  // earned the $100 the provider took.
+  const balances = [obs(isoDate('2023-12-31'), '10000'), obs(isoDate('2024-12-31'), '11000')];
+  const flows = [
+    flow(isoDate('2024-07-01'), '1000', 'contribution'),
+    flow(isoDate('2024-07-01'), '-100', 'fee'),
+  ];
+
+  it('reports a fee in byKind even though a fee is not external', () => {
+    // `byKind` is a report of what happened; the external rule governs the gain
+    // figures and must not reach back and empty the record of events. Handing
+    // this function a pre-filtered array is what emptied the per-year fee column
+    // on every account page (§27.3).
+    const summary = summarizeYear(balances, flows, 2024);
+
+    expect(summary.byKind.fee.format()).toBe('-$100.00');
+    expect(summary.byKind.contribution.format()).toBe('$1,000.00');
+  });
+
+  it('leaves fees inside the return by default, so a fee is a real cost', () => {
+    const summary = summarizeYear(balances, flows, 2024);
+
+    // The $100 left the account and nothing gave it back: the year earned zero.
+    expect(summary.organicGain.isZero()).toBe(true);
+    expect(summary.twr).toBeCloseTo(0, 10);
+  });
+
+  it('moves organic gain, the simple return and the TWR together when asked for gross', () => {
+    // The bug this phase exists for. `summarizePeriod` open-coded the external
+    // rule and ignored the option it was handed, so a gross TWR came back beside
+    // a net organic gain — one object, two definitions, no error (§27.2).
+    const gross = summarizeYear(balances, flows, 2024, { feeTreatment: 'gross' });
+
+    expect(gross.organicGain.format()).toBe('$100.00');
+    expect(gross.simpleReturn).toBeCloseTo(0.01, 10);
+    expect(gross.twr).toBeGreaterThan(0);
+  });
+
+  it('makes the difference between the two treatments exactly the fee drag', () => {
+    // Which is the whole reason `FeeTreatment` is a parameter rather than two
+    // calculations: the gap between them is the number worth showing.
+    const net = summarizeYear(balances, flows, 2024);
+    const gross = summarizeYear(balances, flows, 2024, { feeTreatment: 'gross' });
+
+    expect(gross.organicGain.minus(net.organicGain).format()).toBe('$100.00');
+  });
+
+  it('treats a reinvested dividend as earning, under either treatment', () => {
+    // A dividend is internal — that *is* the earning — and `feeTreatment` has
+    // nothing to say about it. Worth pinning, because both live in the same
+    // switch and a change to one could quietly move the other.
+    const withDividend = [flow(isoDate('2024-07-01'), '500', 'dividend')];
+
+    for (const feeTreatment of ['net', 'gross'] as const) {
+      const summary = summarizeYear(balances, withDividend, 2024, { feeTreatment });
+      expect(summary.organicGain.format()).toBe('$1,000.00');
+      expect(summary.byKind.dividend.format()).toBe('$500.00');
+    }
+  });
+});

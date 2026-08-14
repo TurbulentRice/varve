@@ -16,7 +16,7 @@ import {
   type DatedBalance,
   type ReturnOptions,
 } from './returns.js';
-import type { AccountId, BalanceObservation, Flow, FlowKind } from './types.js';
+import { isExternalFlow, type AccountId, type BalanceObservation, type Flow, type FlowKind } from './types.js';
 
 /** A balance, plus the date it was actually observed. */
 export interface BalanceAt {
@@ -94,9 +94,14 @@ export function summarizePeriod(
   range: DateRange,
   options: ReturnOptions = {},
 ): PeriodSummary {
+  const { feeTreatment = 'net' } = options;
+
   const start = balanceAsOf(observations, range.start);
   const end = balanceAsOf(observations, range.end);
 
+  // Every flow in range, unfiltered: `byKind` is a report of what happened and
+  // must see fees and dividends even though neither is external. The external
+  // rule is applied below, where it belongs.
   const within = flows.filter((f) => rangeContains(range, f.occurredOn));
 
   const byKind = Object.fromEntries(
@@ -106,10 +111,13 @@ export function summarizePeriod(
     ]),
   ) as Record<FlowKind, Money>;
 
+  // One definition of external, and it lives in `types.ts`. This used to
+  // open-code the same rule by hand, which agreed with `isExternalFlow` for the
+  // default treatment and silently ignored the `feeTreatment` option it was
+  // handed — so asking for a gross figure returned a gross `twr` beside a net
+  // `organicGain`, in one object (§27.2).
   const netExternalFlow = Money.sum(
-    within
-      .filter((f) => f.kind !== 'dividend' && f.kind !== 'fee')
-      .map((f) => f.amount),
+    within.filter((f) => isExternalFlow(f.kind, feeTreatment)).map((f) => f.amount),
   );
 
   const spanned = observations

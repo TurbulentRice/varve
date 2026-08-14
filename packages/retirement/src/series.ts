@@ -82,7 +82,21 @@ export interface YearRow {
 export interface SeriesInput {
   readonly balances: readonly DatedBalance[];
   /** Flows that cross the boundary of whatever is being summarized. */
-  readonly externalFlows: readonly Flow[];
+  /**
+   * The flows belonging to this entity, with **internal transfers already
+   * removed and nothing else**.
+   *
+   * That one exclusion is the caller's because only the caller knows what a
+   * group is: a rollover between two accounts is external to each and a
+   * non-event for the household, and no callee can tell which accounts are
+   * inside. Everything else — fees, dividends — must be left in.
+   *
+   * This was called `externalFlows`, and the name talked a caller into applying
+   * the fee rule before calling. `summarizePeriod` applies that rule itself, so
+   * pre-filtering achieved nothing except emptying the fee column it also feeds
+   * (§27.3).
+   */
+  readonly flows: readonly Flow[];
   /** Every flow, including those that are not external — fees, mostly. */
   readonly allFlows: readonly Flow[];
   readonly benchmarkBalances: readonly DatedBalance[];
@@ -104,7 +118,7 @@ export interface SeriesSummary {
 }
 
 export function summarizeSeries(input: SeriesInput): SeriesSummary {
-  const { balances, externalFlows, allFlows, notes } = input;
+  const { balances, flows, allFlows, notes } = input;
 
   const years: YearRow[] = [];
   let currentValue = Money.zero();
@@ -117,7 +131,7 @@ export function summarizeSeries(input: SeriesInput): SeriesSummary {
 
     for (let year = firstYear; year <= lastYear; year += 1) {
       const range = calendarYearRange(year);
-      const summary = summarizePeriod(balances, externalFlows, range);
+      const summary = summarizePeriod(balances, flows, range);
 
       // Before the record begins there is genuinely nothing to say.
       if (summary.startValue.isZero() && summary.endValue.isZero()) continue;
@@ -154,7 +168,7 @@ export function summarizeSeries(input: SeriesInput): SeriesSummary {
   // carried in before records began — is a transfer, not a contribution, and is
   // excluded here. It was never earned and never saved during these years.
   const contributed = Money.sum(
-    externalFlows
+    flows
       .filter((f) => f.kind === 'contribution' || f.kind === 'withdrawal')
       .map((f) => f.amount),
   );

@@ -212,3 +212,37 @@ describe('failure', () => {
     expect(deriveAccountHistory(ledger(), NEW, m('0')).shareOfHousehold).toBe(0);
   });
 });
+
+describe('fees on an account, year by year', () => {
+  const accounts = deriveAccountHistories(ledger());
+  const newIra = accounts.find((a) => a.account.id === NEW)!;
+  const year2022 = newIra.years.find((y) => y.year === 2022)!;
+
+  it('reports the fee in the year it was charged', () => {
+    // This was blank for every year of every account until §27. The lifetime
+    // total was right and the household's own year rows were right, so the only
+    // place it showed was the one nothing had ever displayed.
+    expect(year2022.fees.format()).toBe('$200.00');
+  });
+
+  it('agrees with the lifetime total when there is only one year of fees', () => {
+    // Two derivations of the same quantity, from different code paths. They
+    // disagreed before, and nothing said so.
+    expect(newIra.totalFees.format()).toBe(year2022.fees.format());
+  });
+
+  it('agrees with what the household reports for the same year', () => {
+    // The account and the household read the same fee out of the same record.
+    // A discrepancy here is what §26.3 wrongly believed it had found; it is
+    // worth an assertion so that a future change cannot make it true.
+    const householdYear = household.years.find((y) => y.year === 2022)!;
+    expect(householdYear.fees.format()).toBe(year2022.fees.format());
+  });
+
+  it('still leaves the fee inside the return rather than adding it back', () => {
+    // Showing the fee must not have quietly made it external. The account began
+    // 2022 at $50,000, received $50,000, ended at $110,000 and paid $200 — so it
+    // earned $10,000 net, not $10,200.
+    expect(year2022.organicGain.format()).toBe('$10,000.00');
+  });
+});
