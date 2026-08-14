@@ -26,11 +26,11 @@ function loan(id: string, ratePercent: number, termMonths = 60): Loan {
   };
 }
 
-function owed(id: string, amount: string): LoanObservation {
+function owed(id: string, amount: string, asOf = '2024-01-01'): LoanObservation {
   return {
-    id: loanObservationId(`lobs:${id}`),
+    id: loanObservationId(`lobs:${id}:${asOf}`),
     loanId: loanId(id),
-    asOf: isoDate('2024-01-01'),
+    asOf: isoDate(asOf),
     amount: m(amount),
     source: 'manual',
   };
@@ -38,7 +38,7 @@ function owed(id: string, amount: string): LoanObservation {
 
 /** A ledger shaped the way `loanStates` expects, from loose parts. */
 function summarise(loans: Loan[], observations: LoanObservation[]) {
-  return summariseDebts(loanStates({ loans, loanObservations: observations }));
+  return summariseDebts(loanStates({ loans, loanObservations: observations }), observations);
 }
 
 describe('what the position costs', () => {
@@ -148,5 +148,61 @@ describe('owing nothing at all', () => {
     expect(summary.rows).toEqual([]);
     expect(summary.owed.isZero()).toBe(true);
     expect(summary.activeCount).toBe(0);
+  });
+});
+
+describe('the balance history each row carries', () => {
+  it('gives every loan only its own statements', () => {
+    const summary = summarise(
+      [loan('loan:a', 6), loan('loan:b', 12)],
+      [
+        owed('loan:a', '10000', '2024-01-01'),
+        owed('loan:a', '9000', '2024-07-01'),
+        owed('loan:b', '5000', '2024-03-01'),
+      ],
+    );
+
+    const a = summary.rows.find((r) => r.state.loan.id === loanId('loan:a'))!;
+    const b = summary.rows.find((r) => r.state.loan.id === loanId('loan:b'))!;
+
+    expect(a.history).toHaveLength(2);
+    expect(b.history).toHaveLength(1);
+    expect(a.history.every((o) => o.loanId === loanId('loan:a'))).toBe(true);
+  });
+
+  it('orders them oldest first, whatever order they arrived in', () => {
+    // The sparkline reads left to right and has no axis to correct a reversal
+    // with, so a mis-ordered series would draw a rising debt as a falling one.
+    const summary = summarise(
+      [loan('loan:a', 6)],
+      [
+        owed('loan:a', '9000', '2024-07-01'),
+        owed('loan:a', '10000', '2024-01-01'),
+        owed('loan:a', '8000', '2025-01-01'),
+      ],
+    );
+
+    expect(summary.rows[0]!.history.map((o) => o.asOf)).toEqual([
+      '2024-01-01',
+      '2024-07-01',
+      '2025-01-01',
+    ]);
+  });
+
+  it('carries the history of a loan with no balance recorded as empty, not missing', () => {
+    const summary = summarise([loan('loan:a', 6), loan('loan:b', 12)], [owed('loan:a', '10000')]);
+    const unseen = summary.rows.find((r) => r.state.loan.id === loanId('loan:b'))!;
+
+    expect(unseen.history).toEqual([]);
+  });
+
+  it('keeps a cleared loan its history, because how it got to zero is the story', () => {
+    const summary = summarise(
+      [loan('loan:paid', 12)],
+      [owed('loan:paid', '5000', '2024-01-01'), owed('loan:paid', '0', '2024-12-01')],
+    );
+
+    expect(summary.rows[0]!.active).toBe(false);
+    expect(summary.rows[0]!.history).toHaveLength(2);
   });
 });

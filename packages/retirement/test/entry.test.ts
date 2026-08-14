@@ -4,6 +4,8 @@ import { InMemoryRepository, emptySnapshot } from '@varve/store';
 import {
   balanceIdFor,
   closingDate,
+  contributionIdFor,
+  feeIdFor,
   existingYearEntry,
   midYearDate,
   parseAmount,
@@ -63,6 +65,35 @@ describe('planning a year', () => {
       { accountId: B, balance: m('2'), contributed: null, fees: null },
     ]);
     expect(both.observations.map((o) => o.accountId)).toEqual([A, B]);
+  });
+
+  it('plans for the accounts it was given and cannot reach any other', () => {
+    // The assumption the in-place account editor rests on (§26.1). This takes a
+    // *list*, so it could plausibly have swept the whole year and cleared the
+    // accounts it was not told about — which would make correcting one account's
+    // 2019 figure silently delete every other account's. Every id it emits,
+    // written or removed, names the account it was handed.
+    const one = planYearEntry(2024, [
+      { accountId: A, balance: m('1'), contributed: null, fees: null },
+    ]);
+
+    const touched = new Set<string>([
+      ...one.observations.map((o) => o.id as string),
+      ...one.flows.map((f) => f.id as string),
+      ...(one.removedObservations as readonly string[]),
+      ...(one.removedFlows as readonly string[]),
+    ]);
+
+    // Compared against the id derivations rather than by substring. The first
+    // draft of this test matched `id.includes(B)` with B named 'b', and
+    // `flow:a:2024:contribution` contains a 'b' — the test failed on the word
+    // "contribution" while the code was right.
+    expect(touched).toEqual(
+      new Set([balanceIdFor(A, 2024), contributionIdFor(A, 2024), feeIdFor(A, 2024)] as string[]),
+    );
+    for (const id of [balanceIdFor(B, 2024), contributionIdFor(B, 2024), feeIdFor(B, 2024)]) {
+      expect(touched.has(id)).toBe(false);
+    }
   });
 });
 

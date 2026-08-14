@@ -57,6 +57,7 @@ import { YearEditor } from './components/YearEditor.js';
 import { LoansView } from './components/LoansView.js';
 import { LoanDetail } from './components/LoanDetail.js';
 import { LoanEditor, type LoanDraft } from './components/LoanEditor.js';
+import type { YearChange } from './components/AccountYearEditor.js';
 import { Overview } from './pages/Overview.js';
 import { Accounts } from './pages/Accounts.js';
 import { Plan } from './pages/Plan.js';
@@ -263,6 +264,24 @@ function Ledger({
     await commit();
   }
 
+  /**
+   * Corrections to one account, across however many years were touched.
+   *
+   * Planned year by year — `planYearEntry` is per-year by construction — but
+   * written once. A correction that half-applies is worse than one that took
+   * another click, and the ids are derived per account and per year, so nothing
+   * here can reach another account's records for the same year (§26.1).
+   */
+  async function saveAccountYears(changes: readonly YearChange[]) {
+    const plans = changes.map((change) => planYearEntry(change.year, [change.entry]));
+
+    await repo.saveObservations(plans.flatMap((p) => p.observations));
+    await repo.saveFlows(plans.flatMap((p) => p.flows));
+    await repo.deleteObservations(plans.flatMap((p) => p.removedObservations));
+    await repo.deleteFlows(plans.flatMap((p) => p.removedFlows));
+    await commit();
+  }
+
   async function addAccount(name: string, kind: Account['kind']) {
     await repo.saveAccounts([
       newAccount(
@@ -413,7 +432,13 @@ function Ledger({
       }
 
       return (
-        <AccountDetail history={selected!} onClose={() => navigate({ view: 'accounts' })} />
+        <AccountDetail
+          history={selected!}
+          observations={snapshot.observations}
+          flows={snapshot.flows}
+          onSaveYears={saveAccountYears}
+          onClose={() => navigate({ view: 'accounts' })}
+        />
       );
     }
 

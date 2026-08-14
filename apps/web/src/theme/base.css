@@ -634,6 +634,52 @@ tbody tr:hover {
   margin: calc(-1 * var(--space-4)) 0 0;
 }
 
+/* -------------------------------------------------------------- sparklines */
+
+/*
+ * A trend beside its own figure, not in a column of its own — the table is
+ * already eight wide, and a value and its direction want reading together
+ * (§26.2).
+ */
+.with-spark {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  justify-content: flex-end;
+}
+
+.sparkline {
+  flex: none;
+  overflow: visible;
+}
+
+.sparkline path {
+  fill: none;
+  stroke: var(--ink-muted);
+  stroke-width: 1.25;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.sparkline circle {
+  fill: var(--ink-muted);
+}
+
+/*
+ * Falling is the good direction for a debt, so it takes the quantity hue and
+ * the rest stay neutral. Colour reinforces only: the accessible label says
+ * "falling" or "rising" in words, and the balance is right beside it (§10).
+ */
+.sparkline.falling path,
+.sparkline.falling circle {
+  stroke: var(--data-line);
+  fill: var(--data-line);
+}
+
+.sparkline.falling path {
+  fill: none;
+}
+
 /* --------------------------------------------------------------- attention */
 
 /*

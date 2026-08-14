@@ -1,7 +1,10 @@
+import type { BalanceObservation, Flow } from '@varve/core';
 import type { AccountHistory } from '@varve/retirement';
+import { useEffect, useState } from 'react';
 import { ValueChart } from '../charts/ValueChart.js';
 import { longDate, money, percent, points } from '../lib/format.js';
 import { HistoryTable } from './HistoryTable.js';
+import { AccountYearEditor, type YearChange } from './AccountYearEditor.js';
 import { BackLink, PageTitle, Tile, Tiles } from './ui.js';
 
 const KIND_LABEL: Record<string, string> = {
@@ -14,12 +17,24 @@ const KIND_LABEL: Record<string, string> = {
 
 export function AccountDetail({
   history,
+  observations,
+  flows,
+  onSaveYears,
   onClose,
 }: {
   history: AccountHistory;
+  observations: readonly BalanceObservation[];
+  flows: readonly Flow[];
+  onSaveYears: (changes: YearChange[]) => Promise<void>;
   onClose: () => void;
 }) {
   const { account } = history;
+  const [editing, setEditing] = useState(false);
+
+  // Opening a different account closes the editor. A half-typed correction to
+  // one account has no meaning against another's figures, and leaving the mode
+  // on makes it look like it does (§26.3).
+  useEffect(() => setEditing(false), [account.id]);
   const benchmark = history.averageBenchmark;
   const ahead = benchmark !== null && history.averageReturn >= benchmark;
 
@@ -42,6 +57,13 @@ export function AccountDetail({
             ? ` · ${history.firstYear}–${history.closed ? history.lastYear : 'now'}`
             : '') +
           (history.closed ? ' · closed' : '')
+        }
+        actions={
+          editing ? null : (
+            <button type="button" className="ghost" onClick={() => setEditing(true)}>
+              Correct the figures
+            </button>
+          )
         }
       />
 
@@ -88,9 +110,22 @@ export function AccountDetail({
         />
       </Tiles>
 
-      {chartPoints.length > 1 ? <ValueChart points={chartPoints} /> : null}
+      {editing ? (
+        <AccountYearEditor
+          account={account}
+          rows={history.years}
+          observations={observations}
+          flows={flows}
+          onSave={onSaveYears}
+          onDone={() => setEditing(false)}
+        />
+      ) : (
+        <>
+          {chartPoints.length > 1 ? <ValueChart points={chartPoints} /> : null}
 
-      <HistoryTable years={history.years} />
+          <HistoryTable years={history.years} />
+        </>
+      )}
     </section>
   );
 }
