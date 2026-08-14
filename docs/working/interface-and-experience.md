@@ -1045,9 +1045,171 @@ Those two numbers sit on adjacent pages and are meant to be comparable. This is 
 direct descendant of §3.4, "fees are captured but abandoned downstream", and it
 survived because nothing ever displayed the per-year figure until now.
 
+> ⚠️ **The paragraph above is wrong, and §27 has the corrected account.** The
+> returns do *not* diverge. `summarizePeriod` applies the fee rule itself when
+> computing `netExternalFlow`, and `timeWeightedReturn` applies it again via
+> `isExternalFlow`, so both organic gain and TWR come out net of fees no matter
+> what the caller passes. Measured rather than reasoned about this time: on the
+> same balances, the two callers' flow arrays give identical `organicGain` and
+> identical `twr`, differing only in `byKind.fee`.
+>
+> The blank column is therefore the *whole* visible defect, and it is a display
+> bug rather than a correctness one. What §27 found underneath it is a different
+> and realer problem — `summarizePeriod` duplicates the definition of "external"
+> instead of calling the one in `core`, and the copy ignores the `feeTreatment`
+> option — which is how this was diagnosed wrongly in the first place: two
+> definitions that agree by default are indistinguishable until one of them is
+> asked a question the other was never given.
+
 **Deliberately not fixed here.** Changing which flows count as external changes
 every return figure in the application, which means it wants its own phase, its
 own tests, and a run of `pnpm reconcile` against twenty years of real data to
 show that the totals still land where Access says they do (ground rule 6). Doing
 it inside a phase about two interface items would bury it. It is the strongest
 candidate for the next slice.
+
+---
+
+## 27. One definition of external
+
+§26.3 reported this as a correctness bug: an account's return and the
+household's return computed on different definitions of what counts as an
+external flow, with a blank fee column as the visible symptom. The blank column
+is real. The rest of that diagnosis was wrong, and how it was wrong is the
+interesting part.
+
+### 27.1 What is actually true, measured
+
+`summarizePeriod` does not use the flow array it is handed to decide what is
+external. It filters internally:
+
+```ts
+const netExternalFlow = Money.sum(
+  within.filter((f) => f.kind !== 'dividend' && f.kind !== 'fee').map((f) => f.amount),
+);
+```
+
+and `timeWeightedReturn` filters again, through `isExternalFlow`. So organic gain
+and TWR come out **net of fees on both paths**, whatever the caller passes.
+Measured rather than asserted, on identical balances with a contribution and a
+fee:
+
+| | `byKind.fee` | `organicGain` | `twr` |
+|---|---|---|---|
+| Household path (fees kept) | −100.00 | 0.00 | 0.000000 |
+| Account path (fees stripped) | **0.00** | 0.00 | 0.000000 |
+
+Only the first column moves. §26.3's claim that two return figures on adjacent
+pages were computed differently does not survive contact with the numbers, and
+that section now carries the correction.
+
+**The lesson is worth more than the bug.** The wrong diagnosis came from reading
+two call sites, seeing that they filtered differently, and concluding the
+difference propagated. It does not, because a third place filters again. Ground
+rule 5 says look at the output and question numbers that move; the corollary
+found here is that a difference in *inputs* is not evidence until you have
+watched the outputs fail to agree.
+
+### 27.2 The real defect, which is one layer down
+
+Three places decide what "external" means. `core/types.ts` has
+`isExternalFlow(kind, feeTreatment)`, documented, with `net` and `gross` as a
+deliberate parameter — the difference between them *is* the fee drag, which is
+why it exists. `timeWeightedReturn` calls it. And `summarizePeriod` open-codes
+the same rule by hand, ignoring the option it was given.
+
+That is not a style complaint. `summarizePeriod` takes `ReturnOptions` and passes
+them to `timeWeightedReturn`, so asking it for a gross figure returns an object
+that is **internally inconsistent**:
+
+| `feeTreatment` | `organicGain` | `simpleReturn` | `twr` |
+|---|---|---|---|
+| `net` | 0.00 | 0.000000 | 0.000000 |
+| `gross` | 0.00 | 0.000000 | **0.009569** |
+
+A gross TWR beside a net organic gain, in one returned value, silently. Nothing
+uses `gross` today, which is the only reason this has not produced a wrong number
+on screen — and `gross` exists precisely to show fee drag, which is a thing this
+app will want to show.
+
+So the fix is the one §26.3 named for the wrong reason: **one definition of
+external, and everybody calls it.** `summarizePeriod` stops open-coding the rule
+and calls `isExternalFlow` with the treatment it was handed.
+
+### 27.3 Why the parameter was named into a trap
+
+`SeriesInput.externalFlows` is what invited the display bug. A caller handed a
+field called *external flows* reasonably concludes it should hand over the flows
+that are external — so `deriveAccountHistory` applies the fee rule before
+calling, and `deriveHistory` does not, and both are defensible readings of the
+name. The callee then applies the rule itself, so the pre-filtering achieves
+nothing except destroying the data `byKind` needs.
+
+Renamed to `flows`, with the contract written down: **internal transfers must
+already be removed, because only the caller knows what a group is; nothing else
+should be.** That is the one filtering decision a caller genuinely owns — a
+rollover between two accounts is external to each and invisible to the household,
+and no callee can know which accounts are in the group.
+
+`deriveAccountHistory` accordingly stops stripping fee and dividend, and the fee
+column fills in.
+
+### 27.4 What must not move
+
+Every return figure in the application is derived through this code, so the test
+of this phase is that **nothing changes except the fee column**. The `net` path
+is untouched by construction — `isExternalFlow(kind, 'net')` returns exactly what
+the open-coded filter returned — but "by construction" is what §11.2 says to
+distrust.
+
+So: the existing suites stand as the regression guard, and the migration is
+replayed against the real Access data with `pnpm reconcile`, which is the check
+that has held since §8.3 and reconciles twenty years to zero drift. If a return
+moves, this phase is wrong.
+
+### 27.5 What the work turned up
+
+**Nothing moved, which was the whole point.** All 459 existing tests passed
+unchanged before a single new one was added, the six reconciliation tests replayed
+twenty years of the real Access data to the same figures, and the running app
+reports byte-identical rows either side of the change:
+
+```
+before  2022 | $35,000 | $0 | — | −$5,000 | −12.5% | −12.5% | — | −12.5%
+after   2022 | $35,000 | $0 | $200 | −$5,000 | −12.5% | −12.5% | — | −12.5%
+```
+
+One column filled in; eight did not budge. The household's rows are unchanged in
+every column including fees, and the account's new per-year figures sum to
+$1,100, which is exactly what its lifetime total already claimed.
+
+**The wrong diagnosis is the more useful artifact.** §26.3 read two call sites,
+saw them filter differently, and concluded the difference reached the output. It
+does not, because a third place filters again. Both readings of the code were
+correct in isolation; the conclusion drawn from them was not, and no test would
+have caught it because the code was doing the right thing.
+
+What made it wrong was reasoning about a *difference in inputs* rather than
+watching outputs disagree. Ground rule 5 says look at the output and question
+numbers that move. The corollary this phase earned is the contrapositive:
+**numbers that fail to move are also evidence, and a difference upstream is a
+hypothesis until they do.** Ten minutes with a probe would have shown the twr
+column identical on both paths and redirected the whole diagnosis.
+
+**Two definitions that agree are indistinguishable until one is asked something
+new.** `summarizePeriod`'s hand-written external rule matched `isExternalFlow`
+exactly for the default treatment, which is why nothing ever failed. It diverged
+only under `feeTreatment: 'gross'` — an option that exists, is documented, is
+threaded through to `timeWeightedReturn`, and had no caller. The duplicate could
+have sat there for years and then produced a wrong number the first time somebody
+built the fee-drag view that `FeeTreatment` was written for.
+
+That is the argument for collapsing duplicated definitions even when they agree:
+the cost is paid later and by someone who did not write either copy. This is the
+same shape as §15.3's point about a check that fails silently, and §11.2's about
+a probe that never sampled the case.
+
+**`gross` works now, and nothing shows it.** The difference between the two
+treatments is the fee drag in dollars, which is a genuinely interesting figure
+this app can compute and does not display anywhere. Logged rather than built —
+this phase was about not moving numbers, and adding a view is a different job.

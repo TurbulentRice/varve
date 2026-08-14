@@ -65,9 +65,11 @@ export function deriveAccountHistory(
 
   const summary = summarizeSeries({
     balances,
-    // Every flow crossing this account's boundary is external to it, transfers
-    // included. Nothing is netted away at this level.
-    externalFlows: flows.filter((f) => f.kind !== 'fee' && f.kind !== 'dividend'),
+    // Everything this account did, unfiltered. A single account is its own
+    // group, so no transfer can be internal to it — and the fee rule belongs to
+    // `summarizePeriod`, which applies it. Stripping fees here is what emptied
+    // the per-year fee column (§27.3).
+    flows,
     allFlows: flows,
     benchmarkBalances,
     notes: new Map(),
