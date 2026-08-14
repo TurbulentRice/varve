@@ -1213,3 +1213,169 @@ a probe that never sampled the case.
 treatments is the fee drag in dollars, which is a genuinely interesting figure
 this app can compute and does not display anywhere. Logged rather than built —
 this phase was about not moving numbers, and adding a view is a different job.
+
+---
+
+## 28. Contributions as a percentage of what someone earns
+
+The smallest of §23's three, chosen first for exactly that reason: it is the one
+that forces the income modelling the other two build on, and it settles those
+questions against a real screen at the lowest stakes. Net worth into the future
+and what-a-number-means-for-a-year both inherit whatever is decided here, so it
+is worth deciding carefully and cheaply rather than expensively and late.
+
+### 28.1 What the Plan page asks for now, and why it is the wrong question
+
+`Controls` asks *saving each year*, in dollars, on a slider from 0 to 60,000.
+Nobody decides that way. What a person chooses is a percentage of what they earn
+— 6% to the match, 15% because that is the rule of thumb — and the dollar figure
+is the consequence. Asking for the consequence means the reader has to do the
+arithmetic the app exists to do, and redo it every time they imagine a raise.
+
+It is also the field that makes a household of two people impossible to express.
+One slider cannot say that Ada saves 12% of $95,000 and Ben saves 6% of $70,000,
+and averaging them into one number throws away the fact that they will not stop
+saving in the same year.
+
+### 28.2 Income is an observation, and everything follows from that
+
+§23.3 settled the shape. The details it deferred, settled here:
+
+**A single date, carried forward — not a span.** An income record says *as of
+this date, this person earns this much a year*, and the answer for any later date
+is the most recent record on or before it. That is `balanceAsOf`'s rule exactly,
+and it is how a raise actually works: it happens on a day and holds until the
+next one. A span would be a second temporal concept in a codebase that already
+has one, and it would need an answer for what happens in the gap between spans.
+
+**Annualised, always.** Not monthly, not per-paycheck. A percentage of salary is
+an annual idea, the projection steps in years, and storing a period alongside the
+amount means every reader has to normalise before it can add two people together.
+The form can say "a year" and mean it.
+
+**It belongs to a person, not an account.** This is the first record in the
+ledger that does. Every other observation hangs off an account or a loan, and
+income hangs off an `Owner` — which is what makes it the thing that unlocks the
+rest of §23, because spending will hang there too.
+
+**Called income rather than salary.** The UI says salary because that is what
+most people are entering, and the type says income because the moment someone is
+self-employed, or has rental receipts, the narrower word starts lying. No `kind`
+field: categories are a §23.2 problem for spending, and inventing them here would
+be building against a screen nobody has drawn.
+
+### 28.3 What is *not* a record: intentions
+
+A desired retirement age and a contribution rate are not observations. They are
+not measurements of anything that happened; they are what someone intends. §19.1
+drew this line for the interface — the record is what happened, the model is what
+if — and it turns out to cut the data model the same way.
+
+So **birth year is a property** (it does not move, §23.3), **income is a record**
+(it moved, and when it moved is the point), and **retirement age and savings rate
+are plan settings** — held by the Plan page, not written to the ledger.
+
+That has a consequence worth stating: change your mind about retiring at 62 and
+nothing is lost, because there was never a fact there. Change your salary and the
+old figure survives, because there was.
+
+### 28.4 Two people retire in different years, so the contribution steps
+
+Once contributions are per-person, they stop per-person. Ada retiring in twelve
+years and Ben in eighteen means the household saves both shares for twelve years
+and Ben's alone for six more. A single `annualContribution` cannot say that, and
+picking one horizon for the household would either stop Ben's saving early or
+keep Ada's going after she has stopped.
+
+So `simulate` gains a **contribution schedule** — one figure per projected year —
+alongside the scalar it already takes. The scalar path is unchanged and still
+applies `contributionGrowth`; the schedule path is precomputed. Both collapse to
+the same thing inside the hot loop, which now reads a per-year array rather than
+carrying a running multiply, so the sanctioned float loop (ground rule 2) gets no
+slower and no less honest.
+
+The projection horizon becomes the **last** retirement rather than the first. The
+alternative — stop at the first — would silently discard the years the other
+person is still saving, which is the flattering-direction mistake in reverse and
+just as wrong.
+
+> ⚠️ **The paragraph above overreached, and building it showed why.** The
+> *contribution schedule* runs to each person's own retirement — that part is
+> right and is what shipped. The *projection horizon* is a different question and
+> it is not this calculation's to answer: someone whose saving stops in fourteen
+> years may perfectly well want to know where they stand in twenty-five, and
+> forcing the chart to end when the contributions do would answer a question they
+> did not ask.
+>
+> So the horizon stays the reader's, `For N years` keeps its slider, and the
+> schedule simply falls to zero inside it once everyone has stopped. What
+> `yearsToLastRetirement` is actually for is *saying so* — the control now
+> carries a line reading when the last person stops, which turns a derived number
+> that nothing used into the one place it was needed.
+
+### 28.5 Where income gets entered, and the destination not built
+
+Income is entered on the Plan page, beside the rate it feeds, and there is no
+fifth destination for people in this phase.
+
+That is a compromise and worth naming as one. The record/model split says a
+salary is a record and the Plan page is the model room, so on principle income
+belongs somewhere else — a **People** destination, which §23 makes inevitable
+once spending and per-person accounts arrive. Against that: a fifth nav item
+built to hold one number per person is a room with a chair in it, and this phase
+would then be two things at once, which is the mistake §22 and §24 both avoided
+deliberately.
+
+Entry location is not conceptual home — the year editor is reached from
+everywhere and belongs to no destination (§22.1). Income is stored as a proper
+ledger record, exported and reloaded like everything else; only the form sits on
+Plan. When People arrives, the form moves and nothing about the data changes.
+
+### 28.6 Schema version 4
+
+`incomeObservations` joins the document. Versions 1 through 3 open unchanged,
+with the collection read as empty — the fourth consecutive migration that adds a
+collection rather than changing the meaning of a populated field, which is the
+cheap kind (§16.3).
+
+### 28.7 What the work turned up
+
+**A control became a consequence, and `Settings` got smaller.** `contribution`
+left the projection settings entirely — it is now derived from the savers rather
+than chosen, and `Controls` shows it as a figure with "worked out from the shares
+above" underneath. Three sliders where there were four, and the one that went was
+the one asking the reader to do the arithmetic this app exists to do. Worth
+noticing that removing a field made the page say *more*: the household total is
+still there, and now the two numbers behind it are as well.
+
+**The sample could not demonstrate the feature, and fixing that needed care.**
+Ada and Ben had no birth year, so both cards read "no birth year on file" and the
+entire when-do-you-stop half was invisible on the bundled ledger. The fix is
+birth years for two invented people — but applied to the *sample writer*, not to
+the importer, because the Access database has no such column and inventing one
+during a migration would put a made-up figure into a real household's record.
+Sample data may be invented; imported data may not.
+
+**A placeholder read as "not saved".** After recording a salary the field cleared
+and showed the figure greyed out as a placeholder, which is the standard pattern
+and, next to a card whose other numbers are all live, looks exactly like an empty
+box. Now the recorded figure is stated in full with the date it was true, and the
+input is labelled *New figure*. The date turned out to be the more valuable half:
+a salary is carried forward, so a projection run today may be using a number from
+two years ago, and that is the same thing `LoanState.asOf` exists to say.
+
+**§28.4 promised a horizon it should not deliver.** It said the projection runs
+to the last retirement. Building it showed that conflates two questions: the
+*contributions* stop per person, which is right, but the *horizon* is the
+reader's — someone whose saving ends in fourteen years may well want to see
+twenty-five. That section now carries the correction, the slider keeps its range,
+and `yearsToLastRetirement` earns its place by labelling it rather than
+overriding it.
+
+**The two contribution paths collapsed rather than branching.** Adding a schedule
+to `simulate` could have meant an `if` in the inner loop, ten thousand runs deep.
+Instead both paths resolve to one `Float64Array` before any run begins — the
+scalar compounds its growth into it, the schedule is read straight across — so
+the loop indexes an array where it used to carry a running multiply. Same work,
+one shape, and a `contributionGrowth` passed alongside a schedule now provably
+does nothing rather than silently compounding a raise twice.

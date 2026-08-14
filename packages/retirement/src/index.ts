@@ -30,6 +30,14 @@ export {
   type EntryPlan,
 } from './entry.js';
 
+export {
+  contributionPlan,
+  type ContributionPlan,
+  type ContributionPlanInput,
+  type SaverIntent,
+  type SaverPlan,
+} from './contributions.js';
+
 export { mulberry32, randomInt, standardNormal, type Rng } from './random.js';
 
 export {

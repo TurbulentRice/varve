@@ -9,14 +9,14 @@ Last updated: 2026-08-14. The second era is under way.
 
 ## Where things stand
 
-Sixteen phases done. **468 tests**, clean typecheck, clean production build, and
+Seventeen phases done. **488 tests**, clean typecheck, clean production build, and
 CI running tests, the bundle guard and the documentation checks on every PR.
 
 | Package | What it holds | Tests |
 |---|---|---|
-| [`packages/core`](../packages/core) | Money, dates, domain types, returns, aggregation, projection, net worth. Zero dependencies. | 96 |
-| [`packages/store`](../packages/store) | Snapshot format (v3), repository interface, in-memory + persisting adapters. | 39 |
-| [`packages/retirement`](../packages/retirement) | Ledger, household + per-account derivation, year entry, Monte Carlo. | 88 |
+| [`packages/core`](../packages/core) | Money, dates, domain types, returns, aggregation, projection, net worth, income. Zero dependencies. | 96 |
+| [`packages/store`](../packages/store) | Snapshot format (v4), repository interface, in-memory + persisting adapters. | 41 |
+| [`packages/retirement`](../packages/retirement) | Ledger, household + per-account derivation, year entry, contributions, Monte Carlo. | 106 |
 | [`packages/loans`](../packages/loans) | Amortization, strategies, comparison, ledger seam, what a loan actually cost, whether the payments are keeping up. | 151 |
 | [`packages/legacy-import`](../packages/legacy-import) | One-way migration from Access, with a synthetic fixture. | 23 |
 | [`apps/web`](../apps/web) | React + Vite. A four-destination shell — Overview, Accounts, Debts, Plan — plus account and debt detail, in-place corrections, the year editor, and hash routing. | 71 |
@@ -43,7 +43,8 @@ CI running tests, the bundle guard and the documentation checks on every PR.
 15. ✅ In-place account corrections, and sparklines on the Debts list (§26)
 16. ✅ One definition of external — the fee column, and the `gross` treatment
     that never worked (§27)
-17. ⬅ **Next: §23.**
+17. ✅ Contributions as a share of what each person earns (§28)
+18. ⬅ **Next: the rest of §23 — see below.**
 
 Deferred behind a stated seam: server, auth, sync, institution APIs. None is
 worth building for a user who does not exist yet.
@@ -83,11 +84,19 @@ is the only reason it never reached a screen. §27 has the account.
 
 The near-term pieces, in order of what they buy:
 
-1. **§23 itself.** The near-term list is otherwise empty, and §23.3's fork is
-   settled: salary and spending are observations, not properties.
-2. **A statement whose split disagrees with the balances** (§16.2) — a genuinely
+1. **What a retirement number means for a year of living** (§23.2) — the one the
+   household's owner named directly, and the most valuable of the three. Needs
+   spending, which attaches where income now does, so §28 has already cut the
+   seam.
+2. **Net worth into the future** (§23.2) — joins the backwards line §22 drew to
+   the forwards one Plan draws. Still §17.4's honest hard one: two sides known to
+   different precisions on one chart.
+3. **A People destination** (§28.5) — income entry currently sits on Plan as a
+   named compromise. It becomes worth building once spending arrives and a person
+   has more than one number.
+4. **A statement whose split disagrees with the balances** (§16.2) — a genuinely
    interesting event, currently invisible.
-3. **The year editor shows imported years as blank boxes** (§26.3) — the same
+5. **The year editor shows imported years as blank boxes** (§26.3) — the same
    defect fixed on the account page, on a surface that has no derived rows to
    hand.
 
@@ -109,6 +118,12 @@ Anything from §23 is a larger commitment and wants its own decision first.
   fired: a query string is a parser change, not a router. The genuine remaining
   signals are nesting and loading states, neither of which local-first data
   produces. Call sites speak in `Route` values, so the swap stays mechanical.
+- **Income is entered on the Plan page** (§28.5), which is the model room holding
+  a record. A named compromise, not an oversight — a People destination built to
+  hold one number per person would be a room with a chair in it.
+- **Retirement age and savings rate do not persist.** They are intentions rather
+  than records (§28.3), so they live in component state and reset on reload.
+  Whether a plan should be savable is a real question and nobody has asked it yet.
 - **Fee drag is computable but not shown.** `feeTreatment: 'gross'` works
   correctly as of §27, and the gap between it and `net` is exactly what fees cost
   — which is a number worth putting on a screen and currently on none.

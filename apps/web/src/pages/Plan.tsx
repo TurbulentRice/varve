@@ -14,9 +14,10 @@
  */
 
 import type { Money } from '@varve/core';
-import type { Simulation } from '@varve/retirement';
+import type { ContributionPlan, Simulation } from '@varve/retirement';
 import { ProjectionChart, type BandPoint } from '../charts/ProjectionChart.js';
 import { Controls, type Settings } from '../components/Controls.js';
+import { Savers, type SaverEdit } from '../components/Savers.js';
 import { Hero } from '../components/Hero.js';
 import { ProjectionTable } from '../components/ProjectionTable.js';
 import { PageTitle } from '../components/ui.js';
@@ -28,6 +29,9 @@ export function Plan({
   median,
   settings,
   onSettingsChange,
+  plan,
+  onSaverChange,
+  onRecordIncome,
   observedCount,
   history,
   bands,
@@ -40,6 +44,9 @@ export function Plan({
   median: Money;
   settings: Settings;
   onSettingsChange: (next: Settings) => void;
+  plan: ContributionPlan;
+  onSaverChange: (edit: SaverEdit) => void;
+  onRecordIncome: (ownerId: string, annual: string) => Promise<void>;
   observedCount: number;
   history: readonly { year: number; value: number }[];
   bands: readonly BandPoint[];
@@ -55,7 +62,27 @@ export function Plan({
 
       <Hero chance={chance} target={target} targetYear={targetYear} median={median} />
 
-      <Controls settings={settings} onChange={onSettingsChange} observedCount={observedCount} />
+      {plan.missingIncome.length > 0 ? (
+        <div className="error" role="status">
+          <strong>
+            {plan.missingIncome.length === 1
+              ? `${plan.missingIncome[0]!.name} has no salary recorded`
+              : `${plan.missingIncome.length} people have no salary recorded`}
+          </strong>
+          A percentage of an unknown salary is unknown, not zero, so nothing is being projected for{' '}
+          {plan.missingIncome.map((o) => o.name).join(' and ')}. Enter what they earn below.
+        </div>
+      ) : null}
+
+      <Savers savers={plan.savers} onChange={onSaverChange} onRecordIncome={onRecordIncome} />
+
+      <Controls
+        settings={settings}
+        onChange={onSettingsChange}
+        contribution={plan.firstYearTotal}
+        yearsToLastRetirement={plan.yearsToLastRetirement}
+        observedCount={observedCount}
+      />
 
       <ProjectionChart history={history} bands={bands} todayYear={todayYear} />
 
@@ -64,7 +91,9 @@ export function Plan({
       <p className="footnote">
         Simulated from {observedCount} recorded years of this household&rsquo;s own returns. Past
         returns are a small and biased sample — they are what happened to these accounts over one
-        particular stretch, not a forecast. This projects savings only — what is owed is not played
+        particular stretch, not a forecast. Contributions step down as each person reaches the age
+        they set, so the later years of this projection assume less going in than the early ones.
+        This projects savings only — what is owed is not played
         forward alongside it, so read the figures here as one side of the position rather than the
         whole of it.
       </p>

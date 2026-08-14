@@ -1,7 +1,7 @@
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "revision": 1,
-  "exportedAt": "2026-08-12T22:25:13.998Z",
+  "exportedAt": "2026-08-14T22:08:14.629Z",
   "household": {
     "id": "h1",
     "name": "Sample Household"
@@ -10,12 +10,14 @@
     {
       "id": "own:1",
       "householdId": "h1",
-      "name": "Ada"
+      "name": "Ada",
+      "birthYear": 1980
     },
     {
       "id": "own:2",
       "householdId": "h1",
-      "name": "Ben"
+      "name": "Ben",
+      "birthYear": 1975
     }
   ],
   "accounts": [
@@ -2114,5 +2116,6 @@
   ],
   "loans": [],
   "loanObservations": [],
-  "loanPayments": []
+  "loanPayments": [],
+  "incomeObservations": []
 }

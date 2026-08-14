@@ -9,7 +9,7 @@
  * and sorting once on write beats sorting on every read.
  */
 
-import { compareDates, type Account, type BalanceObservation, type Flow, type FlowId, type Household, type Loan, type LoanId, type LoanObservation, type LoanPayment, type LoanPaymentId, type Note, type ObservationId, type Owner } from '@varve/core';
+import { compareDates, type Account, type BalanceObservation, type Flow, type FlowId, type Household, type IncomeObservation, type IncomeObservationId, type Loan, type LoanId, type LoanObservation, type LoanPayment, type LoanPaymentId, type Note, type ObservationId, type Owner } from '@varve/core';
 import {
   matchesFlow,
   matchesObservation,
@@ -33,6 +33,7 @@ export class InMemoryRepository implements Repository {
   #loans: Loan[];
   #loanObservations: LoanObservation[];
   #loanPayments: LoanPayment[];
+  #incomeObservations: IncomeObservation[];
   #revision: Revision;
 
   constructor(snapshot: Snapshot) {
@@ -45,6 +46,7 @@ export class InMemoryRepository implements Repository {
     this.#loans = [...snapshot.loans];
     this.#loanObservations = sortByDate([...snapshot.loanObservations], (o) => o.asOf);
     this.#loanPayments = sortByDate([...snapshot.loanPayments], (p) => p.paidOn);
+    this.#incomeObservations = sortByDate([...snapshot.incomeObservations], (o) => o.asOf);
     this.#revision = snapshot.revision;
   }
 
@@ -125,6 +127,24 @@ export class InMemoryRepository implements Repository {
     );
   }
 
+  async incomeObservations(): Promise<readonly IncomeObservation[]> {
+    return this.#incomeObservations;
+  }
+
+  async saveIncomeObservations(observations: readonly IncomeObservation[]): Promise<Revision> {
+    this.#incomeObservations = sortByDate(
+      upsert(this.#incomeObservations, observations),
+      (o) => o.asOf,
+    );
+    return ++this.#revision;
+  }
+
+  async deleteIncomeObservations(ids: readonly IncomeObservationId[]): Promise<Revision> {
+    const doomed = new Set<string>(ids);
+    this.#incomeObservations = this.#incomeObservations.filter((o) => !doomed.has(o.id));
+    return ++this.#revision;
+  }
+
   async saveLoanPayments(payments: readonly LoanPayment[]): Promise<Revision> {
     this.#loanPayments = sortByDate(upsert(this.#loanPayments, payments), (p) => p.paidOn);
     return ++this.#revision;
@@ -178,6 +198,7 @@ export class InMemoryRepository implements Repository {
       loans: this.#loans,
       loanObservations: this.#loanObservations,
       loanPayments: this.#loanPayments,
+      incomeObservations: this.#incomeObservations,
     };
   }
 
@@ -193,7 +214,9 @@ export class InMemoryRepository implements Repository {
     this.#loans = [...snapshot.loans];
     this.#loanObservations = sortByDate([...snapshot.loanObservations], (o) => o.asOf);
     this.#loanPayments = sortByDate([...snapshot.loanPayments], (p) => p.paidOn);
+    this.#incomeObservations = sortByDate([...snapshot.incomeObservations], (o) => o.asOf);
     this.#loanPayments = sortByDate([...snapshot.loanPayments], (p) => p.paidOn);
+    this.#incomeObservations = sortByDate([...snapshot.incomeObservations], (o) => o.asOf);
     this.#revision = snapshot.revision;
     return this.#revision;
   }

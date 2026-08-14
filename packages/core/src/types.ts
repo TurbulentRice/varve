@@ -34,6 +34,7 @@ export type NoteId = Id<'Note'>;
 export type LoanId = Id<'Loan'>;
 export type LoanObservationId = Id<'LoanObservation'>;
 export type LoanPaymentId = Id<'LoanPayment'>;
+export type IncomeObservationId = Id<'IncomeObservation'>;
 
 export const householdId = (v: string) => v as HouseholdId;
 export const ownerId = (v: string) => v as OwnerId;
@@ -44,6 +45,7 @@ export const noteId = (v: string) => v as NoteId;
 export const loanId = (v: string) => v as LoanId;
 export const loanObservationId = (v: string) => v as LoanObservationId;
 export const loanPaymentId = (v: string) => v as LoanPaymentId;
+export const incomeObservationId = (v: string) => v as IncomeObservationId;
 
 // ------------------------------------------------------------------ entities
 
@@ -61,8 +63,54 @@ export interface Owner {
   readonly id: OwnerId;
   readonly householdId: HouseholdId;
   readonly name: string;
-  /** Drives age-based milestones (early Social Security at 62, Medicare at 65). */
+  /**
+   * Drives age-based milestones (early Social Security at 62, Medicare at 65)
+   * and, since §28, how many years of saving a person has left.
+   *
+   * A plain field rather than an observation, and the deliberate exception to
+   * the rule §23.3 settled: a birth year is the one thing about a person that
+   * genuinely does not move. Everything about them that does — what they earn,
+   * what they spend — is a dated record instead.
+   */
   readonly birthYear?: number;
+}
+
+/**
+ * What a person earns, annualised, as of a date.
+ *
+ * The first record in this ledger that belongs to a person rather than to an
+ * account or a loan, which is what makes it the seam the rest of §23 hangs from.
+ *
+ * ## One date, carried forward
+ *
+ * It says *as of this date, this much a year*, and the answer for any later date
+ * is the most recent record on or before it — `balanceAsOf`'s rule exactly. That
+ * is how a raise works: it happens on a day and holds until the next one. A span
+ * would be a second temporal concept in a model that already has one, and would
+ * need an answer for the gap between two spans (§28.2).
+ *
+ * ## Always a year
+ *
+ * Never monthly, never per-paycheck. A percentage of salary is an annual idea,
+ * the projection steps in years, and storing a period alongside the amount would
+ * make every reader normalise before it could add two people together.
+ *
+ * ## Income, not salary
+ *
+ * The form says salary because that is what most people are entering. The type
+ * says income because the narrower word starts lying the moment someone is
+ * self-employed or has rent coming in. No `kind` field: categories are a
+ * spending problem, and inventing them here would be building against a screen
+ * nobody has drawn.
+ */
+export interface IncomeObservation {
+  readonly id: IncomeObservationId;
+  readonly ownerId: OwnerId;
+  readonly asOf: IsoDate;
+  /** Gross, annualised. Positive. */
+  readonly annualAmount: Money;
+  readonly source: 'manual' | 'imported';
+  readonly note?: string;
 }
 
 export type AccountKind =

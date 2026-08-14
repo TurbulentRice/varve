@@ -36,6 +36,8 @@ import type {
   FlowId,
   FlowKind,
   Household,
+  IncomeObservation,
+  IncomeObservationId,
   IsoDate,
   Loan,
   LoanId,
@@ -88,6 +90,7 @@ export interface Repository {
   loans(): Promise<readonly Loan[]>;
   loanObservations(query?: LoanObservationQuery): Promise<readonly LoanObservation[]>;
   loanPayments(query?: LoanPaymentQuery): Promise<readonly LoanPayment[]>;
+  incomeObservations(): Promise<readonly IncomeObservation[]>;
   revision(): Promise<Revision>;
 
   // ----------------------------------------------------------------- writes
@@ -99,12 +102,15 @@ export interface Repository {
   saveLoans(loans: readonly Loan[]): Promise<Revision>;
   saveLoanObservations(observations: readonly LoanObservation[]): Promise<Revision>;
   saveLoanPayments(payments: readonly LoanPayment[]): Promise<Revision>;
+  /** What a person earns, as of a date. Upserted by id like everything else. */
+  saveIncomeObservations(observations: readonly IncomeObservation[]): Promise<Revision>;
 
   deleteObservations(ids: readonly ObservationId[]): Promise<Revision>;
   deleteFlows(ids: readonly FlowId[]): Promise<Revision>;
   /** Removes the loan and everything recorded about it — none of it means anything alone. */
   deleteLoans(ids: readonly LoanId[]): Promise<Revision>;
   deleteLoanPayments(ids: readonly LoanPaymentId[]): Promise<Revision>;
+  deleteIncomeObservations(ids: readonly IncomeObservationId[]): Promise<Revision>;
 
   // -------------------------------------------------------------- documents
   /** The whole ledger, ready to serialize. */

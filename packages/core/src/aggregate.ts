@@ -16,7 +16,15 @@ import {
   type DatedBalance,
   type ReturnOptions,
 } from './returns.js';
-import { isExternalFlow, type AccountId, type BalanceObservation, type Flow, type FlowKind } from './types.js';
+import {
+  isExternalFlow,
+  type AccountId,
+  type BalanceObservation,
+  type Flow,
+  type FlowKind,
+  type IncomeObservation,
+  type OwnerId,
+} from './types.js';
 
 /** A balance, plus the date it was actually observed. */
 export interface BalanceAt {
@@ -324,4 +332,44 @@ export function netWorthSeries(
 /** The most recent point, or `null` where neither side has been observed. */
 export function netWorthNow(points: readonly NetWorthPoint[]): NetWorthPoint | null {
   return points.length === 0 ? null : points[points.length - 1]!;
+}
+
+// -------------------------------------------------------------------- income
+
+/**
+ * What a person earned, annualised, as of a date.
+ *
+ * The same carry-forward rule {@link balanceAsOf} applies to a balance, for the
+ * same reason: a raise happens on a day and holds until the next one, so the
+ * answer for any date is the most recent record on or before it (§28.2).
+ *
+ * `null` where nothing has been recorded on or before that date — never zero.
+ * Ground rule 3: someone whose salary nobody has entered does not earn nothing,
+ * and a contribution computed from a zero would quietly project a household
+ * saving nothing at all.
+ */
+export function incomeAsOf(
+  observations: readonly IncomeObservation[],
+  owner: OwnerId,
+  date: IsoDate,
+): Money | null {
+  let best: IncomeObservation | undefined;
+  for (const observation of observations) {
+    if (observation.ownerId !== owner) continue;
+    if (observation.asOf > date) continue;
+    if (!best || observation.asOf > best.asOf) best = observation;
+  }
+  return best?.annualAmount ?? null;
+}
+
+/**
+ * Someone's age at the end of `year`, or `null` if their birth year is unknown.
+ *
+ * Deliberately coarse. A projection steps in whole years and nothing here needs
+ * a birthday: the difference between turning 65 in January and in December is
+ * not a difference this model can express, and pretending otherwise by taking a
+ * full date would invite precision the rest of the calculation cannot honour.
+ */
+export function ageInYear(birthYear: number | undefined, year: number): number | null {
+  return birthYear === undefined ? null : year - birthYear;
 }

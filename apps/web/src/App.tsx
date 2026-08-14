@@ -11,6 +11,7 @@
  */
 
 import {
+  incomeObservationId,
   isoDate,
   loanId as toLoanId,
   loanObservationId,
@@ -20,6 +21,7 @@ import {
   type Account,
   type Loan,
   type LoanId,
+  type Owner,
 } from '@varve/core';
 import { findLoanState, loanCost, schedulePosition } from '@varve/loans';
 import {
@@ -36,13 +38,16 @@ import {
   chanceOfReaching,
   deriveAccountHistories,
   deriveHistory,
+  contributionPlan,
   newAccount,
   normal,
+  parseAmount,
   observedReturns,
   planYearEntry,
   simulate,
   type History,
   type ReturnModel,
+  type SaverIntent,
   type YearEntry,
 } from '@varve/retirement';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -169,11 +174,41 @@ function Ledger({
   }, [here]);
 
   const [settings, setSettings] = useState<Settings>(() => ({
-    contribution: 10_000,
     years: 25,
     target: 1_000_000,
     model: 'bootstrap',
   }));
+
+  /**
+   * What each person intends: a share of what they earn, and when they stop.
+   *
+   * Component state, not ledger records. §28.3 draws the line — an intention is
+   * not a measurement of anything that happened, so changing your mind about
+   * retiring at 62 loses nothing because there was never a fact there. Changing
+   * your salary keeps the old figure, because there was.
+   */
+  const [intents, setIntents] = useState<readonly SaverIntent[]>([]);
+
+  const contributions = useMemo(
+    () =>
+      contributionPlan({
+        owners: snapshot.owners,
+        incomes: snapshot.incomeObservations,
+        intents: snapshot.owners.map(
+          (o) =>
+            intents.find((i) => i.ownerId === o.id) ?? {
+              ownerId: o.id,
+              // A default that is a real recommendation rather than a shrug, and
+              // low enough that nobody reads the first render as a promise.
+              rate: 0.1,
+              retirementAge: 65,
+            },
+        ),
+        asOf: isoDate(new Date().toISOString().slice(0, 10)),
+        years: settings.years,
+      }),
+    [snapshot.owners, snapshot.incomeObservations, intents, settings.years],
+  );
 
   const [targetTouched, setTargetTouched] = useState(false);
   const target = targetTouched
@@ -184,11 +219,14 @@ function Ledger({
     () =>
       simulate({
         startingValue: history.currentValue,
-        annualContribution: m(String(settings.contribution)),
+        // Kept for the shape; the schedule is what actually applies, and it is
+        // what lets two people stop saving in different years (§28.4).
+        annualContribution: contributions.firstYearTotal,
+        contributionSchedule: contributions.schedule,
         years: settings.years,
         returns: modelFor(settings.model, observed),
       }),
-    [history.currentValue, settings.contribution, settings.years, settings.model, observed],
+    [history.currentValue, contributions, settings.years, settings.model, observed],
   );
 
   const lastYear = history.years[history.years.length - 1]?.year ?? new Date().getUTCFullYear();
@@ -279,6 +317,31 @@ function Ledger({
     await repo.saveFlows(plans.flatMap((p) => p.flows));
     await repo.deleteObservations(plans.flatMap((p) => p.removedObservations));
     await repo.deleteFlows(plans.flatMap((p) => p.removedFlows));
+    await commit();
+  }
+
+  /**
+   * Record what someone earns, as of today.
+   *
+   * The id is derived from the owner and the date, so entering a figure twice in
+   * one day corrects that day's record rather than stacking two — the same
+   * forgiving rule a balance observation follows, and the opposite of a payment,
+   * where two in a day are two events (§16.5).
+   */
+  async function recordIncome(owner: string, annual: string) {
+    const today = isoDate(new Date().toISOString().slice(0, 10));
+    const parsed = parseAmount(annual);
+    if (!parsed) return;
+
+    await repo.saveIncomeObservations([
+      {
+        id: incomeObservationId(`inc:${owner}:${today}`),
+        ownerId: owner as Owner['id'],
+        asOf: today,
+        annualAmount: parsed,
+        source: 'manual',
+      },
+    ]);
     await commit();
   }
 
@@ -524,6 +587,14 @@ function Ledger({
             if (next.target !== target) setTargetTouched(true);
             setSettings(next);
           }}
+          plan={contributions}
+          onSaverChange={(edit) =>
+            setIntents((previous) => [
+              ...previous.filter((i) => i.ownerId !== edit.ownerId),
+              { ownerId: edit.ownerId, rate: edit.rate, retirementAge: edit.retirementAge },
+            ])
+          }
+          onRecordIncome={recordIncome}
           observedCount={observed.length}
           history={historyPoints}
           bands={bands}
