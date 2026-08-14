@@ -9,17 +9,17 @@ Last updated: 2026-08-14. The second era is under way.
 
 ## Where things stand
 
-Fourteen phases done. **454 tests**, clean typecheck, clean production build, and
+Fifteen phases done. **459 tests**, clean typecheck, clean production build, and
 CI running tests, the bundle guard and the documentation checks on every PR.
 
 | Package | What it holds | Tests |
 |---|---|---|
 | [`packages/core`](../packages/core) | Money, dates, domain types, returns, aggregation, projection, net worth. Zero dependencies. | 91 |
 | [`packages/store`](../packages/store) | Snapshot format (v3), repository interface, in-memory + persisting adapters. | 39 |
-| [`packages/retirement`](../packages/retirement) | Ledger, household + per-account derivation, year entry, Monte Carlo. | 83 |
+| [`packages/retirement`](../packages/retirement) | Ledger, household + per-account derivation, year entry, Monte Carlo. | 84 |
 | [`packages/loans`](../packages/loans) | Amortization, strategies, comparison, ledger seam, what a loan actually cost, whether the payments are keeping up. | 151 |
 | [`packages/legacy-import`](../packages/legacy-import) | One-way migration from Access, with a synthetic fixture. | 23 |
-| [`apps/web`](../apps/web) | React + Vite. A four-destination shell — Overview, Accounts, Debts, Plan — plus account and debt detail, the year editor, and hash routing. | 67 |
+| [`apps/web`](../apps/web) | React + Vite. A four-destination shell — Overview, Accounts, Debts, Plan — plus account and debt detail, in-place corrections, the year editor, and hash routing. | 71 |
 
 ## Roadmap
 
@@ -40,7 +40,8 @@ CI running tests, the bundle guard and the documentation checks on every PR.
     what it drives (§24)
 14. ✅ Are the payments on schedule? — pace measured against the contract, and
     what it does to the finish (§25)
-15. ⬅ **Next: see below. The direction is now §23.**
+15. ✅ In-place account corrections, and sparklines on the Debts list (§26)
+16. ⬅ **Next: the fee inconsistency below, then §23.**
 
 Deferred behind a stated seam: server, auth, sync, institution APIs. None is
 worth building for a user who does not exist yet.
@@ -66,14 +67,24 @@ unused `birthYear` and accounts already reference `ownerIds` (§23.3). The fork
 when it comes is whether salary and spending are properties of a person or
 observations about one; §23.3 recommends observations and does not decide.
 
+> ⚠️ **A correctness finding is now ahead of everything else.** §26.3 turned up
+> that an account's return and the household's return **do not treat fees the
+> same way** — `deriveAccountHistory` removes fees from `externalFlows`,
+> `deriveHistory` keeps them. The visible symptom is that the per-year fee column
+> on an account page has always been blank. The real problem is that two return
+> figures on adjacent pages are computed on different definitions. A direct
+> descendant of §3.4. Fixing it changes every return in the app, so it wants its
+> own phase and a `pnpm reconcile` against the real data.
+
 The near-term pieces, in order of what they buy:
 
-1. **In-place editing on the account page** (§22.1) — `#/years/:year` stays as
-   bulk entry; this is the single-correction case.
-2. **Per-loan sparklines on the Debts list** (§24.5) — deferred until a loan had
-   more than one observation to draw. §25 is what makes them worth having.
-3. **A statement whose split disagrees with the balances** (§16.2) — a genuinely
+1. **The fee inconsistency** (§26.3). Correctness, and it gates trusting any
+   comparison between an account and the household.
+2. **A statement whose split disagrees with the balances** (§16.2) — a genuinely
    interesting event, currently invisible.
+3. **The year editor shows imported years as blank boxes** (§26.3) — the same
+   defect fixed on the account page, on a surface that has no derived rows to
+   hand.
 
 Anything from §23 is a larger commitment and wants its own decision first.
 
@@ -93,6 +104,12 @@ Anything from §23 is a larger commitment and wants its own decision first.
   fired: a query string is a parser change, not a router. The genuine remaining
   signals are nesting and loading states, neither of which local-first data
   produces. Call sites speak in `Route` values, so the swap stays mechanical.
+- **Fees are counted as external at household level and internal at account
+  level** (§26.3). The blank per-year fee column is the symptom; the return
+  figures diverging is the problem.
+- **The year editor renders imported years as blank disabled boxes** (§26.3).
+  Fixed on the account page by reading the derived row; the year editor would
+  need those rows passed in.
 - **Account detail tiles get tight at 1280px** — six across, with "Share of
   household" wrapping. The shared `Tile` (§22.1) is now the one place to fix it.
 - **The Debts table is eight columns wide** at 1280px after §24 added Share and

@@ -14,7 +14,7 @@
  * kind of thing §11.2 exists to prevent.
  */
 
-import { Money } from '@varve/core';
+import { Money, type LoanObservation } from '@varve/core';
 import { interestDue, payable, type LoanState } from '@varve/loans';
 
 export interface DebtRow {
@@ -35,6 +35,16 @@ export interface DebtRow {
    * loan, or a household that owes nothing at all. Never 0 as a stand-in.
    */
   readonly share: number | null;
+  /**
+   * Every balance recorded for this loan, oldest first — what the sparkline
+   * draws.
+   *
+   * Handed over whole rather than reduced to a direction, because the drawing is
+   * the point and a single word throws away the shape. Fewer than two and
+   * `Sparkline` draws nothing, which is §24.2's objection still standing for a
+   * loan with one statement.
+   */
+  readonly history: readonly LoanObservation[];
 }
 
 export interface DebtSummary {
@@ -46,13 +56,28 @@ export interface DebtSummary {
   readonly activeCount: number;
 }
 
-export function summariseDebts(states: readonly LoanState[]): DebtSummary {
+export function summariseDebts(
+  states: readonly LoanState[],
+  observations: readonly LoanObservation[] = [],
+): DebtSummary {
   const active = states.filter(payable);
   const owed = Money.sum(active.map((s) => s.balance));
 
+  const byLoan = new Map<string, LoanObservation[]>();
+  for (const observation of observations) {
+    const held = byLoan.get(observation.loanId);
+    if (held) held.push(observation);
+    else byLoan.set(observation.loanId, [observation]);
+  }
+  for (const held of byLoan.values()) {
+    held.sort((a, b) => (a.asOf < b.asOf ? -1 : a.asOf > b.asOf ? 1 : 0));
+  }
+
   const rows = states.map((state): DebtRow => {
+    const history = byLoan.get(state.loan.id) ?? [];
+
     if (!payable(state)) {
-      return { state, active: false, monthlyCost: null, share: null };
+      return { state, active: false, monthlyCost: null, share: null, history };
     }
 
     return {
@@ -62,6 +87,7 @@ export function summariseDebts(states: readonly LoanState[]): DebtSummary {
       // `Money.ratio` already answers `null` where there is no ratio, which is
       // the same convention this file follows, so it passes straight through.
       share: state.balance.ratio(owed),
+      history,
     };
   });
 

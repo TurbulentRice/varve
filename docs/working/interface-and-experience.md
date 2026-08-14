@@ -638,9 +638,22 @@ of a person or observations about one**. Everything in this codebase that change
 over time is an observation with a date (Decision 1, §13.2), and a salary very
 obviously changes over time — so the answer is probably observations, and
 `Owner.birthYear` staying a plain field is the exception that proves it, because
-a birth year is the one thing about a person that genuinely does not move. That
-is a recommendation and not a decision; it wants making properly in the phase
-that needs it, not here.
+a birth year is the one thing about a person that genuinely does not move.
+
+> **Decided, 2026-08-14: observations, not properties.** Put to the repository's
+> owner and settled as recommended above. So a salary is a dated record of what
+> someone earned over a span, and spending likewise, and neither is a mutable
+> field that overwrites its own history — a raise is a new record, and last
+> year's figure survives to be projected from. `Owner` keeps `birthYear` as a
+> plain field, and that stays the deliberate exception rather than an
+> inconsistency.
+>
+> This is a decision about *shape*, and it does not settle the details that come
+> with it: whether a salary record carries a span or a single date, whether
+> spending is entered as a total or by category, and whether an unrecorded year
+> carries the last one forward the way `balanceAsOf` does. Those want deciding in
+> the phase that builds them, against real screens. What is settled is that none
+> of them will be answered by mutating a field on a person.
 
 **Deliberately not decided now.** Which of the three comes first, whether
 spending is entered or inferred, and how a projection shows two series known to
@@ -918,3 +931,123 @@ effective rate of **32.89%** against a quoted 24.99%. Two derivations from the
 same records, arrived at independently, agreeing that this debt is growing. That
 is the kind of corroboration ground rule 6 asks for, and it is worth more than
 either figure alone.
+
+---
+
+## 26. Closing the small list
+
+Two items, both carried since §22 and §24, both deliberately deferred out of
+phases that would have been doing two things at once. They ship together because
+neither is large enough to be a phase and both are the last of their kind: after
+this the near-term list is empty and what remains is §23.
+
+### 26.1 Editing where the account lives
+
+§18.2's fifth structural complaint was that editing is a takeover. §22 fixed half
+of it by keeping the shell around the year editor, and §22.1 settled the other
+half in principle: `#/years/:year` stays as bulk entry, and single corrections
+happen on the account page. This is that.
+
+**The seam was already cut, which is why this is small.** `planYearEntry` derives
+its record ids per account and per year, so planning an entry for one account
+touches exactly that account's records for that year and nothing else — a fact
+worth checking rather than assuming, because the function takes a list and could
+easily have swept the year. And `existingYearEntry` already returns an
+`editable` flag that is false when a foreign observation sits on the year's
+closing date. That guard exists because the legacy import holds quarterly detail
+an annual box cannot represent, and showing December's figure in an editable
+field invites someone to overwrite four quarters with one number. It applies
+here unchanged.
+
+So an account's history table gains three editable columns — worth at year end,
+paid in, fees — and leaves the six derived ones alone. A locked year says so and
+shows its figures as text.
+
+**What this deliberately does not become.** Not a new route, not a modal, and not
+a per-cell save. The row is edited and the page saves what changed, the same
+transaction shape the year editor uses, because a correction that half-applies is
+worse than one that is one click further away.
+
+### 26.2 Sparklines on the Debts list, now that there is something to draw
+
+§24.2 rejected a per-loan sparkline on the data rather than on taste: most loans
+carried exactly one observation, and a sparkline of one point is a dot pretending
+to be a trend. §24.5 deferred it to "the payments work, which is where a loan
+gains more than one observation to draw", and §25 is that work.
+
+The rejection still binds for a young loan, so the rule is **two observations or
+nothing**. A loan with one balance shows no sparkline at all rather than a flat
+line, for the same reason a gap is drawn as a gap.
+
+**It goes inside the Owed cell, not in a ninth column.** The table is already
+eight columns and STATUS records it as tight at 1280px. A trend beside its own
+current figure is also simply better than a trend in a column of its own —
+the value and its direction want reading together.
+
+**It is a meter's cousin, not a chart, and the twin rule is met elsewhere.** The
+sparkline carries no axis, no labels and no hover, and the figure beside it
+carries the value — the same argument `ShareBar` makes. Every balance it encodes
+appears as an opening or closing figure in the periods table on that loan's own
+page, which is where §16 put them. So no value is reachable only by looking at
+this drawing, which is what §18.1 actually protects. It gets a text label naming
+the direction rather than being hidden, because "falling" is the thing a reader
+takes from it and that should not require eyes.
+
+### 26.3 What the work turned up
+
+**A locked year showed six empty boxes over a decade of data.** `existingYearEntry`
+answers `null` for a year it did not itself write, which is deliberate — it
+reports only its own records so that nobody edits what an annual form cannot
+express. The year editor has always rendered those nulls as blank disabled boxes,
+and on that surface it is easy to miss: one row among many. On an account page it
+is the whole table. Opening an account whose every year came from the import gave
+six rows of empty greyed boxes, which reads as *nothing recorded* when the truth
+is the exact opposite, quarter by quarter for six years.
+
+The fix is to read locked figures from the derived `YearRow` — which the page
+already has — rather than from the entry helper. Showing the number does not
+reopen what the lock protects: the lock is about *editing*, and one December box
+overwriting four quarters is still impossible. The same defect remains on the
+year editor, which has no derived rows to hand and would need them passed in.
+Logged rather than fixed, because it is a different surface.
+
+**A mode outlived its subject, which is §24.4 happening again.** Switching from
+one account to another with the editor open kept it open — and worse, `useState`
+reads its initial argument once, so the drafts built from the first account's
+records were still in the boxes against the second account's rows. Two accounts'
+figures in one form, with a Save button.
+
+That is the third time this shape has appeared: §24.4's editor mode surviving a
+route change, and now a mode surviving a *prop* change. The generalisation is
+worth stating properly. **State derived from something must be re-derived when
+that something changes, and React will not do it for you** — `useState(initial)`
+is a one-time read and `useEffect(..., [initial])` is the correction. The year
+editor already had the effect, for exactly this reason, and this component was
+written from the pattern without it.
+
+**The fee column on an account page has never worked, and the reason is worse
+than the symptom.** Every year of every account reports no fees, while the same
+account's lifetime total reports them correctly and the *household's* year rows
+report them correctly too.
+
+The cause is one argument. `summarizeSeries` computes each year's `byKind`
+totals from `externalFlows`, and the two callers disagree about what that
+contains. `deriveAccountHistory` passes
+`flows.filter((f) => f.kind !== 'fee' && f.kind !== 'dividend')` — fees removed,
+because at account level a fee is not money crossing the boundary, it is money
+the account loses to its provider. `deriveHistory` passes
+`externalFlowsForGroup`, which only removes *internal transfers* and keeps fees.
+
+So the blank column is the visible half. The invisible half is that **an
+account's return and the household's return do not treat fees the same way**:
+one folds them into organic gain, the other counts them as an external flow.
+Those two numbers sit on adjacent pages and are meant to be comparable. This is a
+direct descendant of §3.4, "fees are captured but abandoned downstream", and it
+survived because nothing ever displayed the per-year figure until now.
+
+**Deliberately not fixed here.** Changing which flows count as external changes
+every return figure in the application, which means it wants its own phase, its
+own tests, and a run of `pnpm reconcile` against twenty years of real data to
+show that the totals still land where Access says they do (ground rule 6). Doing
+it inside a phase about two interface items would bury it. It is the strongest
+candidate for the next slice.

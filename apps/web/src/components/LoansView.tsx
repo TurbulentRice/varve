@@ -34,6 +34,7 @@ import {
 } from '@varve/loans';
 import { useMemo, useState } from 'react';
 import { summariseDebts, type DebtRow } from '../lib/debts.js';
+import { Sparkline } from '../charts/Sparkline.js';
 import { longDate, money, payment, rate } from '../lib/format.js';
 import { PageTitle, ShareBar, Tile, Tiles } from './ui.js';
 
@@ -63,7 +64,10 @@ export function LoansView({
   onAdd: () => void;
 }) {
   const states = useMemo(() => loanStates(ledger), [ledger]);
-  const summary = useMemo(() => summariseDebts(states), [states]);
+  const summary = useMemo(
+    () => summariseDebts(states, ledger.loanObservations),
+    [states, ledger.loanObservations],
+  );
   const active = states.filter(payable);
   const floor = useMemo(() => minimumBudget(active), [active]);
 
@@ -227,7 +231,7 @@ function LoanTable({
           </tr>
         </thead>
         <tbody>
-          {rows.map(({ state, active, monthlyCost, share }) => (
+          {rows.map(({ state, active, monthlyCost, share, history }) => (
             <tr key={state.loan.id} className={active ? undefined : 'unrecorded'}>
               <th scope="row">
                 <button type="button" className="link" onClick={() => onOpen(state.loan.id)}>
@@ -238,7 +242,14 @@ function LoanTable({
               <td className="num">
                 {/* Ground rule 3: a loan nobody has entered a balance for is not
                     a loan of nothing. Blank says unknown; $0 would say cleared. */}
-                {state.observed ? money(state.balance) : '—'}
+                {state.observed ? (
+                  <span className="with-spark">
+                    <Sparkline points={history} label={`${state.loan.name} balance`} />
+                    {money(state.balance)}
+                  </span>
+                ) : (
+                  '—'
+                )}
               </td>
               <td className="num muted">{share === null ? '—' : <ShareBar share={share} />}</td>
               <td className="num">{rate(state.loan.annualRate)}</td>
