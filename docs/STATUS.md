@@ -9,7 +9,7 @@ Last updated: 2026-08-14. The second era is under way.
 
 ## Where things stand
 
-Thirteen phases done. **439 tests**, clean typecheck, clean production build, and
+Fourteen phases done. **454 tests**, clean typecheck, clean production build, and
 CI running tests, the bundle guard and the documentation checks on every PR.
 
 | Package | What it holds | Tests |
@@ -17,7 +17,7 @@ CI running tests, the bundle guard and the documentation checks on every PR.
 | [`packages/core`](../packages/core) | Money, dates, domain types, returns, aggregation, projection, net worth. Zero dependencies. | 91 |
 | [`packages/store`](../packages/store) | Snapshot format (v3), repository interface, in-memory + persisting adapters. | 39 |
 | [`packages/retirement`](../packages/retirement) | Ledger, household + per-account derivation, year entry, Monte Carlo. | 83 |
-| [`packages/loans`](../packages/loans) | Amortization, strategies, comparison, ledger seam, what a loan actually cost. | 136 |
+| [`packages/loans`](../packages/loans) | Amortization, strategies, comparison, ledger seam, what a loan actually cost, whether the payments are keeping up. | 151 |
 | [`packages/legacy-import`](../packages/legacy-import) | One-way migration from Access, with a synthetic fixture. | 23 |
 | [`apps/web`](../apps/web) | React + Vite. A four-destination shell — Overview, Accounts, Debts, Plan — plus account and debt detail, the year editor, and hash routing. | 67 |
 
@@ -38,7 +38,9 @@ CI running tests, the bundle guard and the documentation checks on every PR.
     dissolved into them, the first chart about the household (§22)
 13. ✅ The Debts page — what it costs a month, shares drawn, the control beside
     what it drives (§24)
-14. ⬅ **Next: see below. The direction is now §23.**
+14. ✅ Are the payments on schedule? — pace measured against the contract, and
+    what it does to the finish (§25)
+15. ⬅ **Next: see below. The direction is now §23.**
 
 Deferred behind a stated seam: server, auth, sync, institution APIs. None is
 worth building for a user who does not exist yet.
@@ -66,11 +68,10 @@ observations about one; §23.3 recommends observations and does not decide.
 
 The near-term pieces, in order of what they buy:
 
-1. **Are the payments on schedule?** — cheap on top of §16, the question a
-   borrower actually asks, and the thing that gives a loan more than one
-   observation to draw (§24.5).
-2. **In-place editing on the account page** (§22.1) — `#/years/:year` stays as
+1. **In-place editing on the account page** (§22.1) — `#/years/:year` stays as
    bulk entry; this is the single-correction case.
+2. **Per-loan sparklines on the Debts list** (§24.5) — deferred until a loan had
+   more than one observation to draw. §25 is what makes them worth having.
 3. **A statement whose split disagrees with the balances** (§16.2) — a genuinely
    interesting event, currently invisible.
 
@@ -78,9 +79,10 @@ Anything from §23 is a larger commitment and wants its own decision first.
 
 ## Known debt, deliberately deferred
 
-- **Nothing compares payments to the schedule.** The ledger now knows what was
-  paid and what it cost, but not whether that is ahead of or behind the
-  contractual plan. Cheap to add on top of §16.
+- **"On schedule" is measured forwards, not replayed from origination** (§25.1).
+  A `Loan` stores payments *remaining* and no origination date, so the contract
+  can only be anchored at the current balance. Storing an original principal and
+  date would allow the other reading and was rejected for §13.3's reason.
 - **The net worth chart is annualised while the figure beside it is not** (§22.3).
   Correct, and it means the line can end above the headline when a loan statement
   postdates the last recorded balance. Said out loud under the chart rather than

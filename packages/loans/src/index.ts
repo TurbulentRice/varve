@@ -57,4 +57,12 @@ export {
   type LoanPeriod,
 } from './ledger.js';
 
+export {
+  schedulePosition,
+  type Pace,
+  type PaceUnknown,
+  type Finish,
+  type SchedulePosition,
+} from './pace.js';
+
 export { isWholeCents, toCents, scaleToCents, divideToCents, allocateCents } from './cents.js';

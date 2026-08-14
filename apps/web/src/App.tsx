@@ -21,7 +21,7 @@ import {
   type Loan,
   type LoanId,
 } from '@varve/core';
-import { findLoanState, loanCost } from '@varve/loans';
+import { findLoanState, loanCost, schedulePosition } from '@varve/loans';
 import {
   InMemoryRepository,
   PersistingRepository,
@@ -458,6 +458,7 @@ function Ledger({
         <LoanDetail
           state={state}
           cost={loanCost(loan, snapshot.loanObservations, snapshot.loanPayments)}
+          position={schedulePosition(state, snapshot.loanObservations, snapshot.loanPayments)}
           onEdit={() => setEditingLoan(route.loanId)}
           onDelete={deleteLoan}
           onRecordPayment={(amount) => recordPayment(route.loanId, amount)}

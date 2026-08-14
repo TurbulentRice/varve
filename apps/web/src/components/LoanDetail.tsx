@@ -1,25 +1,30 @@
 /**
  * One loan, played forward.
  *
- * Two questions worth answering here and nowhere else: what does this cost if
- * nothing changes, and what changes if I pay more. The second is the reason the
- * page has a control at all — a fixed schedule is something a bank already
- * sends, and the interesting number is how much of it disappears for an extra
- * fifty a month.
+ * Three questions worth answering here and nowhere else: what does this cost if
+ * nothing changes, what changes if I pay more, and — since §25 — am I actually
+ * keeping up. The second is the reason the page has a control at all: a fixed
+ * schedule is something a bank already sends, and the interesting number is how
+ * much of it disappears for an extra fifty a month.
+ *
+ * The third sits directly above that control, because whether you are currently
+ * ahead is the context for deciding to pay more. Same adjacency argument §24.1
+ * made about the budget on the Debts page.
  */
 
 import { Money, m, type LoanId } from '@varve/core';
-import type { LoanCost } from '@varve/loans';
+import type { LoanCost, SchedulePosition } from '@varve/loans';
 import { projectLoan, type LoanProjection, type LoanState } from '@varve/loans';
 import { useState } from 'react';
 import { longDate, money, payment, rate } from '../lib/format.js';
 import { Disclosure } from './Disclosure.js';
-import { BackLink, PageTitle } from './ui.js';
+import { BackLink, PageTitle, Tile, Tiles } from './ui.js';
 import { ScheduleChart } from '../charts/ScheduleChart.js';
 
 export function LoanDetail({
   state,
   cost,
+  position,
   onEdit,
   onDelete,
   onRecordPayment,
@@ -27,6 +32,7 @@ export function LoanDetail({
 }: {
   state: LoanState;
   cost: LoanCost;
+  position: SchedulePosition;
   onEdit: () => void;
   onDelete: (id: LoanId) => void;
   onRecordPayment: (amount: string) => Promise<void>;
@@ -93,7 +99,7 @@ export function LoanDetail({
         </div>
       ) : (
         <>
-          <section className="tiles" aria-label="Summary">
+          <Tiles label="Summary">
             <Tile label="Owed" value={money(state.balance)} detail="outstanding balance" />
             <Tile
               label="Contractual payment"
@@ -110,7 +116,9 @@ export function LoanDetail({
               value={contractual ? money(contractual.analysis.totalPaid) : '—'}
               detail="principal and interest"
             />
-          </section>
+          </Tiles>
+
+          <OnSchedule position={position} />
 
           <section className="controls" aria-label="Pay more each month">
             <div className="control">
@@ -307,18 +315,6 @@ function WhatItCost({ cost, quoted }: { cost: LoanCost; quoted: number }) {
   );
 }
 
-function Tile({ label, value, detail }: { label: string; value: string; detail: string }) {
-  return (
-    <div className="tile">
-      {/* Blocks, not spans: the shared .tile-* rules assume each is its own
-          line, and inline elements run the three together. */}
-      <div className="tile-label">{label}</div>
-      <div className="tile-value">{value}</div>
-      <div className="tile-detail">{detail}</div>
-    </div>
-  );
-}
-
 function ScheduleTable({ projection }: { projection: LoanProjection }) {
   // A long schedule is 360 rows. Showing the first and last two years covers
   // what anyone actually reads — the shape at the start and the end — without
@@ -375,3 +371,97 @@ function Row({ installment }: { installment: LoanProjection['schedule']['install
 }
 
 export type { Money };
+
+/**
+ * Whether the payments are keeping up, and what that does to the finish.
+ *
+ * Renders nothing when there is nothing to say, which is most of the time on a
+ * young loan — the same discipline the Overview's attention strip follows. A
+ * panel that is always present gets read as furniture.
+ *
+ * The exceptions are the two cases where silence would be wrong. A pace that
+ * never covers the interest is the most important thing this page can report, so
+ * it is a warning rather than an absence. And a record too short to imply a
+ * monthly figure gets a quiet line, because the reader *did* enter payments and
+ * deserves to know why no answer came back rather than wondering if it broke.
+ */
+function OnSchedule({ position }: { position: SchedulePosition }) {
+  const { pace, finish } = position;
+
+  if (finish.neverClears) {
+    return (
+      <div className="error" role="status">
+        <strong>At this pace the balance never falls</strong>
+        {money(pace.actual!)} a month does not cover the interest on what is owed, so the debt
+        grows rather than shrinks. The contractual payment is {payment(pace.contractual)}.
+      </div>
+    );
+  }
+
+  if (pace.unknown === 'too-short') {
+    return (
+      <p className="footnote">
+        Not enough recorded yet to say whether the payments are keeping up — the balances either
+        side of them cover less than a month. Record the next statement and this will fill in.
+      </p>
+    );
+  }
+
+  if (pace.standing === null || pace.actual === null) return null;
+
+  const sooner = finish.monthsDifference;
+  const interest = finish.interestDifference;
+
+  return (
+    <Tiles label="Whether the payments are keeping up">
+      <Tile
+        label="Paying"
+        value={payment(pace.actual)}
+        detail={`a month, measured over ${Math.round(pace.monthsMeasured)} months of record`}
+      />
+      <Tile
+        label="Against the contract"
+        // The sign carries it and colour only reinforces (§10) — "behind" is
+        // also spelled out below the figure, so nothing rests on the red.
+        value={`${pace.difference!.isNegative() ? '' : '+'}${money(pace.difference!)}`}
+        tone={pace.standing === 'behind' ? 'negative' : undefined}
+        detail={
+          pace.standing === 'level'
+            ? 'level with what is asked'
+            : pace.standing === 'ahead'
+              ? `ahead of the ${payment(pace.contractual)} asked`
+              : `behind the ${payment(pace.contractual)} asked`
+        }
+      />
+      {finish.actualMonths !== null ? (
+        <Tile
+          label="Clear in"
+          value={`${finish.actualMonths} months`}
+          // The contract's own figure is named rather than only the difference.
+          // Showing the delta alone let two numbers on one page disagree: the
+          // tile above says "clears it in 48 payments" from the stated term,
+          // while the contractual *schedule* runs to 49, because a payment
+          // quantized to cents (§11.2) leaves a residual final one. Both are
+          // right; only the subtraction looked wrong (§25.5).
+          detail={
+            finish.contractualMonths === null
+              ? 'at the pace being paid'
+              : sooner === null || sooner === 0
+                ? `the same as the contract's ${finish.contractualMonths}`
+                : sooner > 0
+                  ? `${sooner} sooner than the contract's ${finish.contractualMonths}`
+                  : `${Math.abs(sooner)} later than the contract's ${finish.contractualMonths}`
+          }
+        />
+      ) : null}
+      {interest !== null && !interest.isZero() ? (
+        <Tile
+          label={interest.isPositive() ? 'Interest saved' : 'Interest added'}
+          value={money(interest.abs())}
+          tone={interest.isNegative() ? 'negative' : undefined}
+          detail="against paying exactly the contract"
+        />
+      ) : null}
+    </Tiles>
+  );
+}

@@ -782,3 +782,139 @@ gains more than one observation to draw.
 **Reordering the comparison table** is untouched. It ranks by interest paid, and
 whether it should rank by time-to-clear is a real question with a real answer that
 nobody has asked for yet.
+
+---
+
+## 25. Are the payments on schedule?
+
+§20 has carried this since the era opened, described as "cheap on top of §16, and
+the question a borrower actually asks". The second half is right. The first half
+turned out to depend entirely on what the question is taken to mean, and the
+obvious reading is not computable from what this ledger stores.
+
+### 25.1 The reading that does not work, and why
+
+"On schedule" sounds like: take the contract, play it forward from the day it was
+signed, and compare where the balance should be against where it is.
+
+That is not available here, and the reason is in the model rather than in the
+effort. A `Loan` stores `termMonths` as **payments remaining**, not an original
+term, and it does not decrement — it is whatever was true when someone last typed
+it. There is no origination date and no original principal, deliberately: §13.3
+decided the form asks for what a statement tells you, and a statement tells you
+the balance, the rate and how many payments are left. Anchoring an amortization
+at the earliest observation using today's `termMonths` would silently mix a
+balance from three years ago with a remaining term from last week, and produce a
+plausible, wrong answer — the kind that is worse than no answer.
+
+The alternative fix — store an origination date and original principal — is
+rejected for the reason §13.3 gave the first time. It asks for two numbers a
+borrower usually does not have to hand, in order to answer a question that can be
+answered without them.
+
+### 25.2 The reading that does work: pace, measured
+
+Anchor forwards instead of backwards. The contract from **here** is well defined
+— this balance, this rate, this many payments left — and that is exactly
+`scheduledPayment`. What is not known is whether the borrower is actually keeping
+to it, and that *is* recorded, in the payments §16 added.
+
+So the question becomes two, and both are measurements rather than projections:
+
+**Are you paying what the contract asks?** Compare the pace actually kept against
+`scheduledPayment`. The pace comes out of `loanCost`'s periods — the same
+observation-bracketed windows, obeying the same half-open convention (§16.5) —
+because those are the only spans where both ends are known. Total paid across
+periods that contain payments, over the months those periods covered.
+
+**What does that pace do to the finish?** Project the current balance twice, once
+at the contractual payment and once at the measured pace, and report the
+difference in months and in interest. `projectLoan` already does this and is
+parity-tested against 2,948 installments, so neither number is new arithmetic.
+
+This is the same move §16.1 made and for the same reason: the nominal figure says
+what should happen, the ledger says what did, and where they disagree the ledger
+is right. "On schedule" against a reconstructed history would have been a
+projection wearing a measurement's clothes.
+
+### 25.3 What it must refuse to answer
+
+Four cases return `null` rather than a number, and each is a way the obvious
+implementation would lie.
+
+**No payments recorded.** Nothing to measure. Not "on schedule" — unknown.
+
+**A payment record spanning less than a month.** Two payments eleven days apart
+imply a monthly pace only if you are willing to multiply by 2.8, and that is
+extrapolation from one data point dressed as arithmetic. Ground rule 7 is exactly
+this: a measurement only tests the distribution it samples. Below a month, the
+answer is that there is not yet enough to say.
+
+**A pace that never clears the balance.** If the measured pace is at or under the
+interest, `projectLoan` already returns `null` rather than an infinite schedule.
+That is not a failure to report — it is the single most important thing this
+feature can say, and it gets its own message rather than a blank.
+
+**One observation.** No period, so no bracketed span, so no pace. Same rule as
+`YearRow.measurable` and §16's two-observation minimum.
+
+### 25.4 Where it lives
+
+`packages/loans`, beside `loanCost`, as a pure function of the same three
+inputs. Not in the app: unlike the net worth shaping (§22.4) and the debts
+summary (§24), this needs nothing from outside the loans domain, so putting it in
+`apps/web` would be moving domain logic into a view for no reason. Ground rule 4
+cuts the other way here and the package is where it belongs.
+
+### 25.5 What the work turned up
+
+**The contract's own schedule is one payment longer than the contract's own term,
+and showing a delta hid it.** Driving a car loan with six months of payments, the
+page reported "clear in 34 months, 15 sooner than the contract" directly beneath
+a tile reading "clears it in 48 payments". 34 + 15 = 49.
+
+Both figures are right. The tile quotes `loan.termMonths`, the stated number of
+payments remaining. The comparison plays the balance forward at the contractual
+payment, and that payment is quantized to cents (§11.2), so it falls a fraction
+short of retiring the balance in 48 and leaves a residual 49th. The discrepancy
+is real, tiny, and inherent in paying whole cents.
+
+What was wrong was the presentation. A bare difference invites the reader to
+reconstruct the baseline, and when they do, it disagrees with a number six inches
+higher. The fix is to name the baseline instead of implying it — *15 sooner than
+the contract's 49* — which puts both numbers on screen and lets the subtraction
+work. The alternative, comparing the measured pace against `termMonths` rather
+than against a projection, was rejected: it would mix a stated term with a
+computed schedule, which is the same category error §25.1 refused at the start.
+
+There is a general point here worth keeping. **A difference is only safe to show
+alone when its baseline is not also on the page.** Everywhere else, show both.
+
+**A test's name contradicted its own assertion.** The case for a loan with a
+single observation was written expecting a refusal, and asserted `'no-payments'`
+— which is what the code returned, because zero periods means zero paying
+periods. But a payment *had* been recorded in that fixture. The interface would
+have told someone who entered a payment that they had entered none. §25.3 lists
+the single-observation case separately for exactly this reason, and the code had
+quietly merged it into the neighbouring one. Now `'single-observation'`, with a
+test asserting the two are distinguishable.
+
+Worth noting how it surfaced: not from the code, and not from a failing test —
+the test passed. It came from reading the test's own sentence next to its
+expectation and finding they disagreed. That is the argument for the naming
+convention in `CLAUDE.md` doing real work rather than being decoration.
+
+**A fourth copy of `Tile`.** §22.1 found three and §24 extracted `ShareBar` on
+the same principle; `LoanDetail` had a fourth, missed because it sat below the
+fold of the file. Deleted. The lesson is not about tiles — it is that "extract
+what has two call sites" needs a way to *find* the call sites, and reading one
+file at a time is not it.
+
+**The measurement agrees with the independent one already on the page.** On the
+underpaid store card, the pace section says the balance never falls at $61 a
+month against $167 asked. Directly below it, `loanCost` — written a phase earlier
+and knowing nothing about pace — reports principal repaid of **−$300** and an
+effective rate of **32.89%** against a quoted 24.99%. Two derivations from the
+same records, arrived at independently, agreeing that this debt is growing. That
+is the kind of corroboration ground rule 6 asks for, and it is worth more than
+either figure alone.
