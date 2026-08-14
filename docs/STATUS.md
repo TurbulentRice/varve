@@ -5,11 +5,11 @@ want the history of how the thinking changed, that is
 [the working doc](working/discovery-and-architecture.md) — this file only ever
 describes now.
 
-Last updated: 2026-08-12. The second era has begun; its first phase has landed.
+Last updated: 2026-08-14. The second era is under way.
 
 ## Where things stand
 
-Twelve phases done. **429 tests**, clean typecheck, clean production build, and
+Thirteen phases done. **439 tests**, clean typecheck, clean production build, and
 CI running tests, the bundle guard and the documentation checks on every PR.
 
 | Package | What it holds | Tests |
@@ -19,7 +19,7 @@ CI running tests, the bundle guard and the documentation checks on every PR.
 | [`packages/retirement`](../packages/retirement) | Ledger, household + per-account derivation, year entry, Monte Carlo. | 83 |
 | [`packages/loans`](../packages/loans) | Amortization, strategies, comparison, ledger seam, what a loan actually cost. | 136 |
 | [`packages/legacy-import`](../packages/legacy-import) | One-way migration from Access, with a synthetic fixture. | 23 |
-| [`apps/web`](../apps/web) | React + Vite. A four-destination shell — Overview, Accounts, Debts, Plan — plus account and debt detail, the year editor, and hash routing. | 57 |
+| [`apps/web`](../apps/web) | React + Vite. A four-destination shell — Overview, Accounts, Debts, Plan — plus account and debt detail, the year editor, and hash routing. | 67 |
 
 ## Roadmap
 
@@ -36,8 +36,9 @@ CI running tests, the bundle guard and the documentation checks on every PR.
 11. ✅ Net worth — assets against debts, beside the hero rather than instead of it (§17)
 12. ✅ The shell, and net worth over time — four destinations, the landing page
     dissolved into them, the first chart about the household (§22)
-13. ⬅ **Next: a surface at a time. See
-    [interface-and-experience.md](working/interface-and-experience.md).**
+13. ✅ The Debts page — what it costs a month, shares drawn, the control beside
+    what it drives (§24)
+14. ⬅ **Next: see below. The direction is now §23.**
 
 Deferred behind a stated seam: server, auth, sync, institution APIs. None is
 worth building for a user who does not exist yet.
@@ -48,27 +49,32 @@ The era's working document is
 [interface-and-experience.md](working/interface-and-experience.md); §20 carries
 everything outstanding so a rewrite of this file cannot lose it.
 
-§22 settled the five forks §19.4 raised and built the shell. Two of them moved:
-projection settings stay **out** of the URL (§12.4 — parameters are identity,
-never data), which means the hand-rolled router survives untouched; and the
-component layer is bounded by **two call sites or it waits**, which yielded four
-small components rather than five speculative ones.
+**§20's oldest question is answered in part.** The household's owner uses two
+forms with sub-forms and has offered to document them; what he used the database
+*for* is recorded in §20 and §23.1. All four uses already work here, which is a
+good report on the first era and a pointed one about the second. The remaining
+detail is an input, not a gate.
+
+**§23 is the direction.** Three things larger than any phase so far: net worth
+projected forward rather than only backward, retirement contributions planned as
+a percentage of salary, and turning a retirement target into what it means for a
+year of living. Two of the three need a person with income, an age and an
+intention — and the seam is already cut, because `Owner` exists in `core` with an
+unused `birthYear` and accounts already reference `ownerIds` (§23.3). The fork
+when it comes is whether salary and spending are properties of a person or
+observations about one; §23.3 recommends observations and does not decide.
 
 The near-term pieces, in order of what they buy:
 
-1. **The Debts page, redesigned** — budget control at the top, the strategy
-   comparison as the payoff below it (§19.2). Deliberately untouched in §22 so
-   that a phase moving every surface did not also redesign one.
-2. **Are the payments on schedule?** — cheap on top of §16, and the question a
-   borrower actually asks.
-3. **In-place editing on the account page** (§22.1) — `#/years/:year` stays as
-   bulk entry; this is the single-correction case, and it is its own phase.
-4. **A statement whose split disagrees with the balances** (§16.2) — a genuinely
+1. **Are the payments on schedule?** — cheap on top of §16, the question a
+   borrower actually asks, and the thing that gives a loan more than one
+   observation to draw (§24.5).
+2. **In-place editing on the account page** (§22.1) — `#/years/:year` stays as
+   bulk entry; this is the single-correction case.
+3. **A statement whose split disagrees with the balances** (§16.2) — a genuinely
    interesting event, currently invisible.
 
-Still unanswered and now directly relevant: §6's third question, which asks the
-one person who has been reading this data for twenty years what he actually
-looks at. §20 has it.
+Anything from §23 is a larger commitment and wants its own decision first.
 
 ## Known debt, deliberately deferred
 
@@ -85,11 +91,11 @@ looks at. §20 has it.
   fired: a query string is a parser change, not a router. The genuine remaining
   signals are nesting and loading states, neither of which local-first data
   produces. Call sites speak in `Route` values, so the swap stays mechanical.
-- **The Debts page keeps its old order** — table, budget, comparison. §19.2 wants
-  the control at the top. Deliberately deferred out of §22 so one phase did not
-  both move every surface and redesign one.
 - **Account detail tiles get tight at 1280px** — six across, with "Share of
   household" wrapping. The shared `Tile` (§22.1) is now the one place to fix it.
+- **The Debts table is eight columns wide** at 1280px after §24 added Share and
+  Costs a month. It scrolls rather than wrapping, which is legible and not
+  elegant. Same fix as the tiles above, and the same phase.
 - **`localStorage` is not durable.** Export is the real backup. A "last exported"
   nudge would be the honest version, and the Overview's attention strip is now
   the place it belongs.

@@ -246,6 +246,21 @@ That question is worth more now than when it was written. An era about what
 people want to look at should probably begin by asking the one person who has
 been looking at this data for twenty years.
 
+> **Answered in part, 2026-08-14.** He uses **two forms, each with a sub-form**,
+> and has offered to document them. So the guess in §6 was right about the shape
+> — two or three of twenty carry the value — and the specifics are still coming.
+>
+> What did arrive is what he used the database *for*, which turns out to be the
+> more useful half: tracking retirement growth and readiness, running Monte
+> Carlos, previewing the retirement financial situation, and watching organic
+> gains against contributions to confirm the money was growing on its own. Every
+> one of those exists here already, which is a good sign about §1–§17 and a
+> pointed one about §18 — the app can answer all four and made none of them easy
+> to find.
+>
+> **This does not block.** The forms will inform the interface when they arrive;
+> they do not get to define it. See §23 for where that lands.
+
 ---
 
 ## 21. The licence, decided before there are contributors
@@ -549,3 +564,221 @@ order — table, then budget control, then comparison — rather than taking §1
 surface, and doing it inside a phase that moves every surface would have made
 both harder to review. In-place editing on the account page (§22.1) is likewise
 still to come, and `#/years/:year` is unchanged.
+
+---
+
+## 23. Where this is going, now that the original is describable
+
+The answer recorded in §20 arrived alongside a statement of direction, and the
+two want reading together. Written down here because it is not derivable from the
+code, and because it changes what the next several phases are for.
+
+### 23.1 Consuming the legacy database in spirit, not in shape
+
+The Access database was used for four things: tracking retirement growth,
+judging readiness, running Monte Carlos, and watching organic gains against
+contributions to confirm the money was growing on its own. All four already work
+here. That is a good report on the first era and a pointed one about the second,
+because the app could answer every one of them and made none of them easy to
+find — which is exactly §18.3's diagnosis, arriving independently.
+
+The instruction attached to it is the important part: **this is not a
+reimplementation.** The two forms he uses will be documented and will inform the
+interface; they do not get to define it. What is being built consumes the legacy
+database in spirit — its questions, its twenty years of evidence, its hard-won
+findings (§3) — while owing nothing to its shape. The audience is a generation
+that never saw the original, and for them "it works like the Access forms" is not
+a feature.
+
+So §20's question is answered enough to act on, and the remaining half is an
+input rather than a gate.
+
+### 23.2 The three things that would make this genuinely useful
+
+Stated as direction rather than as a phase plan. Each is larger than anything in
+§22, and the order between them is not settled.
+
+**Net worth into the future.** Today §22.3 plots net worth backwards and the Plan
+page projects savings forwards, and nothing joins them. The join is the thing
+someone actually wants: one line, running from the record into the model, with
+both sides of the position on it. §17.4 called projecting debt alongside savings
+the honest hard one and it still is — but the reason it is hard is now clearer,
+because §22.3 had to confront the same mismatch backwards. The two sides run on
+different clocks and are known to different precisions, and a projection that
+hides that would be the flattering lie this codebase keeps catching.
+
+**Retirement contributions planned as a percentage of salary.** The Plan page
+asks for an annual contribution in dollars, which is not how anyone decides. What
+people choose is a percentage of what they earn, from now until an age they pick.
+That needs income, and income belongs to a person rather than to a household.
+
+**What a retirement number actually means.** "I want three million" is a target
+with no units attached to a life. The question underneath it — *how comfortably
+will I be able to live?* — is the one the household's owner named directly, and
+answering it means working backwards from spending rather than forwards from a
+balance: what a year costs now, what it would cost then, and therefore what the
+number needs to be. Framed the honest way round, "to live as you do now, you
+would need X" is a far better answer than asking someone to guess X.
+
+### 23.3 The modelling question all three share, and the seam that is already open
+
+Two of the three need something the ledger does not model: **a person with
+income, an age, and an intention.** The third needs spending, which attaches to
+the same place.
+
+The good news is that the seam is already cut. `Owner` exists in `core`, carries
+an optional `birthYear` — added for age-based milestones and unused since — and
+accounts already reference owners through `ownerIds`. So this is not a new
+entity fighting its way into an established model. It is an existing entity
+growing three or four fields, and Decision 1's observations-and-flows shape
+should absorb income the same way it absorbed contributions.
+
+The genuine fork, when it comes, is whether **salary and spending are properties
+of a person or observations about one**. Everything in this codebase that changes
+over time is an observation with a date (Decision 1, §13.2), and a salary very
+obviously changes over time — so the answer is probably observations, and
+`Owner.birthYear` staying a plain field is the exception that proves it, because
+a birth year is the one thing about a person that genuinely does not move. That
+is a recommendation and not a decision; it wants making properly in the phase
+that needs it, not here.
+
+**Deliberately not decided now.** Which of the three comes first, whether
+spending is entered or inferred, and how a projection shows two series known to
+different precisions. All three are bigger than a page redesign, and the next
+phase (§24) is a page redesign.
+
+---
+
+## 24. The Debts page
+
+The one destination §22 moved without redesigning. It carries what §18.1 calls
+the clearest example of this app doing something a bank statement cannot — five
+ways to spend one budget, ranked, with the cost of choosing wrong in dollars and
+months — and it buries that under a table of raw statement figures.
+
+### 24.1 A correction to §19.2: the control goes next to what it drives
+
+§19.2 specified this page as "a list that visualises without a click, the budget
+control at the top, and the strategy comparison as the payoff below it". Two of
+those three survive. **The control does not go at the top**, and §19.2 is wrong
+about it.
+
+> ⚠️ **§19.2's "budget control at the top" is superseded.** It was written before
+> §22 measured what distance costs. The budget drives the comparison and nothing
+> else — not the tiles, not the list. Putting it at the top puts the entire loan
+> table between a cause and its only effect, which is precisely the defect §18.2
+> measured on the old landing page (a control 2.4 screens from the numbers it
+> drove) and §22.2 fixed on Plan by moving them together. Doing it deliberately
+> on a new page, one phase after paying to undo it elsewhere, would be an odd way
+> to spend the lesson.
+
+The rule §22 actually established is *adjacency*, not *topness*. "At the top" was
+a proxy for "prominent", and prominence is not what a control needs — a control
+needs its effect in view when it moves. So the order is: facts, then the record,
+then the model with its control attached to it.
+
+1. **Three tiles** — what is owed, what it costs a month, the contractual
+   minimum. All three are independent of the budget, which is what makes them
+   safe to put above it.
+2. **The loan list**, visualising.
+3. **The budget control.**
+4. **The comparison**, immediately under it.
+
+### 24.2 What the list draws, and the mismatch it exists to show
+
+"Visualises without a click" wants a quantity worth drawing rather than
+decoration. The candidate that looks obvious — a sparkline of each balance over
+time — is wrong here for a data reason: most loans carry one observation, and a
+sparkline of one point is a dot pretending to be a trend. The account list
+avoids the same trap by drawing share rather than history.
+
+So each row gets a **share-of-what-is-owed meter**, the same one `AccountsTable`
+uses and for the same reason recorded there: a meter, not a chart — one quantity
+against its own whole, where the figure carries the value and the bar carries the
+proportion at a glance. Reading it is never required.
+
+Writing it made `ShareBar` the fifth component in the shared layer, and it is
+worth saying how, because the first draft got it wrong. The bar was pasted into
+this file as a local copy with a paragraph above it explaining that the two would
+diverge once payments landed and so did not need extracting yet. That paragraph
+was a rationalisation: §22.1's bound is **two call sites or it waits**, the two
+copies were character-identical, and a rule that gets an essay of exemption on
+its first real test is not a rule. It was extracted, both local copies deleted.
+The prediction that they will diverge may even be right; the time to split them
+is when they do.
+
+Alongside it, a new column: **what this loan costs a month**, from `interestDue`
+at the current balance. That figure is not on any statement in this form, and it
+is the page's own argument made visible. The bar and the number disagree
+routinely — a small balance at a punitive rate costs nearly what a far larger
+cheap one does — and seeing that disagreement is the point.
+
+> ⚠️ **This paragraph originally drew the wrong conclusion, and driving the page
+> corrected it.** It said the mismatch is "exactly what the Blizzard strategy
+> exists to exploit", and that someone who sees a short bar beside a large monthly
+> cost has understood the comparison before reading it. Both claims are backwards.
+> Blizzard targets the largest monthly interest charge, that charge tracks the
+> largest *balance*, and on a realistic ledger — a mortgage, a car loan and a
+> store card — Blizzard finishes **last**, $12,671 behind Avalanche. See §24.4.
+>
+> The true statement is narrower and more useful. Monthly cost tells you where
+> your money is going right now; it does not tell you what to clear first. The
+> rate does, which is why Avalanche wins and why the comparison exists at all.
+> The column earns its place by making the rate's effect visible on the balances
+> you actually hold — not by ranking anything.
+
+Using `interestDue` rather than multiplying by hand is not fussiness: it
+quantizes to cents through `scaleToCents`, which is the convention §11.2 settled
+for anything that behaves like an installment, and re-deriving it here would be a
+second implementation of a rounding rule that took a section to get right.
+
+### 24.4 What the work turned up
+
+**Two things were wrong, and both were found by driving the page rather than
+reading it.** Neither would have been caught by a test, because both were claims
+about meaning rather than about arithmetic.
+
+*The monthly-cost column was described backwards.* §24.2 now carries the
+correction in full. In short: the copy said the balance-versus-cost mismatch is
+what Blizzard exploits, and on a mortgage-plus-car-plus-store-card ledger
+Blizzard finishes last by $12,671 — because it chases the largest monthly charge,
+and the largest monthly charge belongs to the largest balance, which here is the
+cheapest debt in the ledger. The interface was telling the reader that the column
+pointed at the winner when it pointed at the loser. The column is worth keeping;
+the sentence around it was not.
+
+Worth noticing that the prose was written before the numbers existed, and read as
+perfectly reasonable until three real loans were on screen underneath it. That is
+the same shape as §11.2's probe and ground rule 7: a claim that sounds right is
+not evidence, and the distribution it was imagined against is usually the one
+that agrees with it.
+
+*A mode outlived its route, and §22 caused it.* Opening the loan editor and then
+using the shell's navigation left the editor open — go to Accounts, come back to
+Debts, and the half-filled form is still there. Worse, opening the editor on an
+existing loan and then clicking **Debts** rendered a blank *new loan* form,
+because that branch passes `existing={null}` for any non-null editing state. Two
+different states rendering as one.
+
+The bug is a direct consequence of §22 and could not have existed before it. The
+loan editor is a mode within a route rather than a route of its own, which was
+sound when the only ways out were the editor's own buttons — a mode could not
+survive a navigation because a navigation could not happen. Persistent navigation
+is exactly the thing that makes it possible, and adding one to an app whose modes
+assumed it did not exist is the sort of change that breaks something quietly two
+phases later. A mode is now cleared whenever the route changes.
+
+There is a general lesson filed with it: **when a shell makes a new kind of
+transition possible, every state that assumed the old transitions is suspect.**
+Nothing here is a loading state or a nested route, so §12.3's signal still has
+not fired — but this is the first thing the router has had to think about that is
+not a URL.
+
+### 24.5 What is deliberately not here
+
+**Per-loan payoff sparklines** wait for the payments work, which is where a loan
+gains more than one observation to draw.
+
+**Reordering the comparison table** is untouched. It ranks by interest paid, and
+whether it should rank by time-to-clear is a real question with a real answer that
+nobody has asked for yet.

@@ -14,6 +14,7 @@
  */
 
 import type { ReactNode } from 'react';
+import { percent } from '../lib/format.js';
 
 /**
  * A labelled figure with a line of context under it.
@@ -90,5 +91,29 @@ export function BackLink({ label, onClick }: { label: string; onClick: () => voi
     <button type="button" className="ghost back" onClick={onClick}>
       ← {label}
     </button>
+  );
+}
+
+/**
+ * One quantity against its own whole — a share, as a figure with a bar behind it.
+ *
+ * A meter, not a chart. The figure carries the value and the bar carries the
+ * proportion at a glance; reading the bar is never required, which is why it is
+ * `aria-hidden` and the percentage is not.
+ *
+ * It arrived here the way the bound in the module header says things should:
+ * written for accounts, written again identically for debts, extracted on the
+ * second. The 1% floor on the fill is so that a real but tiny share still shows
+ * a mark — a share of nothing is rendered as a dash by the caller, so this
+ * component never has to decide which of the two it is looking at.
+ */
+export function ShareBar({ share }: { share: number }) {
+  return (
+    <span className="share">
+      <span className="share-value">{percent(share, 0)}</span>
+      <span className="share-track" aria-hidden="true">
+        <span className="share-fill" style={{ width: `${Math.max(share * 100, 1)}%` }} />
+      </span>
+    </span>
   );
 }
