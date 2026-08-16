@@ -17,7 +17,14 @@
  * Whether those move here is a real question §29.3 deliberately does not answer.
  */
 
-import type { Account, BalanceObservation, Flow, IncomeObservation, Owner } from '@varve/core';
+import type {
+  Account,
+  BalanceObservation,
+  Flow,
+  HouseholdId,
+  IncomeObservation,
+  Owner,
+} from '@varve/core';
 import type { YearEntry } from '@varve/retirement';
 import { useState } from 'react';
 import { YearEditor } from '../components/YearEditor.js';
@@ -28,6 +35,7 @@ type Pane = 'balances' | 'people';
 
 export function Record({
   year,
+  householdId,
   accounts,
   observations,
   flows,
@@ -37,10 +45,12 @@ export function Record({
   onSaveYear,
   onAddAccount,
   onSaveOwner,
+  onAddOwner,
   onRecordIncome,
   onClose,
 }: {
   year: number;
+  householdId: HouseholdId;
   accounts: readonly Account[];
   observations: readonly BalanceObservation[];
   flows: readonly Flow[];
@@ -50,6 +60,7 @@ export function Record({
   onSaveYear: (entries: YearEntry[]) => Promise<void>;
   onAddAccount: (name: string, kind: Account['kind']) => Promise<void>;
   onSaveOwner: (owner: Owner) => Promise<void>;
+  onAddOwner: (name: string) => Promise<void>;
   onRecordIncome: (ownerId: Owner['id'], annual: string) => Promise<void>;
   onClose: () => void;
 }) {
@@ -94,9 +105,11 @@ export function Record({
         />
       ) : (
         <People
+          householdId={householdId}
           owners={owners}
           incomes={incomes}
           onSaveOwner={onSaveOwner}
+          onAddOwner={onAddOwner}
           onRecordIncome={onRecordIncome}
         />
       )}

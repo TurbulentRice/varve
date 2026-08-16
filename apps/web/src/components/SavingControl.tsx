@@ -29,6 +29,7 @@ import { Money } from '@varve/core';
 import type { SaverPlan } from '@varve/retirement';
 import { useState } from 'react';
 import { money, percent } from '../lib/format.js';
+import { MoneyInput } from './MoneyInput.js';
 
 export type SavingMode = 'amount' | 'percent';
 
@@ -158,16 +159,13 @@ export function SavingControl({
           </div>
 
           {usingCustom ? (
-            <input
-              type="text"
-              inputMode="decimal"
-              className="amount"
+            <MoneyInput
               value={String(settings.custom ?? '')}
-              aria-label="A salary to model"
-              onChange={(e) => {
-                const parsed = Number(e.target.value.replace(/[$,\s]/g, ''));
-                set({ custom: Number.isFinite(parsed) ? parsed : 0 });
+              onChange={(raw) => {
+                const parsed = Number(raw);
+                set({ custom: raw === '' || !Number.isFinite(parsed) ? 0 : parsed });
               }}
+              label="A salary to model"
             />
           ) : null}
 

@@ -2,7 +2,7 @@ import type { BalanceObservation, Flow } from '@varve/core';
 import type { AccountHistory } from '@varve/retirement';
 import { useEffect, useState } from 'react';
 import { ValueChart } from '../charts/ValueChart.js';
-import { longDate, money, percent, points } from '../lib/format.js';
+import { longDate, money, nameList, percent, points } from '../lib/format.js';
 import { HistoryTable } from './HistoryTable.js';
 import { AccountYearEditor, type YearChange } from './AccountYearEditor.js';
 import { BackLink, PageTitle, Tile, Tiles } from './ui.js';
@@ -52,7 +52,7 @@ export function AccountDetail({
         title={account.name}
         subtitle={
           (KIND_LABEL[account.kind] ?? account.kind) +
-          (history.owners.length > 0 ? ` · ${history.owners.map((o) => o.name).join(' & ')}` : '') +
+          (history.owners.length > 0 ? ` · ${nameList(history.owners.map((o) => o.name))}` : '') +
           (history.firstYear !== null
             ? ` · ${history.firstYear}–${history.closed ? history.lastYear : 'now'}`
             : '') +

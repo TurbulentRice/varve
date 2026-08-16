@@ -27,6 +27,7 @@ import {
   flowId,
   isoDate,
   observationId,
+  ownerId as asOwnerId,
   type Account,
   type AccountId,
   type AccountKind,
@@ -35,6 +36,7 @@ import {
   type FlowId,
   type HouseholdId,
   type ObservationId,
+  type Owner,
   type OwnerId,
 } from '@varve/core';
 
@@ -199,6 +201,38 @@ export function newAccount(
     ownerIds,
     kind,
     active: true,
+  };
+}
+
+/**
+ * A new person, ready to save.
+ *
+ * Beside {@link newAccount} and shaped the same way: a slug and a timestamp, so
+ * a ledger read as raw JSON stays legible and two people named the same thing
+ * never collide.
+ *
+ * A birth year is optional at creation. Asking for it up front turns a one-field
+ * question into a two-field form, and the record room can take it afterwards —
+ * where its absence already means something specific rather than nothing
+ * (§30.1).
+ *
+ * There is no `deleteOwner`. An owner is referenced by every account they hold
+ * and every salary recorded for them, so removing one is a cascade with real
+ * choices in it — do the accounts go, or change hands? That is a decision nobody
+ * has needed to make yet.
+ */
+export function newOwner(householdId: HouseholdId, name: string, birthYear?: number): Owner {
+  const slug = name
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '');
+
+  return {
+    id: asOwnerId(`own:${slug || 'person'}:${Date.now().toString(36)}`),
+    householdId,
+    name: name.trim(),
+    ...(birthYear === undefined ? {} : { birthYear }),
   };
 }
 

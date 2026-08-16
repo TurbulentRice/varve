@@ -13,6 +13,7 @@
 import { type Loan, type LoanKind } from '@varve/core';
 import type { LoanState } from '@varve/loans';
 import { useState } from 'react';
+import { MoneyInput } from './MoneyInput.js';
 
 const KINDS: readonly { value: LoanKind; label: string }[] = [
   { value: 'credit-card', label: 'Credit card' },
@@ -120,12 +121,11 @@ export function LoanEditor({
 
         <label className="control">
           <span className="control-label">Balance owed today</span>
-          <input
-            type="text"
-            inputMode="decimal"
+          <MoneyInput
             value={draft.balance}
+            onChange={(raw) => set('balance', raw)}
             placeholder="4800.00"
-            onChange={(e) => set('balance', e.target.value)}
+            label="Balance owed today"
           />
         </label>
 

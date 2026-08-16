@@ -774,6 +774,46 @@ button.link.disclosure-toggle {
 
 /* ------------------------------------------------------------------ people */
 
+/*
+ * A birth year is four digits and a salary about seven, and each had a row of
+ * its own under a label longer than the field (§30.2). They share one now, with
+ * the year sized to what it holds rather than to the column.
+ */
+.person-fields {
+  display: flex;
+  gap: var(--space-4);
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.field-grow {
+  flex: 1;
+  min-width: 11rem;
+}
+
+input.year-input {
+  width: 5.5rem;
+}
+
+.add-person {
+  background: var(--surface-raised);
+  border: var(--hairline);
+  border-radius: var(--radius);
+  padding: var(--space-4);
+  max-width: 26rem;
+}
+
+.add-person input[type='text'] {
+  font: inherit;
+  flex: 1;
+  min-width: 0;
+  padding: var(--space-2) var(--space-3);
+  border: var(--hairline);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink);
+}
+
 .people {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));

@@ -19,6 +19,7 @@ import { useState } from 'react';
 import { longDate, money, payment, rate } from '../lib/format.js';
 import { Disclosure } from './Disclosure.js';
 import { BackLink, PageTitle, Tile, Tiles } from './ui.js';
+import { MoneyInput } from './MoneyInput.js';
 import { ScheduleChart } from '../charts/ScheduleChart.js';
 
 export function LoanDetail({
@@ -202,12 +203,10 @@ function RecordPayment({
       <div className="control">
         <span className="control-label">Record a payment</span>
         <div className="editor-actions">
-          <input
-            type="text"
-            inputMode="decimal"
-            aria-label="Payment amount"
+          <MoneyInput
             value={amount}
-            onChange={(e) => setAmount(e.target.value)}
+            onChange={setAmount}
+            label="Payment amount"
           />
           <button
             type="button"
