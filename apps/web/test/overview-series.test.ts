@@ -9,48 +9,26 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { accountId, householdId, isoDate, m, ownerId, type Account } from '@varve/core';
-import type { AccountHistory, YearRow } from '@varve/retirement';
+import { isoDate, m } from '@varve/core';
 import type { AnnualNetWorth } from '../src/lib/net-worth.js';
-import { MAX_SERIES, overviewSeries } from '../src/lib/overview-series.js';
+import { MAX_SERIES, overviewSeries, type PlottableAccount } from '../src/lib/overview-series.js';
 
-const HOME = householdId('h');
-
-function account(id: string, name: string, years: number[]): AccountHistory {
+/**
+ * Built against `PlottableAccount` rather than cast to `AccountHistory`.
+ *
+ * The first draft cast an incomplete object and CI caught it — which was the
+ * right outcome, because a cast would have meant this fixture stopped noticing
+ * if the real shape moved underneath it (§31.9).
+ */
+function account(id: string, name: string, years: number[]): PlottableAccount {
   return {
-    account: {
-      id: accountId(id),
-      householdId: HOME,
-      name,
-      ownerIds: [ownerId('o')],
-      kind: 'retirement',
-      active: true,
-    } as Account,
-    owners: [],
-    firstYear: years[0] ?? null,
-    lastYear: years[years.length - 1] ?? null,
-    closed: false,
-    shareOfHousehold: 0,
-    years: years.map(
-      (year, i): YearRow =>
-        ({
-          year,
-          endValue: m(String((i + 1) * 1000)),
-          endValueAsOf: isoDate(`${year}-12-31`),
-          recorded: true,
-          partial: false,
-          measurable: true,
-          contributions: m('0'),
-          fees: m('0'),
-          totalGain: m('0'),
-          organicGain: m('0'),
-          twr: 0,
-          legacyReturn: null,
-          benchmark: null,
-          note: null,
-        }) as YearRow,
-    ),
-  } as AccountHistory;
+    account: { id, name },
+    years: years.map((year, i) => ({
+      year,
+      endValue: m(String((i + 1) * 1000)),
+      recorded: true,
+    })),
+  };
 }
 
 const netWorth: AnnualNetWorth[] = [2020, 2021, 2022, 2023].map((year, i) => ({

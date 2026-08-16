@@ -8,9 +8,23 @@
  */
 
 import type { Money } from '@varve/core';
-import type { AccountHistory } from '@varve/retirement';
 import type { AnnualNetWorth } from './net-worth.js';
 import type { Series, SeriesPoint } from '../charts/ValueOverTime.js';
+
+/**
+ * The three things this reads out of an `AccountHistory`.
+ *
+ * Narrower than the real type on purpose, and for the reason §22.4 gives about
+ * `AssetYear`: an `AccountHistory` structurally satisfies it, so nothing at the
+ * call site changes, and stating the actual dependency lets a test build one
+ * honestly rather than assembling twenty fields of return arithmetic that this
+ * function never looks at. The alternative — casting an incomplete fixture — is
+ * how a test stops noticing that the shape it depends on has moved.
+ */
+export interface PlottableAccount {
+  readonly account: { readonly id: string; readonly name: string };
+  readonly years: readonly { readonly year: number; readonly endValue: Money; readonly recorded: boolean }[];
+}
 
 /**
  * How many accounts may be plotted at once.
@@ -33,7 +47,7 @@ export const RANGES: readonly { value: RangeChoice; label: string }[] = [
 
 export interface OverviewSeriesInput {
   readonly netWorth: readonly AnnualNetWorth[];
-  readonly accounts: readonly AccountHistory[];
+  readonly accounts: readonly PlottableAccount[];
   /** Account ids currently selected. Empty means net worth. */
   readonly selected: readonly string[];
   readonly range: RangeChoice;
@@ -54,7 +68,7 @@ export interface OverviewSeries {
  * must not repaint the others, which is the recolour-on-filter anti-pattern and
  * the reason somebody who learned "the IRA is orange" stops trusting the chart.
  */
-function slotFor(accounts: readonly AccountHistory[], id: string): number {
+function slotFor(accounts: readonly PlottableAccount[], id: string): number {
   const index = accounts.findIndex((a) => a.account.id === id);
   return (index % MAX_SERIES) + 1;
 }
@@ -94,7 +108,7 @@ export function overviewSeries(input: OverviewSeriesInput): OverviewSeries {
       points: withinRange(
         account.years.map((y): SeriesPoint => ({
           year: y.year,
-          amount: y.endValue as Money,
+          amount: y.endValue,
           recorded: y.recorded,
         })),
         range,

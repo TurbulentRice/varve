@@ -1813,3 +1813,27 @@ series builder so the swatch beside a row is provably the colour of its line.
 **The six-account cap refuses rather than degrades.** Selecting a seventh leaves
 the six alone and says why: past six, adjacent hues stop being tellable apart. A
 generated seventh colour would have been the easy path and is the anti-pattern.
+
+### 31.9 A gap in the local check, found by CI
+
+The first version of `overview-series.test.ts` built its fixture by casting an
+incomplete object to `AccountHistory`. It ran green locally and failed CI on both
+Node versions, and the reason is a hole in how this phase was being verified:
+`pnpm test` runs `vitest`, and the *root* `pnpm build` typechecks `packages/*`
+only. Nothing in the loop actually typechecked `apps/web` after the test file was
+added, so a type error sat there through a full local green.
+
+Two things follow.
+
+**The fix is a narrower type, not a cast.** `overviewSeries` reads three fields
+out of an account, so it now takes a `PlottableAccount` saying exactly that — an
+`AccountHistory` satisfies it structurally, nothing at the call site changes, and
+the fixture can be built honestly. Casting would have worked and would have been
+worse: a cast test stops noticing when the shape it depends on moves, which is
+the failure mode §15.3 describes for a check that fails silently.
+
+**Local verification needs `pnpm --filter @varve/web typecheck` in it.** CI
+catches this every time, so nothing ever shipped broken — but "every phase ends
+green" (`CLAUDE.md`) is a claim about a loop that did not include the web app's
+types. Worth remembering that the root build's scope is `packages/*`, and that
+the app is checked separately.
