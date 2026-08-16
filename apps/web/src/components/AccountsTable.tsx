@@ -10,22 +10,30 @@
  */
 
 import type { AccountHistory } from '@varve/retirement';
+import type React from 'react';
 import { money, percent } from '../lib/format.js';
 import { ShareBar } from './ui.js';
 
 export function AccountsTable({
   accounts,
-  onSelect,
+  selected,
+  onToggle,
+  onOpen,
+  onUpdateNumbers,
 }: {
   accounts: readonly AccountHistory[];
-  onSelect: (id: string) => void;
+  /** Ids currently plotted. A row shows its colour when it is one of them. */
+  selected: readonly string[];
+  onToggle: (id: string) => void;
+  onOpen: (id: string) => void;
+  onUpdateNumbers: () => void;
 }) {
   const open = accounts.filter((a) => !a.closed);
   const closed = accounts.filter((a) => a.closed);
 
   return (
     <div className="table-scroll">
-      <table>
+      <table className="selectable">
         <thead>
           <tr>
             <th scope="col">Account</th>
@@ -39,7 +47,14 @@ export function AccountsTable({
         </thead>
         <tbody>
           {open.map((a) => (
-            <Row key={a.account.id} history={a} onSelect={onSelect} />
+            <Row
+              key={a.account.id}
+              history={a}
+              slot={slotFor(accounts, a.account.id)}
+              selected={selected.includes(a.account.id)}
+              onToggle={onToggle}
+              onOpen={onOpen}
+            />
           ))}
           {closed.length > 0 ? (
             <tr className="group-break">
@@ -49,8 +64,24 @@ export function AccountsTable({
             </tr>
           ) : null}
           {closed.map((a) => (
-            <Row key={a.account.id} history={a} onSelect={onSelect} />
+            <Row
+              key={a.account.id}
+              history={a}
+              slot={slotFor(accounts, a.account.id)}
+              selected={selected.includes(a.account.id)}
+              onToggle={onToggle}
+              onOpen={onOpen}
+            />
           ))}
+          {/* Adding belongs where the things are listed, which is where the eye
+              already is after reading the list (§31.6). */}
+          <tr className="add-row">
+            <th scope="row" colSpan={7}>
+              <button type="button" className="link" onClick={onUpdateNumbers}>
+                + Add or update an account
+              </button>
+            </th>
+          </tr>
         </tbody>
       </table>
       <p className="table-note">
@@ -62,19 +93,49 @@ export function AccountsTable({
   );
 }
 
+/**
+ * Colour slot, fixed by position in the full list rather than among the chosen.
+ *
+ * Colour follows the entity, never its rank: deselecting one account must not
+ * repaint the others, or somebody who learned "the IRA is orange" stops trusting
+ * the chart. Same function the series builder uses, for the same reason.
+ */
+function slotFor(accounts: readonly AccountHistory[], id: string): number {
+  return (accounts.findIndex((a) => a.account.id === id) % 6) + 1;
+}
+
 function Row({
   history,
-  onSelect,
+  slot,
+  selected,
+  onToggle,
+  onOpen,
 }: {
   history: AccountHistory;
-  onSelect: (id: string) => void;
+  slot: number;
+  selected: boolean;
+  onToggle: (id: string) => void;
+  onOpen: (id: string) => void;
 }) {
   const { account, closed } = history;
 
   return (
-    <tr className={closed ? 'unrecorded' : undefined}>
+    <tr
+      className={[closed ? 'unrecorded' : '', selected ? 'plotted' : ''].filter(Boolean).join(' ') || undefined}
+      style={selected ? ({ '--row-series': `var(--series-${slot})` } as React.CSSProperties) : undefined}
+    >
       <th scope="row">
-        <button type="button" className="link" onClick={() => onSelect(account.id)}>
+        {/* Clicking the row plots it; the name still opens the account. Two
+            different intentions, so two different targets rather than one that
+            guesses (§31.3). */}
+        <button
+          type="button"
+          className={selected ? 'plot-toggle on' : 'plot-toggle'}
+          aria-pressed={selected}
+          aria-label={`Plot ${account.name}`}
+          onClick={() => onToggle(account.id)}
+        />
+        <button type="button" className="link" onClick={() => onOpen(account.id)}>
           {account.name}
         </button>
         <span className="kind">{account.kind}</span>

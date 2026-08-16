@@ -1644,3 +1644,172 @@ counting one change is the same fact from the other side.
 and then it was visible immediately. Joined properly now, with a test — and it is
 a small example of a general thing: **a feature that removes a limit exposes
 everything that quietly assumed it.**
+
+---
+
+## 31. One page for where the money is
+
+Review of §30 asked whether the Overview and Accounts pages should be one. They
+should, and the reason is sharper than "overlapping information".
+
+### 31.1 One number, three names
+
+At 1280×871 on the bundled sample:
+
+| | Overview | Accounts |
+|---|---|---|
+| Height | 1,171px — 1.34 screens | 1,017px — 1.17 screens |
+| Page-title row | 61px | 61px |
+| Tiles | 113px | 132px |
+
+On a debt-free ledger the same **$389,000** appears as `NET WORTH` and `ASSETS`
+on one page and `VALUE` on the other, with `DEBTS $0` beside them. That is not
+redundancy a reader skims — it is the kind that makes somebody wonder whether the
+three figures differ and they have missed the distinction. Two pages that each
+open with a row of tiles and a table, sharing their headline number, are one page
+that has been cut in half.
+
+### 31.2 The merge goes toward the Overview, not toward Accounts
+
+The obvious reading of "consolidate to Accounts" is to move net worth onto the
+accounts page. That is the wrong direction, and the reason is in §17.1: **net
+worth is assets minus debts**, a household figure spanning both modules, and the
+calculation was deliberately built knowing about neither. Put it on a page called
+Accounts and the debt half is homeless — the page's headline is only correct if
+the reader has been to a different page to enter their loans.
+
+So the accounts table moves onto the Overview, which stays the landing page and
+the thing somebody opens the app for (§19.2). Navigation drops to three:
+
+```
+Overview  ·  Debts  ·  Plan
+```
+
+`#/accounts` parses to the Overview — the same alias rule §22.1 and §29.3 both
+used, because a total parser silently sending old bookmarks somewhere else
+destroys evidence. Account detail keeps `#/accounts/:id` unchanged; it was never
+the duplicated part.
+
+### 31.3 The chart becomes the thing you do something with
+
+§19.3 said separating the pages would "create room to be beautiful" and named the
+parts that make an interface feel alive — a chart that responds to a cursor,
+things that move together. Two static pages spent that room on tiles. One page
+can spend it on the chart.
+
+**Selecting rows filters the plot.** Nothing selected shows **net worth**, which
+is the household answer and what the Overview already plotted. Selecting accounts
+shows one line per account. That is a *mode change* — from a household figure to
+a set of account balances — so the chart says which it is showing rather than
+letting the reader assume the line means the same thing throughout.
+
+**A cap of six, and a refusal rather than a cycle.** Past six categorical hues
+adjacent slots stop being distinguishable, and generating a seventh is the
+anti-pattern (§10 already refused a charting library partly to keep this kind of
+decision explicit). A seventh selection is declined with a reason rather than
+silently recoloured.
+
+**Year ticks, at last.** Both existing charts label only the first and last year,
+which was a weakness carried from `ValueChart` into `NetWorthChart` without being
+noticed. Ticks now fall on readable year boundaries across the range.
+
+**Time filtering is offered in years, not months.** The derived series is annual,
+so "last 12 months" is one point pretending to be a trend — the same objection
+§24.2 raised against a sparkline of one observation. All, ten years and five
+years are the honest offering on this data.
+
+### 31.4 The palette was validated, not chosen
+
+Six lines need six hues. The existing `--data-line` turns out to be slot 1 of the
+reference categorical palette the tokens were built from, so slots 2–6 come from
+the same set rather than being invented beside it, and the whole set was run
+through the validator against **this project's own surfaces** rather than the
+palette's defaults:
+
+- light (`#fbfaf8`): lightness band, chroma floor, CVD separation (worst adjacent
+  ΔE 9.1) and normal-vision floor all pass; three slots warn on contrast
+- dark (`#171614`): all six checks pass
+
+The light-mode contrast warning obliges relief — visible labels or a table view —
+and this chart has both: a legend that direct-labels every series, and the
+accounts table sitting directly beneath it. The table twin §18.1 insists on is
+now literally on the same page as the chart.
+
+### 31.5 What the page-title row was costing
+
+61px per page to repeat what the lit navigation item already says. It goes — but
+the `<h1>` stays, visually hidden, because a page without one is a page a screen
+reader cannot summarise, and the navigation is not a substitute for document
+structure.
+
+The subtitles carried real information on some pages, and that is rehomed rather
+than deleted: an *as-of* date belongs beside the figure it dates, not in a
+header.
+
+### 31.6 Adding things belongs where the things are listed
+
+`Add a loan` and `Add or update an account` sat in the title row. They become the
+last row of the table they add to, which is where the eye already is after
+reading the list.
+
+On the Overview the account button simply goes: it duplicated **Update numbers**
+in the shell two inches above it, which §29.3 made the record room's front door.
+
+### 31.7 The attention strip attaches to what it is about
+
+§22 built it with one discipline — *empty whenever nothing is wrong* — and that
+still holds: it costs 64px and only when something is actually wrong.
+
+**Dismissible was considered and rejected.** "These figures are three years old"
+is true, and dismissing it does not make it less true. A warning that can be
+permanently silenced about stale data is worse than no warning, because from then
+on its absence means nothing.
+
+What the idea is right about is *placement*. The staleness warning is about the
+as-of date, so it becomes a marker beside that date rather than a block above
+everything. Click to expand, never hover-only: a hover-only warning is
+unreachable on touch and fails the same rule §18.1 protects for charts.
+
+### 31.8 What the work turned up
+
+**The merge saves 572px and, more to the point, a page.** At 1280 wide the two
+pages came to 2,188px between them; the merged one is 1,616px. But the number
+that mattered was never the height — it was that a reader had to visit two places
+to see one household, and that the same figure greeted them under a different
+word in each.
+
+**Merging is not de-duplicating, and doing the first without the second made it
+worse.** The first working version put both tile rows on one page, so `ASSETS`
+and `VALUE` — the same $389,000 — now sat eight inches apart instead of a page
+apart. That is the defect §31.1 set out to remove, *concentrated* rather than
+removed, and it survived until the merged page was looked at. `Value` is gone
+from `StatTiles`; the row it led is now Contributed, Earned, Average return and
+Fees paid, none of which appears anywhere else.
+
+`NET WORTH` and `ASSETS` still read alike on a debt-free ledger, and that one
+stays: they are `assets − debts` and `debts`, so the trio is showing its own
+arithmetic. They diverge the moment a loan is recorded, which is the difference
+between a subtraction being displayed and a number being repeated.
+
+**Year ticks were worse than "only the ends".** Both charts labelled the first
+and last year, which reads as a deliberate minimum until you notice a six-year
+span was showing exactly two labels. The range now carries readable
+intermediates — 2018 through 2023 on the sample — and the tick step snaps to
+something people read (1, 2, 5, 10…) rather than dividing the span.
+
+**The five-year window counts back from the data, not from today.** A ledger that
+stopped in 2023 asked for "5 years" should show *its* last five, not five years
+ending now with four of them empty. Applied per series, too — accounts start and
+end in different years, so a window counted from one account's last year would
+cut another's short. That is a test rather than a comment, because it is the kind
+of thing that looks right on a sample where everything ends together.
+
+**Colour follows the account, never its rank.** Deselecting one line must not
+repaint the others; somebody who learned *the Joint account is green* stops
+trusting a chart that changes its mind. The slot comes from the account's
+position in the full list, and the same rule runs in both the table and the
+series builder so the swatch beside a row is provably the colour of its line.
+
+**The six-account cap refuses rather than degrades.** Selecting a seventh leaves
+the six alone and says why: past six, adjacent hues stop being tellable apart. A
+generated seventh colour would have been the easy path and is the anti-pattern.

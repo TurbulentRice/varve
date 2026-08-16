@@ -1,13 +1,19 @@
 import type { History } from '@varve/retirement';
-import { longDate, money, percent, points } from '../lib/format.js';
+import { money, percent, points } from '../lib/format.js';
 import { Tile, Tiles } from './ui.js';
 
 /**
  * The recorded facts, as figures rather than a chart.
  *
- * Five single numbers with no trend to show between them — a chart here would
- * be five bars of unrelated quantities, which is the classic way a chart misses
+ * Four single numbers with no trend to show between them — a chart here would
+ * be four bars of unrelated quantities, which is the classic way a chart misses
  * its own point.
+ *
+ * `Value` used to lead this row and is gone. On two pages it merely echoed the
+ * Overview's `Assets` tile; on the merged page it sat eight inches below it
+ * showing the identical figure under a different word, which is the duplication
+ * §31.1 set out to remove rather than relocate. Caught by looking at the merged
+ * page, which is ground rule 5 doing its job on my own change.
  */
 export function StatTiles({ history }: { history: History }) {
   const benchmark = history.averageBenchmark;
@@ -15,11 +21,6 @@ export function StatTiles({ history }: { history: History }) {
 
   return (
     <Tiles label="Summary">
-      <Tile
-        label="Value"
-        value={money(history.currentValue)}
-        detail={`as of ${longDate(history.currentValueAsOf)}`}
-      />
       <Tile
         label="Contributed"
         value={money(history.totalContributed)}

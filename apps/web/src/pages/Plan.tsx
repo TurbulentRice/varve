@@ -25,7 +25,6 @@ import {
 } from '../components/SavingControl.js';
 import { Hero } from '../components/Hero.js';
 import { ProjectionTable } from '../components/ProjectionTable.js';
-import { PageTitle } from '../components/ui.js';
 
 export function Plan({
   chance,
@@ -64,10 +63,9 @@ export function Plan({
 }) {
   return (
     <>
-      <PageTitle
-        title="Plan"
-        subtitle="What the savings could do from here — a model, not a record"
-      />
+      {/* The nav already says Plan, and the footnote below says the rest more
+          fully than a subtitle could (§31.5). */}
+      <h1 className="visually-hidden">Plan</h1>
 
       <Hero chance={chance} target={target} targetYear={targetYear} median={median} />
 
