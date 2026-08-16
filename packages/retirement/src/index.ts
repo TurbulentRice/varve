@@ -20,6 +20,7 @@ export {
   planYearEntry,
   existingYearEntry,
   newAccount,
+  newOwner,
   parseAmount,
   closingDate,
   midYearDate,

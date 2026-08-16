@@ -1534,3 +1534,113 @@ That reading is now stronger rather than weaker: the four destinations are where
 you go to *look*, and this is where you go to *write*, so lighting a nav item
 while it is open would claim it belongs to one of them. The test that asserts
 this got its name rewritten to say so.
+
+---
+
+## 30. Adding people, and typing money
+
+Three follow-ups from review of §29. Two are small; the third is the kind of
+thing that looks small and is not, which is worth writing down because the
+estimate is the interesting part.
+
+### 30.1 A household could not gain a person
+
+§29 built a room for people and no way to add one. People arrived only with the
+ledger they came from — which is true of the sample and of the Access import, and
+false of anyone starting from scratch or gaining a spouse. `newAccount` has
+existed since §22 and there was never a `newOwner` beside it.
+
+Added in the same place and the same shape: a slug-and-timestamp id so a ledger
+read as raw JSON stays legible and two people named the same thing never collide.
+Birth year is optional at creation, because asking for it up front makes a
+two-field form out of a one-field question and the record room can take it after.
+
+**Deleting a person is not built.** An owner is referenced by every account they
+hold and every salary recorded for them, so removing one is a cascade with real
+choices in it — do the accounts go, or change hands? That is a decision, not an
+oversight, and nobody has needed it.
+
+### 30.2 The card was mostly labels
+
+A birth year is four digits and a salary about seven, and on the People card each
+sat on its own row under a label longer than the field. Two inputs share a row
+now, and the explanatory line under the birth year goes: *used to work out when
+saving stops* is a sentence the field does not need every time it is seen.
+
+The salary history table stays below, because that one earns its space — it is
+the visible half of income being a record rather than a property (§23.3), and a
+person with three salaries on file is looking at the reason the distinction
+exists.
+
+### 30.3 Money should look like money while it is being typed
+
+Every amount in this app is *displayed* with a dollar sign and separators and
+*entered* as bare digits. Typing `100000` into a salary field and reading back
+`100000` is the one place the interface stops speaking the language it uses
+everywhere else, and it is exactly where a misread costs most — a zero too many
+in a balance is not a typo anyone catches by eye.
+
+**The formatting is trivial and the caret is the whole job.** Reformatting a
+field on every keystroke moves the insertion point to the end, so editing the
+middle of a number becomes impossible: type `1000000`, notice the extra zero,
+click between two digits, press backspace, and the caret jumps to the end and the
+next keystroke lands in the wrong place. Any implementation that skips this is
+worse than doing nothing.
+
+The fix is to count what survives formatting. Significant characters — digits,
+one leading minus, one decimal point — are counted before the caret in what the
+user just typed, and after reformatting the caret is placed after the same number
+of them. Separators move around it rather than through it.
+
+One refinement beyond that, because without it the field feels broken in a way
+people notice: **backspacing a separator deletes the digit before it.** Otherwise
+deleting the comma in `$1,000` produces `$1,000` again — the raw digits did not
+change, so reformatting puts the comma straight back — and the key appears dead.
+
+**Where it does not go.** A birth year is four digits and not money; it keeps a
+plain number field. A rate is a percentage and a term is a count of months.
+Formatting those as currency would be the interface lying about what it is
+holding, which is a worse failure than the one being fixed.
+
+### 30.4 The interesting part is a pure function
+
+`editMoneyDraft(typed, caret, previous)` takes what is in the box, where the
+caret is, and what was there before, and answers the raw value, the string to
+display and where the caret goes. No React, no DOM — the same split §12.3 made
+for routing and for the same reason: the part worth testing is a total function
+over strings, and the framework part is boring glue that can be trusted once.
+
+Drafts stay strings all the way up to `parseAmount`, unchanged. That matters for
+ground rule 3: an empty box is *blank*, not zero, and formatting must not turn it
+into `$0` on the way past.
+
+### 30.5 What the work turned up
+
+**A test expectation was wrong about arithmetic, not about behaviour.** The
+separator-deletion case was written expecting `$1,000` to become `$000` when its
+leading digit goes. It becomes `$0`, because `000` is zero and grouping
+normalises it. The code was right and the expectation was careless — worth noting
+because it is the second time in this era a test has failed for a reason that had
+nothing to do with the thing under test (§25.5 was the first), and both times the
+temptation was to adjust the code.
+
+**Typing was replayed keystroke by keystroke, in tests and then in the browser.**
+A money field cannot be verified by checking that `95000` formats to `$95,000`;
+what matters is the five intermediate states and where the caret sits in each.
+The tests assert `['$9|', '$95|', '$950|', '$9,500|', '$95,000|']`, and driving
+the real field produced exactly that — then inserting a digit mid-string gave
+`$91|5,000` and backspacing it gave `$9|5,000`, which is the case a naive
+implementation makes impossible.
+
+**The formatted string must never reach the ledger, and that got checked.** After
+typing `$125,000` into the year editor and saving, the document holds
+`125000.0000`. Drafts stay raw the whole way to `parseAmount`, which is what
+keeps a blank box meaning *unknown* rather than `$0` — and the save button
+counting one change is the same fact from the other side.
+
+**A household of two was hiding a bug in the shell.** Names were joined with
+`' & '`, which reads correctly for one or two people and as a machine for three:
+*Ada & Ben & Cass*. Nothing was wrong until §30.1 made a third person possible,
+and then it was visible immediately. Joined properly now, with a test — and it is
+a small example of a general thing: **a feature that removes a limit exposes
+everything that quietly assumed it.**

@@ -16,6 +16,7 @@ import type { Account, BalanceObservation, Flow } from '@varve/core';
 import { existingYearEntry, parseAmount, type YearEntry } from '@varve/retirement';
 import { useEffect, useMemo, useState } from 'react';
 import { money } from '../lib/format.js';
+import { MoneyInput } from './MoneyInput.js';
 
 interface Draft {
   balance: string;
@@ -183,16 +184,24 @@ export function YearEditor({
                   </th>
                   {(['balance', 'contributed', 'fees'] as const).map((field) => (
                     <td key={field}>
-                      <input
-                        type="text"
-                        inputMode="decimal"
-                        className="amount"
-                        value={locked ? formatLocked(entry, field) : draft[field]}
-                        disabled={locked}
-                        placeholder="—"
-                        aria-label={`${account.name} ${field} for ${year}`}
-                        onChange={(e) => update(account.id, field, e.target.value)}
-                      />
+                      {locked ? (
+                        <input
+                          type="text"
+                          className="amount"
+                          value={formatLocked(entry, field)}
+                          disabled
+                          placeholder="—"
+                          aria-label={`${account.name} ${field} for ${year}`}
+                          readOnly
+                        />
+                      ) : (
+                        <MoneyInput
+                          value={draft[field]}
+                          onChange={(raw) => update(account.id, field, raw)}
+                          placeholder="—"
+                          label={`${account.name} ${field} for ${year}`}
+                        />
+                      )}
                     </td>
                   ))}
                 </tr>

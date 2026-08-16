@@ -88,3 +88,15 @@ export function longDate(iso: string): string {
     timeZone: 'UTC',
   });
 }
+
+/**
+ * Join names the way a person would say them.
+ *
+ * `join(' & ')` is fine for two and reads as a machine for three — "Ada & Ben &
+ * Cass". Nobody noticed until §30.1 made it possible to have a third person, and
+ * that is the general shape of it: a household of two hid the bug.
+ */
+export function nameList(names: readonly string[]): string {
+  if (names.length <= 2) return names.join(' & ');
+  return `${names.slice(0, -1).join(', ')} & ${names[names.length - 1]}`;
+}

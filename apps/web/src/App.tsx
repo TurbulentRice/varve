@@ -39,6 +39,7 @@ import {
   deriveAccountHistories,
   deriveHistory,
   newAccount,
+  newOwner,
   normal,
   parseAmount,
   observedReturns,
@@ -65,6 +66,7 @@ import { Overview } from './pages/Overview.js';
 import { Accounts } from './pages/Accounts.js';
 import { Plan } from './pages/Plan.js';
 import { downloadSnapshot } from './lib/download.js';
+import { nameList } from './lib/format.js';
 import { householdNetWorth } from './lib/net-worth.js';
 import { savingSchedule } from './lib/saving.js';
 import type { PersonOverride, SavingSettings } from './components/SavingControl.js';
@@ -360,6 +362,12 @@ function Ledger({
     await commit();
   }
 
+  /** A household gaining a person — the path §30.1 found was missing. */
+  async function addOwner(name: string) {
+    await repo.saveOwners([newOwner(snapshot.household.id, name)]);
+    await commit();
+  }
+
   async function addAccount(name: string, kind: Account['kind']) {
     await repo.saveAccounts([
       newAccount(
@@ -475,7 +483,7 @@ function Ledger({
   return (
     <Shell
       householdName={history.householdName}
-      owners={history.owners.map((o) => o.name).join(' & ')}
+      owners={nameList(history.owners.map((o) => o.name))}
       route={route}
       onUpdateNumbers={() => navigate({ view: 'record', year: defaultRecordYear() })}
       onExport={() => downloadSnapshot(snapshot)}
@@ -576,6 +584,7 @@ function Ledger({
       return (
         <Record
           year={route.year}
+          householdId={snapshot.household.id}
           accounts={editableAccounts}
           observations={snapshot.observations}
           flows={snapshot.flows}
@@ -588,6 +597,7 @@ function Ledger({
           onSaveYear={(entries) => saveYear(route.year, entries)}
           onAddAccount={addAccount}
           onSaveOwner={saveOwner}
+          onAddOwner={addOwner}
           onRecordIncome={recordIncome}
           onClose={() => navigate(OVERVIEW)}
         />
