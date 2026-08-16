@@ -114,6 +114,10 @@ export class PersistingRepository implements Repository {
     return this.#persist(await this.#inner.saveAccounts(...args));
   }
 
+  async saveOwners(...args: Parameters<Repository['saveOwners']>) {
+    return this.#persist(await this.#inner.saveOwners(...args));
+  }
+
   async saveObservations(...args: Parameters<Repository['saveObservations']>) {
     return this.#persist(await this.#inner.saveObservations(...args));
   }

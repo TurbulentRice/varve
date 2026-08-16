@@ -14,10 +14,15 @@
  */
 
 import type { Money } from '@varve/core';
-import type { ContributionPlan, Simulation } from '@varve/retirement';
+import type { Simulation } from '@varve/retirement';
+import type { SavingResult } from '../lib/saving.js';
 import { ProjectionChart, type BandPoint } from '../charts/ProjectionChart.js';
 import { Controls, type Settings } from '../components/Controls.js';
-import { Savers, type SaverEdit } from '../components/Savers.js';
+import {
+  SavingControl,
+  type PersonOverride,
+  type SavingSettings,
+} from '../components/SavingControl.js';
 import { Hero } from '../components/Hero.js';
 import { ProjectionTable } from '../components/ProjectionTable.js';
 import { PageTitle } from '../components/ui.js';
@@ -29,9 +34,11 @@ export function Plan({
   median,
   settings,
   onSettingsChange,
-  plan,
-  onSaverChange,
-  onRecordIncome,
+  saving,
+  onSavingChange,
+  overrides,
+  onOverride,
+  result,
   observedCount,
   history,
   bands,
@@ -44,9 +51,11 @@ export function Plan({
   median: Money;
   settings: Settings;
   onSettingsChange: (next: Settings) => void;
-  plan: ContributionPlan;
-  onSaverChange: (edit: SaverEdit) => void;
-  onRecordIncome: (ownerId: string, annual: string) => Promise<void>;
+  saving: SavingSettings;
+  onSavingChange: (next: SavingSettings) => void;
+  overrides: readonly PersonOverride[];
+  onOverride: (next: PersonOverride) => void;
+  result: SavingResult;
   observedCount: number;
   history: readonly { year: number; value: number }[];
   bands: readonly BandPoint[];
@@ -62,27 +71,35 @@ export function Plan({
 
       <Hero chance={chance} target={target} targetYear={targetYear} median={median} />
 
-      {plan.missingIncome.length > 0 ? (
-        <div className="error" role="status">
-          <strong>
-            {plan.missingIncome.length === 1
-              ? `${plan.missingIncome[0]!.name} has no salary recorded`
-              : `${plan.missingIncome.length} people have no salary recorded`}
-          </strong>
-          A percentage of an unknown salary is unknown, not zero, so nothing is being projected for{' '}
-          {plan.missingIncome.map((o) => o.name).join(' and ')}. Enter what they earn below.
-        </div>
-      ) : null}
-
-      <Savers savers={plan.savers} onChange={onSaverChange} onRecordIncome={onRecordIncome} />
-
       <Controls
         settings={settings}
         onChange={onSettingsChange}
-        contribution={plan.firstYearTotal}
-        yearsToLastRetirement={plan.yearsToLastRetirement}
+        yearsToLastRetirement={result.yearsToLastRetirement}
         observedCount={observedCount}
+        saving={
+          <SavingControl
+            settings={saving}
+            onChange={onSavingChange}
+            savers={result.plan.savers}
+            overrides={overrides}
+            onOverride={onOverride}
+            total={result.firstYearTotal}
+          />
+        }
       />
+
+      {result.missingIncome.length > 0 ? (
+        <div className="error" role="status">
+          <strong>
+            {result.missingIncome.length === 1
+              ? `${result.missingIncome[0]!.name} has no salary recorded`
+              : `${result.missingIncome.length} people have no salary recorded`}
+          </strong>
+          A percentage of an unknown salary is unknown, not zero, so nothing is being projected for{' '}
+          {result.missingIncome.map((o) => o.name).join(' and ')}. Record what they earn under{' '}
+          <strong>Update numbers</strong>.
+        </div>
+      ) : null}
 
       <ProjectionChart history={history} bands={bands} todayYear={todayYear} />
 

@@ -1,4 +1,5 @@
 import { Money } from '@varve/core';
+import type { ReactNode } from 'react';
 import { money } from '../lib/format.js';
 
 export type ModelChoice = 'bootstrap' | 'block' | 'normal';
@@ -24,28 +25,30 @@ export interface Settings {
 export function Controls({
   settings,
   onChange,
-  contribution,
   yearsToLastRetirement,
   observedCount,
+  saving,
 }: {
   settings: Settings;
   onChange: (next: Settings) => void;
-  /** What the savers add up to in the first projected year, for context. */
-  contribution: Money;
   /** Years until the last person stops saving, or `null` when no age is known. */
   yearsToLastRetirement: number | null;
   observedCount: number;
+  /**
+   * The saving cell, passed in rather than built here.
+   *
+   * It has two modes and a person picker and this component has none of the
+   * state for either; keeping it a slot means the controls row stays a layout
+   * and does not grow a second job (§29.2).
+   */
+  saving: ReactNode;
 }) {
   const set = <K extends keyof Settings>(key: K, value: Settings[K]) =>
     onChange({ ...settings, [key]: value });
 
   return (
     <div className="controls" role="group" aria-label="Projection settings">
-      <div className="control">
-        <span className="control-label">Saving each year</span>
-        <span className="control-value">{money(contribution)}</span>
-        <span className="control-label">worked out from the shares above</span>
-      </div>
+      {saving}
 
       <label className="control">
         <span className="control-label">For</span>

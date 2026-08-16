@@ -1232,6 +1232,17 @@ Nobody decides that way. What a person chooses is a percentage of what they earn
 is the consequence. Asking for the consequence means the reader has to do the
 arithmetic the app exists to do, and redo it every time they imagine a raise.
 
+> ⚠️ **"Nobody decides that way" is false, and §29 undoes what it justified.**
+> Plenty of people decide in dollars and nothing else: *I max the 401(k)*, *$500
+> a month*, *whatever is left after the mortgage*. A percentage is **a** route to
+> the number, frequently a derived convenience rather than the actual decision.
+>
+> The observation underneath is still true — percentages are how many people
+> think, and one slider cannot express two earners. What was wrong was using it
+> to **replace** a control instead of **adding a mode**. Same species of error as
+> the Blizzard copy in §24.2: a defensible premise carried one step too far, and
+> caught the same way, by someone looking at the result.
+
 It is also the field that makes a household of two people impossible to express.
 One slider cannot say that Ada saves 12% of $95,000 and Ben saves 6% of $70,000,
 and averaging them into one number throws away the fact that they will not stop
@@ -1379,3 +1390,147 @@ scalar compounds its growth into it, the schedule is read straight across — so
 the loop indexes an array where it used to carry a running multiply. Same work,
 one shape, and a `contributionGrowth` passed alongside a schedule now provably
 does nothing rather than silently compounding a raise twice.
+
+---
+
+## 29. Putting the chart back, and adding a mode instead of replacing one
+
+§28 shipped and was reviewed, and two of its decisions did not survive contact
+with the page. This corrects both. It is a smaller phase than §28 and it exists
+because §28 was wrong in a way that only looking could show — which is the
+process working rather than failing, but it is worth writing down as a
+correction rather than a refinement.
+
+### 29.1 Measured, because the era's own standard demands it
+
+At 1280×871 on the bundled sample, the same method §18.2 and §22.5 used:
+
+| | Before §28 | After §28 |
+|---|---|---|
+| Plan page height | 2,305px — 2.65 screens | **2,771px — 3.18 screens** |
+| Where the chart starts | 562px | **1,197px — 1.37 screens** |
+| Where the numbers start | 1,104px | 1,550px — 1.78 screens |
+| The savers block | — | **464px** directly under the headline |
+
+Two things stand out. The Plan page became **taller than the landing page §18 was
+written to condemn** — 3.18 screens against 2.6. And §22.2's headline achievement
+on this page, a control 32px from the chart it drives, was undone by putting 660px
+of form between them.
+
+The lesson is not that a form is bad. It is that the Plan page's job is
+*interaction with a visualisation* — move a thing, watch the fan move — and
+anything that pushes the fan below the fold is taking the page's purpose away
+regardless of how good the form is.
+
+### 29.2 Amount and percentage are two modes, not two eras
+
+The savings input becomes one cell in the controls row with a segmented toggle.
+
+**Amount** is the default and is the old slider, unchanged. Nothing that worked
+before stopped working.
+
+**% of salary** shows a rate and a set of person chips — pick one person, several,
+or `Custom…` for a figure not recorded against anybody. The resulting dollar
+amount is the cell's value, so the mode swap changes how the number is *arrived
+at* and never what the control reports.
+
+The per-person detail from §28 survives behind an expander inside that cell: a
+rate and a stop-age each, revealed only when someone is actually planning two
+earners separately. Simple by default, powerful on demand — which is the answer
+to §28's real failure, since none of that information was wrong, it was just
+permanently on screen at full size.
+
+**`Custom…` matters more than it looks.** It is the case where somebody wants to
+model a salary they have not recorded, or are not sure about, or that belongs to
+nobody in the ledger — and without it, the percentage mode would demand a ledger
+write before it would answer a hypothetical. A model room must not require
+records to be created before it will model anything.
+
+### 29.3 The record gets a room
+
+People, their birth years and their salaries move off Plan entirely. Income is a
+*record*; Plan is the model room; §28.5 already called the placement a
+compromise and it turned out to cost more than estimated.
+
+They move into what was the year editor, reframed. `#/years/:year` becomes
+`#/record`, with the old spelling kept as a parse-only alias for the reason §22.1
+gives — a total parser silently sending old bookmarks to the Overview destroys
+evidence. The surface holds two panes:
+
+- **Balances** — today's year editor, with its year stepper, unchanged.
+- **People** — name, birth year, and salary history per person.
+
+The year stepper lives *inside* the Balances pane rather than at the top of the
+page, because it scopes that pane and not the other one, and a stepper above both
+would claim to scope a salary by year.
+
+**Why this room and not a fifth destination.** The four destinations are places
+you go to *look* — Overview, Accounts, Debts, Plan all answer a question. The
+record room is where you go to *write*, and it is the natural home for the
+provider connections this project has deferred since Decision 5: nobody connects
+a bank "on the Accounts page". Gathering the writes in one place also means the
+question "where do I put this new kind of record?" has an answer that does not
+grow the nav.
+
+That leaves an inconsistency, named rather than hidden: **adding an account still
+happens on Accounts, and adding a loan on Debts**. §19.2 put them there
+deliberately and §22 built them that way. Whether they eventually move into the
+record room is a real question and this phase does not answer it — moving them
+would be a second restructuring riding along with a correction, which is the
+thing §22 and §24 both refused to do.
+
+### 29.4 `saveOwners`, and the first property this app edits
+
+Editing a birth year needs a repository write that did not exist: `owners()` was
+readable and nothing could change one. Added alongside the others, with the same
+upsert-by-id semantics.
+
+Worth noting what makes it different. Every other write in this app appends a
+dated record — a balance, a payment, a salary. A birth year is a **property**,
+so saving one overwrites. That is exactly the distinction §23.3 settled and
+§28.2 built on, and it is the first time the difference shows up as two different
+kinds of write rather than two different shapes of data.
+
+### 29.5 What the work turned up
+
+**The numbers, measured the same way §29.1 was.**
+
+| | Before §28 | After §28 | Now |
+|---|---|---|---|
+| Plan page height | 2,305px | 2,771px | **2,180px — 2.5 screens** |
+| Where the chart starts | 562px | 1,197px | **607px — 0.7 screens** |
+| Control → the chart it drives | 32px | 660px | **32px** |
+
+The page is now *smaller than it was before §28*, and §22.2's 32px is back
+exactly. The percentage mode costs about 90px more than the amount mode when its
+chips are showing, and the per-person expander costs another 270px on top of
+that — but only while it is open, and only for someone who asked for it.
+
+**A form that needs nothing must be the default.** The amount mode is first not
+because it is more common but because it is the one that works on an empty
+ledger. A percentage cannot produce a number until somebody has a salary on file,
+so making it the default would have meant a fresh install opening on a control
+that reads `$0` and a warning explaining why. That is a general rule worth
+keeping: **where two modes compute the same thing, default to the one with no
+prerequisites.**
+
+**`Custom…` turned out to be load-bearing rather than a nicety.** Driving the
+percentage mode on a cleared ledger, every chip carried a `?` and the total sat
+at `$0` — correct, and useless. `Custom…` is what lets somebody ask *what if I
+saved 15% of $120,000* without first writing a salary into a ledger they may not
+even be modelling themselves. A model room that demands records before it will
+model anything has stopped being a model room, which is the §19.1 line drawn
+from the other side.
+
+**Naming a warning's destination matters more when the destination moved.** The
+missing-salary strip used to say "enter what they earn below", which was true
+when the form was 200px down the same page. It now says *Update numbers*, which
+is the button in the shell — the warning has to name the room, because the fix
+is no longer in view.
+
+**The record room made `sectionOf` mean something it did not before.** It already
+returned `null` for the year editor on the grounds that a task is not a place.
+That reading is now stronger rather than weaker: the four destinations are where
+you go to *look*, and this is where you go to *write*, so lighting a nav item
+while it is open would claim it belongs to one of them. The test that asserts
+this got its name rewritten to say so.

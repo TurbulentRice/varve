@@ -87,6 +87,11 @@ export class InMemoryRepository implements Repository {
     return ++this.#revision;
   }
 
+  async saveOwners(owners: readonly Owner[]): Promise<Revision> {
+    this.#owners = upsert(this.#owners, owners);
+    return ++this.#revision;
+  }
+
   async saveObservations(observations: readonly BalanceObservation[]): Promise<Revision> {
     this.#observations = sortByDate(upsert(this.#observations, observations), (o) => o.asOf);
     return ++this.#revision;

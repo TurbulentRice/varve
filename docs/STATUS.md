@@ -9,7 +9,7 @@ Last updated: 2026-08-14. The second era is under way.
 
 ## Where things stand
 
-Seventeen phases done. **488 tests**, clean typecheck, clean production build, and
+Eighteen phases done. **503 tests**, clean typecheck, clean production build, and
 CI running tests, the bundle guard and the documentation checks on every PR.
 
 | Package | What it holds | Tests |
@@ -19,7 +19,7 @@ CI running tests, the bundle guard and the documentation checks on every PR.
 | [`packages/retirement`](../packages/retirement) | Ledger, household + per-account derivation, year entry, contributions, Monte Carlo. | 106 |
 | [`packages/loans`](../packages/loans) | Amortization, strategies, comparison, ledger seam, what a loan actually cost, whether the payments are keeping up. | 151 |
 | [`packages/legacy-import`](../packages/legacy-import) | One-way migration from Access, with a synthetic fixture. | 23 |
-| [`apps/web`](../apps/web) | React + Vite. A four-destination shell — Overview, Accounts, Debts, Plan — plus account and debt detail, in-place corrections, the year editor, and hash routing. | 71 |
+| [`apps/web`](../apps/web) | React + Vite. A four-destination shell — Overview, Accounts, Debts, Plan — plus account and debt detail, in-place corrections, a record room, and hash routing. | 86 |
 
 ## Roadmap
 
@@ -44,7 +44,8 @@ CI running tests, the bundle guard and the documentation checks on every PR.
 16. ✅ One definition of external — the fee column, and the `gross` treatment
     that never worked (§27)
 17. ✅ Contributions as a share of what each person earns (§28)
-18. ⬅ **Next: the rest of §23 — see below.**
+18. ✅ The chart back on top, and a mode rather than a replacement (§29)
+19. ⬅ **Next: the rest of §23 — see below.**
 
 Deferred behind a stated seam: server, auth, sync, institution APIs. None is
 worth building for a user who does not exist yet.
@@ -118,9 +119,10 @@ Anything from §23 is a larger commitment and wants its own decision first.
   fired: a query string is a parser change, not a router. The genuine remaining
   signals are nesting and loading states, neither of which local-first data
   produces. Call sites speak in `Route` values, so the swap stays mechanical.
-- **Income is entered on the Plan page** (§28.5), which is the model room holding
-  a record. A named compromise, not an oversight — a People destination built to
-  hold one number per person would be a room with a chair in it.
+- **Adding an account still happens on Accounts, and a loan on Debts**, while
+  people and salaries are managed in the record room (§29.3). Whether those move
+  is a real question; moving them would be a second restructuring and §29 was a
+  correction.
 - **Retirement age and savings rate do not persist.** They are intentions rather
   than records (§28.3), so they live in component state and reset on reload.
   Whether a plan should be savable is a real question and nobody has asked it yet.

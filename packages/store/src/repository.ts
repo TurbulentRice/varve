@@ -95,6 +95,15 @@ export interface Repository {
 
   // ----------------------------------------------------------------- writes
   /** Insert or replace by id. Returns the revision after the write. */
+  /**
+   * Insert or replace owners by id.
+   *
+   * The odd one out: every other write here appends a dated record, and this
+   * overwrites a property. That is the record-versus-property distinction §23.3
+   * settled, showing up as two kinds of write rather than two shapes of data
+   * (§29.4).
+   */
+  saveOwners(owners: readonly Owner[]): Promise<Revision>;
   saveAccounts(accounts: readonly Account[]): Promise<Revision>;
   saveObservations(observations: readonly BalanceObservation[]): Promise<Revision>;
   saveFlows(flows: readonly Flow[]): Promise<Revision>;
