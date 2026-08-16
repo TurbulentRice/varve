@@ -337,7 +337,37 @@ describe('schema version 3 adds payments without breaking versions 1 or 2', () =
 
   it('upgrades on write, once', () => {
     expect(decodeSnapshot(v2).schemaVersion).toBe(SNAPSHOT_SCHEMA_VERSION);
-    expect(SNAPSHOT_SCHEMA_VERSION).toBe(3);
+    expect(SNAPSHOT_SCHEMA_VERSION).toBe(4);
+  });
+
+  it('reads income as absent, not empty-by-accident, in a document that predates it', () => {
+    // The fourth consecutive migration that adds a collection rather than
+    // changing what a populated field means (§28.6). A ledger written before
+    // income existed genuinely has none, so empty is the honest reading.
+    expect(decodeSnapshot(v2).incomeObservations).toEqual([]);
+  });
+
+  it('round-trips an income observation', () => {
+    const withIncome = {
+      ...emptySnapshot({ id: householdId('h1'), name: 'Test' }),
+      incomeObservations: [
+        {
+          id: 'inc1' as never,
+          ownerId: 'o1' as never,
+          asOf: '2026-01-01' as never,
+          annualAmount: m('95000'),
+          source: 'manual' as const,
+        },
+      ],
+    };
+
+    const back = decodeSnapshot(encodeSnapshot(withIncome));
+
+    expect(back.incomeObservations).toHaveLength(1);
+    // Serialized as a string, like every other amount — a format that
+    // round-trips money through floats corrupts it silently.
+    expect(back.incomeObservations[0]!.annualAmount.toString()).toBe('95000.0000');
+    expect(back.incomeObservations[0]!.ownerId).toBe('o1');
   });
 
   it('round-trips a payment', () => {

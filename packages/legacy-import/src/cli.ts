@@ -40,11 +40,33 @@ async function write(label: string, path: string, snapshot: Snapshot) {
   );
 }
 
+/**
+ * Birth years for the two invented people in the sample.
+ *
+ * Applied here rather than in the importer, and only to the synthetic sample,
+ * because the Access database has no such column — inventing one during a
+ * migration would put a made-up figure into a real household's record. Ada and
+ * Ben do not exist, so giving them ages is what a sample is for: without them
+ * the Plan page can only say "no birth year on file", and the half of §28 about
+ * when somebody stops saving cannot be seen at all.
+ */
+const SAMPLE_BIRTH_YEARS: Readonly<Record<string, number>> = { Ada: 1980, Ben: 1975 };
+
+function withSampleAges(snapshot: Snapshot): Snapshot {
+  return {
+    ...snapshot,
+    owners: snapshot.owners.map((owner) => {
+      const birthYear = SAMPLE_BIRTH_YEARS[owner.name];
+      return birthYear === undefined ? owner : { ...owner, birthYear };
+    }),
+  };
+}
+
 async function main() {
   await write(
     'synthetic sample (committed)',
     SAMPLE_OUT,
-    toSnapshot(importLegacy(SYNTHETIC_CSV, 'Sample Household')),
+    withSampleAges(toSnapshot(importLegacy(SYNTHETIC_CSV, 'Sample Household'))),
   );
 
   if (!existsSync(join(LEGACY_CSV, 'tblPerformance.csv'))) {

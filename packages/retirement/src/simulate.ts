@@ -124,6 +124,16 @@ const TIMING_WEIGHT: Record<ContributionTiming, number> = {
 export interface SimulationInput {
   readonly startingValue: Money;
   readonly annualContribution: Money;
+  /**
+   * One contribution per projected year, overriding `annualContribution` and
+   * `contributionGrowth` when present.
+   *
+   * Exists because two people do not retire in the same year, so a household's
+   * saving steps down rather than growing smoothly (§28.4). Shorter than `years`
+   * is read as zero thereafter — a schedule that runs out has said everything it
+   * has to say.
+   */
+  readonly contributionSchedule?: readonly Money[];
   readonly years: number;
   readonly returns: ReturnModel;
   /** Applied to the contribution each year, e.g. `0.03` to track raises. */
@@ -169,6 +179,7 @@ export function simulate(input: SimulationInput): Simulation {
   const {
     startingValue,
     annualContribution,
+    contributionSchedule,
     years,
     returns,
     contributionGrowth = 0,
@@ -182,7 +193,27 @@ export function simulate(input: SimulationInput): Simulation {
 
   const weight = TIMING_WEIGHT[contributionTiming];
   const start = startingValue.toNumber();
-  const baseContribution = annualContribution.toNumber();
+
+  /**
+   * Contributions, resolved to one float per year before any run begins.
+   *
+   * Both paths collapse here — the scalar compounds its growth rate, the
+   * schedule is read straight across — so the inner loop indexes an array
+   * instead of carrying a running multiply. Same work, one shape, and the
+   * sanctioned float loop (ground rule 2) is no less honest for it.
+   */
+  const contributions = new Float64Array(years);
+  if (contributionSchedule) {
+    for (let year = 0; year < years; year += 1) {
+      contributions[year] = contributionSchedule[year]?.toNumber() ?? 0;
+    }
+  } else {
+    let running = annualContribution.toNumber();
+    for (let year = 0; year < years; year += 1) {
+      contributions[year] = running;
+      running *= 1 + contributionGrowth;
+    }
+  }
 
   const rng = mulberry32(seed);
   const nextReturn = returns.sampler(rng);
@@ -193,15 +224,14 @@ export function simulate(input: SimulationInput): Simulation {
 
   for (let run = 0; run < runs; run += 1) {
     let balance = start;
-    let contribution = baseContribution;
 
     for (let year = 0; year < years; year += 1) {
       const rate = nextReturn();
+      const contribution = contributions[year]!;
       // Contributions earn a fraction of the year's return according to when
       // they land — the same weighting the deterministic projection applies.
       balance += contribution + balance * rate + contribution * rate * weight;
       byYear[year]![run] = balance;
-      contribution *= 1 + contributionGrowth;
     }
   }
 

@@ -99,6 +99,7 @@ export class PersistingRepository implements Repository {
   loans: Repository['loans'] = () => this.#inner.loans();
   loanObservations: Repository['loanObservations'] = (query) => this.#inner.loanObservations(query);
   loanPayments: Repository['loanPayments'] = (query) => this.#inner.loanPayments(query);
+  incomeObservations: Repository['incomeObservations'] = () => this.#inner.incomeObservations();
   revision: Repository['revision'] = () => this.#inner.revision();
   export: Repository['export'] = () => this.#inner.export();
 
@@ -111,6 +112,10 @@ export class PersistingRepository implements Repository {
 
   async saveAccounts(...args: Parameters<Repository['saveAccounts']>) {
     return this.#persist(await this.#inner.saveAccounts(...args));
+  }
+
+  async saveOwners(...args: Parameters<Repository['saveOwners']>) {
+    return this.#persist(await this.#inner.saveOwners(...args));
   }
 
   async saveObservations(...args: Parameters<Repository['saveObservations']>) {
@@ -135,6 +140,14 @@ export class PersistingRepository implements Repository {
 
   async saveLoanPayments(...args: Parameters<Repository['saveLoanPayments']>) {
     return this.#persist(await this.#inner.saveLoanPayments(...args));
+  }
+
+  async saveIncomeObservations(...args: Parameters<Repository['saveIncomeObservations']>) {
+    return this.#persist(await this.#inner.saveIncomeObservations(...args));
+  }
+
+  async deleteIncomeObservations(...args: Parameters<Repository['deleteIncomeObservations']>) {
+    return this.#persist(await this.#inner.deleteIncomeObservations(...args));
   }
 
   async deleteLoanPayments(...args: Parameters<Repository['deleteLoanPayments']>) {

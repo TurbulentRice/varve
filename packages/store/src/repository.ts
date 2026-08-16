@@ -36,6 +36,8 @@ import type {
   FlowId,
   FlowKind,
   Household,
+  IncomeObservation,
+  IncomeObservationId,
   IsoDate,
   Loan,
   LoanId,
@@ -88,10 +90,20 @@ export interface Repository {
   loans(): Promise<readonly Loan[]>;
   loanObservations(query?: LoanObservationQuery): Promise<readonly LoanObservation[]>;
   loanPayments(query?: LoanPaymentQuery): Promise<readonly LoanPayment[]>;
+  incomeObservations(): Promise<readonly IncomeObservation[]>;
   revision(): Promise<Revision>;
 
   // ----------------------------------------------------------------- writes
   /** Insert or replace by id. Returns the revision after the write. */
+  /**
+   * Insert or replace owners by id.
+   *
+   * The odd one out: every other write here appends a dated record, and this
+   * overwrites a property. That is the record-versus-property distinction §23.3
+   * settled, showing up as two kinds of write rather than two shapes of data
+   * (§29.4).
+   */
+  saveOwners(owners: readonly Owner[]): Promise<Revision>;
   saveAccounts(accounts: readonly Account[]): Promise<Revision>;
   saveObservations(observations: readonly BalanceObservation[]): Promise<Revision>;
   saveFlows(flows: readonly Flow[]): Promise<Revision>;
@@ -99,12 +111,15 @@ export interface Repository {
   saveLoans(loans: readonly Loan[]): Promise<Revision>;
   saveLoanObservations(observations: readonly LoanObservation[]): Promise<Revision>;
   saveLoanPayments(payments: readonly LoanPayment[]): Promise<Revision>;
+  /** What a person earns, as of a date. Upserted by id like everything else. */
+  saveIncomeObservations(observations: readonly IncomeObservation[]): Promise<Revision>;
 
   deleteObservations(ids: readonly ObservationId[]): Promise<Revision>;
   deleteFlows(ids: readonly FlowId[]): Promise<Revision>;
   /** Removes the loan and everything recorded about it — none of it means anything alone. */
   deleteLoans(ids: readonly LoanId[]): Promise<Revision>;
   deleteLoanPayments(ids: readonly LoanPaymentId[]): Promise<Revision>;
+  deleteIncomeObservations(ids: readonly IncomeObservationId[]): Promise<Revision>;
 
   // -------------------------------------------------------------- documents
   /** The whole ledger, ready to serialize. */

@@ -54,7 +54,7 @@ export type Route =
   | { readonly view: 'debts' }
   | { readonly view: 'debt'; readonly loanId: LoanId }
   | { readonly view: 'plan' }
-  | { readonly view: 'year'; readonly year: number };
+  | { readonly view: 'record'; readonly year: number };
 
 export const OVERVIEW: Route = { view: 'overview' };
 
@@ -67,6 +67,16 @@ export const OVERVIEW: Route = { view: 'overview' };
  */
 const EARLIEST_YEAR = 1900;
 const LATEST_YEAR = 2200;
+
+/**
+ * The year `#/record` means when it does not say.
+ *
+ * Last year, because the thing someone opens this to do is enter a year that has
+ * finished. Same default the shell's button has always used.
+ */
+export function defaultRecordYear(): number {
+  return new Date().getUTCFullYear() - 1;
+}
 
 /**
  * Escape a path segment, but leave `:` alone.
@@ -114,13 +124,18 @@ export function parseRoute(hash: string): Route {
 
   if (head === 'plan') return { view: 'plan' };
 
-  if (head === 'years' && tail) {
+  // `record` is where writes happen; `years` is the old spelling, parsed and
+  // never printed. Same alias rule as `loans` above, for the same reason (§29.3).
+  if (head === 'record' || head === 'years') {
+    // No year is the current one — the record room is a place you can be, not a
+    // route with a parameter missing.
+    if (!tail) return { view: 'record', year: defaultRecordYear() };
     // `Number` would accept '2024abc' as NaN but also ' 2024 ' and '0x7e8'.
     // Requiring digits keeps the URL meaning exactly what it looks like.
     if (!/^\d+$/.test(tail)) return OVERVIEW;
     const year = Number(tail);
     if (year < EARLIEST_YEAR || year > LATEST_YEAR) return OVERVIEW;
-    return { view: 'year', year };
+    return { view: 'record', year };
   }
 
   return OVERVIEW;
@@ -133,8 +148,8 @@ export function formatRoute(route: Route): string {
       return '#/accounts';
     case 'account':
       return `#/accounts/${encodeSegment(route.accountId)}`;
-    case 'year':
-      return `#/years/${route.year}`;
+    case 'record':
+      return `#/record/${route.year}`;
     case 'debts':
       return '#/debts';
     case 'debt':
@@ -150,7 +165,7 @@ export function formatRoute(route: Route): string {
 export function sameRoute(a: Route, b: Route): boolean {
   if (a.view !== b.view) return false;
   if (a.view === 'account' && b.view === 'account') return a.accountId === b.accountId;
-  if (a.view === 'year' && b.view === 'year') return a.year === b.year;
+  if (a.view === 'record' && b.view === 'record') return a.year === b.year;
   if (a.view === 'debt' && b.view === 'debt') return a.loanId === b.loanId;
   return true;
 }
@@ -169,7 +184,7 @@ export function sectionOf(route: Route): Route['view'] | null {
       return 'accounts';
     case 'debt':
       return 'debts';
-    case 'year':
+    case 'record':
       return null;
     default:
       return route.view;

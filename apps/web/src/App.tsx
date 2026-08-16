@@ -11,6 +11,7 @@
  */
 
 import {
+  incomeObservationId,
   isoDate,
   loanId as toLoanId,
   loanObservationId,
@@ -20,6 +21,7 @@ import {
   type Account,
   type Loan,
   type LoanId,
+  type Owner,
 } from '@varve/core';
 import { findLoanState, loanCost, schedulePosition } from '@varve/loans';
 import {
@@ -38,6 +40,7 @@ import {
   deriveHistory,
   newAccount,
   normal,
+  parseAmount,
   observedReturns,
   planYearEntry,
   simulate,
@@ -46,14 +49,14 @@ import {
   type YearEntry,
 } from '@varve/retirement';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { formatRoute, OVERVIEW } from './routing/route.js';
+import { defaultRecordYear, formatRoute, OVERVIEW } from './routing/route.js';
 import { navigate, useRoute } from './routing/useRoute.js';
 import { anchorBands, type BandPoint } from './charts/ProjectionChart.js';
 import { type Settings } from './components/Controls.js';
 import { AccountDetail } from './components/AccountDetail.js';
 import { Shell } from './components/Shell.js';
 import { BackLink } from './components/ui.js';
-import { YearEditor } from './components/YearEditor.js';
+import { Record } from './pages/Record.js';
 import { LoansView } from './components/LoansView.js';
 import { LoanDetail } from './components/LoanDetail.js';
 import { LoanEditor, type LoanDraft } from './components/LoanEditor.js';
@@ -63,6 +66,8 @@ import { Accounts } from './pages/Accounts.js';
 import { Plan } from './pages/Plan.js';
 import { downloadSnapshot } from './lib/download.js';
 import { householdNetWorth } from './lib/net-worth.js';
+import { savingSchedule } from './lib/saving.js';
+import type { PersonOverride, SavingSettings } from './components/SavingControl.js';
 import sampleSnapshot from './data/sample-snapshot.json';
 
 /**
@@ -169,11 +174,45 @@ function Ledger({
   }, [here]);
 
   const [settings, setSettings] = useState<Settings>(() => ({
-    contribution: 10_000,
     years: 25,
     target: 1_000_000,
     model: 'bootstrap',
   }));
+
+  /**
+   * How much goes in, and how that figure is arrived at.
+   *
+   * Component state, not ledger records. §28.3 draws the line — an intention is
+   * not a measurement of anything that happened, so changing your mind about
+   * retiring at 62 loses nothing because there was never a fact there. Changing
+   * your salary keeps the old figure, because there was.
+   *
+   * Amount is the default because it is the mode that needs nothing: a dollar
+   * figure works on an empty ledger, and a percentage cannot until somebody has
+   * a salary on file (§29.2).
+   */
+  const [saving, setSaving] = useState<SavingSettings>(() => ({
+    mode: 'amount',
+    amount: 10_000,
+    rate: 0.1,
+    savers: [],
+    custom: null,
+  }));
+
+  const [overrides, setOverrides] = useState<readonly PersonOverride[]>([]);
+
+  const contributions = useMemo(
+    () =>
+      savingSchedule({
+        settings: saving,
+        overrides,
+        owners: snapshot.owners,
+        incomes: snapshot.incomeObservations,
+        asOf: isoDate(new Date().toISOString().slice(0, 10)),
+        years: settings.years,
+      }),
+    [saving, overrides, snapshot.owners, snapshot.incomeObservations, settings.years],
+  );
 
   const [targetTouched, setTargetTouched] = useState(false);
   const target = targetTouched
@@ -184,11 +223,14 @@ function Ledger({
     () =>
       simulate({
         startingValue: history.currentValue,
-        annualContribution: m(String(settings.contribution)),
+        // Kept for the shape; the schedule is what actually applies, and it is
+        // what lets two people stop saving in different years (§28.4).
+        annualContribution: contributions.firstYearTotal,
+        contributionSchedule: contributions.schedule,
         years: settings.years,
         returns: modelFor(settings.model, observed),
       }),
-    [history.currentValue, settings.contribution, settings.years, settings.model, observed],
+    [history.currentValue, contributions, settings.years, settings.model, observed],
   );
 
   const lastYear = history.years[history.years.length - 1]?.year ?? new Date().getUTCFullYear();
@@ -279,6 +321,42 @@ function Ledger({
     await repo.saveFlows(plans.flatMap((p) => p.flows));
     await repo.deleteObservations(plans.flatMap((p) => p.removedObservations));
     await repo.deleteFlows(plans.flatMap((p) => p.removedFlows));
+    await commit();
+  }
+
+  /**
+   * Record what someone earns, as of today.
+   *
+   * The id is derived from the owner and the date, so entering a figure twice in
+   * one day corrects that day's record rather than stacking two — the same
+   * forgiving rule a balance observation follows, and the opposite of a payment,
+   * where two in a day are two events (§16.5).
+   */
+  async function recordIncome(owner: string, annual: string) {
+    const today = isoDate(new Date().toISOString().slice(0, 10));
+    const parsed = parseAmount(annual);
+    if (!parsed) return;
+
+    await repo.saveIncomeObservations([
+      {
+        id: incomeObservationId(`inc:${owner}:${today}`),
+        ownerId: owner as Owner['id'],
+        asOf: today,
+        annualAmount: parsed,
+        source: 'manual',
+      },
+    ]);
+    await commit();
+  }
+
+  /**
+   * Save a person's properties.
+   *
+   * The one write here that overwrites rather than appends — a birth year does
+   * not move, so there is no history of it to keep (§29.4).
+   */
+  async function saveOwner(owner: Owner) {
+    await repo.saveOwners([owner]);
     await commit();
   }
 
@@ -399,7 +477,7 @@ function Ledger({
       householdName={history.householdName}
       owners={history.owners.map((o) => o.name).join(' & ')}
       route={route}
-      onUpdateNumbers={() => navigate({ view: 'year', year: new Date().getUTCFullYear() - 1 })}
+      onUpdateNumbers={() => navigate({ view: 'record', year: defaultRecordYear() })}
       onExport={() => downloadSnapshot(snapshot)}
       onOpenFile={(file) => void openFile(file)}
     >
@@ -447,7 +525,7 @@ function Ledger({
         <Accounts
           history={history}
           accounts={accountHistories}
-          onUpdateNumbers={() => navigate({ view: 'year', year: new Date().getUTCFullYear() - 1 })}
+          onUpdateNumbers={() => navigate({ view: 'record', year: defaultRecordYear() })}
         />
       );
     }
@@ -494,19 +572,23 @@ function Ledger({
       );
     }
 
-    if (route.view === 'year') {
+    if (route.view === 'record') {
       return (
-        <YearEditor
+        <Record
+          year={route.year}
           accounts={editableAccounts}
           observations={snapshot.observations}
           flows={snapshot.flows}
-          year={route.year}
+          owners={snapshot.owners}
+          incomes={snapshot.incomeObservations}
           // Stepping between years refines one destination rather than visiting
           // several, so it overwrites the entry instead of stacking fifteen of
           // them between the reader and the way out.
-          onYearChange={(next) => navigate({ view: 'year', year: next }, { replace: true })}
-          onSave={(entries) => saveYear(route.year, entries)}
+          onYearChange={(next) => navigate({ view: 'record', year: next }, { replace: true })}
+          onSaveYear={(entries) => saveYear(route.year, entries)}
           onAddAccount={addAccount}
+          onSaveOwner={saveOwner}
+          onRecordIncome={recordIncome}
           onClose={() => navigate(OVERVIEW)}
         />
       );
@@ -524,6 +606,16 @@ function Ledger({
             if (next.target !== target) setTargetTouched(true);
             setSettings(next);
           }}
+          saving={saving}
+          onSavingChange={setSaving}
+          overrides={overrides}
+          onOverride={(next) =>
+            setOverrides((previous) => [
+              ...previous.filter((o) => o.ownerId !== next.ownerId),
+              next,
+            ])
+          }
+          result={contributions}
           observedCount={observed.length}
           history={historyPoints}
           bands={bands}
@@ -538,7 +630,7 @@ function Ledger({
         netWorth={netWorth}
         staleYears={staleYears}
         onRecordDebts={() => navigate({ view: 'debts' })}
-        onUpdateNumbers={() => navigate({ view: 'year', year: new Date().getUTCFullYear() - 1 })}
+        onUpdateNumbers={() => navigate({ view: 'record', year: defaultRecordYear() })}
       />
     );
   }

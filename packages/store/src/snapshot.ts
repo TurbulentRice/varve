@@ -46,6 +46,7 @@ import {
   type Loan,
   type LoanObservation,
   type LoanPayment,
+  type IncomeObservation,
   type Note,
   type Owner,
 } from '@varve/core';
@@ -54,7 +55,8 @@ import {
 /**
  * Bump when the on-disk shape changes in a way older readers cannot handle.
  *
- * 2 adds `loans` and `loanObservations`; 3 adds `loanPayments`. Older documents
+ * 2 adds `loans` and `loanObservations`; 3 adds `loanPayments`; 4 adds
+ * `incomeObservations`. Older documents
  * still open, with each absent collection read as empty — the honest reading
  * rather than a lenient one, since a ledger written before a concept existed
  * genuinely has none of it.
@@ -64,7 +66,7 @@ import {
  * the expensive kind changes what an already-populated field means, and none of
  * these has.
  */
-export const SNAPSHOT_SCHEMA_VERSION = 3;
+export const SNAPSHOT_SCHEMA_VERSION = 4;
 
 export interface Snapshot {
   readonly schemaVersion: number;
@@ -82,6 +84,7 @@ export interface Snapshot {
   readonly loans: readonly Loan[];
   readonly loanObservations: readonly LoanObservation[];
   readonly loanPayments: readonly LoanPayment[];
+  readonly incomeObservations: readonly IncomeObservation[];
 }
 
 export function emptySnapshot(household: Household): Snapshot {
@@ -98,6 +101,7 @@ export function emptySnapshot(household: Household): Snapshot {
     loans: [],
     loanObservations: [],
     loanPayments: [],
+    incomeObservations: [],
   };
 }
 
@@ -176,6 +180,21 @@ export function decodeSnapshot(text: string): Snapshot {
     loanPayments: array<Record<string, unknown>>(doc.loanPayments, 'loanPayments').map(
       decodeLoanPayment,
     ),
+    incomeObservations: array<Record<string, unknown>>(
+      doc.incomeObservations,
+      'incomeObservations',
+    ).map(decodeIncomeObservation),
+  };
+}
+
+function decodeIncomeObservation(raw: Record<string, unknown>, i: number): IncomeObservation {
+  return {
+    id: raw.id as IncomeObservation['id'],
+    ownerId: raw.ownerId as IncomeObservation['ownerId'],
+    asOf: isoDate(String(raw.asOf)),
+    annualAmount: amount(raw.annualAmount, `incomeObservations[${i}]`),
+    source: raw.source === 'imported' ? 'imported' : 'manual',
+    ...(typeof raw.note === 'string' ? { note: raw.note } : {}),
   };
 }
 

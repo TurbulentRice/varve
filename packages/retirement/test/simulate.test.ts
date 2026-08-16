@@ -253,3 +253,64 @@ describe('normal model', () => {
     expect(run.finalValue.median.toNumber()).toBeCloseTo(1070, -1);
   });
 });
+
+describe('a contribution schedule', () => {
+  const base = {
+    startingValue: m('100000'),
+    annualContribution: m('10000'),
+    years: 4,
+    returns: normal(0, 0),
+    runs: 1,
+  } as const;
+
+  it('matches the scalar path when every year is the same figure', () => {
+    // The two paths must agree where they overlap, or one of them is a second
+    // implementation of the same idea.
+    const scalar = simulate(base);
+    const scheduled = simulate({
+      ...base,
+      contributionSchedule: [m('10000'), m('10000'), m('10000'), m('10000')],
+    });
+
+    expect(scheduled.finalValue.median.format()).toBe(scalar.finalValue.median.format());
+  });
+
+  it('stops adding when the schedule steps to zero', () => {
+    // What it exists for: someone retires and their share stops (§28.4).
+    const stopping = simulate({
+      ...base,
+      contributionSchedule: [m('10000'), m('10000'), m('0'), m('0')],
+    });
+    const throughout = simulate(base);
+
+    expect(stopping.finalValue.median.compare(throughout.finalValue.median)).toBe(-1);
+  });
+
+  it('reads a schedule shorter than the horizon as zero thereafter', () => {
+    // A schedule that runs out has said everything it has to say; the
+    // alternative is throwing on a difference the caller may have meant.
+    const short = simulate({ ...base, contributionSchedule: [m('10000'), m('10000')] });
+    const explicit = simulate({
+      ...base,
+      contributionSchedule: [m('10000'), m('10000'), m('0'), m('0')],
+    });
+
+    expect(short.finalValue.median.format()).toBe(explicit.finalValue.median.format());
+  });
+
+  it('overrides contribution growth rather than compounding on top of it', () => {
+    // The schedule is already the answer; applying growth to it would be
+    // applying a raise twice.
+    const scheduled = simulate({
+      ...base,
+      contributionGrowth: 0.5,
+      contributionSchedule: [m('10000'), m('10000'), m('10000'), m('10000')],
+    });
+    const flat = simulate({
+      ...base,
+      contributionSchedule: [m('10000'), m('10000'), m('10000'), m('10000')],
+    });
+
+    expect(scheduled.finalValue.median.format()).toBe(flat.finalValue.median.format());
+  });
+});

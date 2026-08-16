@@ -31,5 +31,6 @@ export function toSnapshot(result: ImportResult): Snapshot {
     loans: [],
     loanObservations: [],
     loanPayments: [],
+    incomeObservations: [],
   };
 }

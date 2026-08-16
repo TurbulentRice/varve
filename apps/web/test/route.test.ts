@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { accountId, loanId } from '@varve/core';
 import {
+  defaultRecordYear,
   formatRoute,
   OVERVIEW,
   parseRoute,
@@ -23,8 +24,8 @@ describe('reading a URL', () => {
     });
   });
 
-  it('reads a year', () => {
-    expect(parseRoute('#/years/2024')).toEqual({ view: 'year', year: 2024 });
+  it('reads a year in the record room', () => {
+    expect(parseRoute('#/record/2024')).toEqual({ view: 'record', year: 2024 });
   });
 
   it('does not mind a missing leading slash', () => {
@@ -49,14 +50,13 @@ describe('a URL it cannot read is the Overview, not an error', () => {
   // exists.
   const nonsense = [
     '#/nowhere',
-    '#/years', // no year
-    '#/years/nineteen',
-    '#/years/2024abc',
-    '#/years/0x7e8', // parsed by Number, rejected here
-    '#/years/ 2024 ', // ditto
-    '#/years/1e999',
-    '#/years/0',
-    '#/years/99999',
+    '#/record/nineteen',
+    '#/record/2024abc',
+    '#/record/0x7e8', // parsed by Number, rejected here
+    '#/record/ 2024 ', // ditto
+    '#/record/1e999',
+    '#/record/0',
+    '#/record/99999',
     '#/ACCOUNTS/acct:1', // routes are lower case
     '#/accounts/acct:1/extra/segments',
   ];
@@ -105,7 +105,7 @@ describe('writing a URL', () => {
   });
 
   it('writes a year plainly', () => {
-    expect(formatRoute({ view: 'year', year: 2024 })).toBe('#/years/2024');
+    expect(formatRoute({ view: 'record', year: 2024 })).toBe('#/record/2024');
   });
 });
 
@@ -115,8 +115,8 @@ describe('parsing and printing are inverse', () => {
     { view: 'account', accountId: accountId('acct:1') },
     { view: 'account', accountId: accountId('acct:42') },
     { view: 'account', accountId: accountId('weird id/with slash') },
-    { view: 'year', year: 2006 },
-    { view: 'year', year: 2062 },
+    { view: 'record', year: 2006 },
+    { view: 'record', year: 2062 },
     { view: 'accounts' },
     { view: 'debts' },
     { view: 'debt', loanId: loanId('loan:1') },
@@ -140,8 +140,8 @@ describe('comparing routes', () => {
   });
 
   it('distinguishes different years, and different views', () => {
-    expect(sameRoute({ view: 'year', year: 2024 }, { view: 'year', year: 2025 })).toBe(false);
-    expect(sameRoute({ view: 'year', year: 2024 }, OVERVIEW)).toBe(false);
+    expect(sameRoute({ view: 'record', year: 2024 }, { view: 'record', year: 2025 })).toBe(false);
+    expect(sameRoute({ view: 'record', year: 2024 }, OVERVIEW)).toBe(false);
     expect(sameRoute(OVERVIEW, OVERVIEW)).toBe(true);
   });
 });
@@ -201,14 +201,37 @@ describe('the accounts list is a destination of its own', () => {
   });
 });
 
+describe('the record room', () => {
+  it('reads a bare #/record as the current default year', () => {
+    // A place you can be, not a route with a parameter missing — same rule the
+    // accounts and debts lists follow.
+    const route = parseRoute('#/record');
+    expect(route.view).toBe('record');
+    expect((route as { year: number }).year).toBe(defaultRecordYear());
+  });
+
+  it('still understands the old #/years spelling', () => {
+    // Renaming inside a total parser would send every existing bookmark to the
+    // Overview and look like it had simply gone somewhere else (§29.3).
+    expect(parseRoute('#/years/2024')).toEqual({ view: 'record', year: 2024 });
+    expect(parseRoute('#/years')).toEqual({ view: 'record', year: defaultRecordYear() });
+  });
+
+  it('never writes the old spelling back out', () => {
+    expect(formatRoute({ view: 'record', year: 2024 })).toBe('#/record/2024');
+  });
+});
+
 describe('which section the shell should light up', () => {
   it('keeps the section lit while you are inside it', () => {
     expect(sectionOf({ view: 'account', accountId: accountId('acct:1') })).toBe('accounts');
     expect(sectionOf({ view: 'debt', loanId: loanId('loan:1') })).toBe('debts');
   });
 
-  it('lights nothing for the year editor, which is a task rather than a place', () => {
-    expect(sectionOf({ view: 'year', year: 2024 })).toBeNull();
+  it('lights nothing for the record room, which is where you write rather than look', () => {
+    // The four destinations answer questions; this one takes answers. Marking a
+    // nav item current while it is open would claim it belongs to one of them.
+    expect(sectionOf({ view: 'record', year: 2024 })).toBeNull();
   });
 
   it('lights each destination for itself', () => {
