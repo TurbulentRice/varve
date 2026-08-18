@@ -63,7 +63,6 @@ import { LoanDetail } from './components/LoanDetail.js';
 import { LoanEditor, type LoanDraft } from './components/LoanEditor.js';
 import type { YearChange } from './components/AccountYearEditor.js';
 import { Overview } from './pages/Overview.js';
-import { Accounts } from './pages/Accounts.js';
 import { Plan } from './pages/Plan.js';
 import { downloadSnapshot } from './lib/download.js';
 import { nameList } from './lib/format.js';
@@ -512,7 +511,7 @@ function Ledger({
               The link names an account this document does not contain. It may belong to a
               different ledger, or the account may since have been removed.
             </div>
-            <BackLink label="All accounts" onClick={() => navigate({ view: 'accounts' })} />
+            <BackLink label="All accounts" onClick={() => navigate(OVERVIEW)} />
           </>
         );
       }
@@ -523,17 +522,7 @@ function Ledger({
           observations={snapshot.observations}
           flows={snapshot.flows}
           onSaveYears={saveAccountYears}
-          onClose={() => navigate({ view: 'accounts' })}
-        />
-      );
-    }
-
-    if (route.view === 'accounts') {
-      return (
-        <Accounts
-          history={history}
-          accounts={accountHistories}
-          onUpdateNumbers={() => navigate({ view: 'record', year: defaultRecordYear() })}
+          onClose={() => navigate(OVERVIEW)}
         />
       );
     }
@@ -638,6 +627,8 @@ function Ledger({
     return (
       <Overview
         netWorth={netWorth}
+        history={history}
+        accounts={accountHistories}
         staleYears={staleYears}
         onRecordDebts={() => navigate({ view: 'debts' })}
         onUpdateNumbers={() => navigate({ view: 'record', year: defaultRecordYear() })}

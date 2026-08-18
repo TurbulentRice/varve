@@ -36,7 +36,7 @@ import { useMemo, useState } from 'react';
 import { summariseDebts, type DebtRow } from '../lib/debts.js';
 import { Sparkline } from '../charts/Sparkline.js';
 import { longDate, money, payment, rate } from '../lib/format.js';
-import { PageTitle, ShareBar, Tile, Tiles } from './ui.js';
+import { ShareBar, Tile, Tiles } from './ui.js';
 
 const STRATEGY_LABEL: Record<string, string> = {
   avalanche: 'Avalanche',
@@ -88,19 +88,7 @@ export function LoansView({
 
   return (
     <>
-      <PageTitle
-        title="Debts"
-        subtitle={
-          summary.activeCount === 0
-            ? 'Nothing owed'
-            : `${money(summary.owed)} across ${summary.activeCount} ${summary.activeCount === 1 ? 'loan' : 'loans'}`
-        }
-        actions={
-          <button type="button" className="primary" onClick={onAdd}>
-            Add a loan
-          </button>
-        }
-      />
+      <h1 className="visually-hidden">Debts</h1>
 
       {states.length === 0 ? (
         <Empty onAdd={onAdd} />
@@ -126,7 +114,7 @@ export function LoansView({
             </Tiles>
           ) : null}
 
-          <LoanTable rows={summary.rows} onOpen={onOpen} />
+          <LoanTable rows={summary.rows} onOpen={onOpen} onAdd={onAdd} />
 
           {active.length > 0 ? (
             <>
@@ -210,9 +198,11 @@ function Empty({ onAdd }: { onAdd: () => void }) {
 function LoanTable({
   rows,
   onOpen,
+  onAdd,
 }: {
   rows: readonly DebtRow[];
   onOpen: (id: LoanId) => void;
+  onAdd: () => void;
 }) {
   return (
     <div className="table-scroll">
@@ -259,6 +249,14 @@ function LoanTable({
               <td>{state.asOf ? longDate(state.asOf) : <span className="muted">never recorded</span>}</td>
             </tr>
           ))}
+          {/* Adding belongs at the end of the list it adds to (§31.6). */}
+          <tr className="add-row">
+            <th scope="row" colSpan={8}>
+              <button type="button" className="link" onClick={onAdd}>
+                + Add a loan
+              </button>
+            </th>
+          </tr>
         </tbody>
       </table>
       <p className="table-note">

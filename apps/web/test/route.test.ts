@@ -117,7 +117,6 @@ describe('parsing and printing are inverse', () => {
     { view: 'account', accountId: accountId('weird id/with slash') },
     { view: 'record', year: 2006 },
     { view: 'record', year: 2062 },
-    { view: 'accounts' },
     { view: 'debts' },
     { view: 'debt', loanId: loanId('loan:1') },
     { view: 'plan' },
@@ -190,14 +189,21 @@ describe('the old #/loans links still work', () => {
   });
 });
 
-describe('the accounts list is a destination of its own', () => {
-  it('reads a bare #/accounts as the list rather than a missing id', () => {
-    // It used to fall back to the landing page. Making positions first-class
-    // (§19.2) is most of what this era is for, and a list you cannot link to is
-    // not first-class.
-    expect(parseRoute('#/accounts')).toEqual({ view: 'accounts' });
-    expect(parseRoute('#/accounts/')).toEqual({ view: 'accounts' });
-    expect(formatRoute({ view: 'accounts' })).toBe('#/accounts');
+describe('the accounts list folded into the Overview', () => {
+  it('sends a bare #/accounts to the Overview that absorbed it', () => {
+    // §31.2 merged the two pages. Parsed rather than dropped, so an old bookmark
+    // lands on the page that now holds the list instead of looking like it went
+    // somewhere unrelated.
+    expect(parseRoute('#/accounts')).toEqual(OVERVIEW);
+    expect(parseRoute('#/accounts/')).toEqual(OVERVIEW);
+  });
+
+  it('still reads a single account, which was never the duplicated part', () => {
+    expect(parseRoute('#/accounts/acct:1')).toEqual({
+      view: 'account',
+      accountId: accountId('acct:1'),
+    });
+    expect(formatRoute({ view: 'account', accountId: accountId('acct:1') })).toBe('#/accounts/acct:1');
   });
 });
 
@@ -224,7 +230,8 @@ describe('the record room', () => {
 
 describe('which section the shell should light up', () => {
   it('keeps the section lit while you are inside it', () => {
-    expect(sectionOf({ view: 'account', accountId: accountId('acct:1') })).toBe('accounts');
+    // An account detail page belongs to the Overview now that the list does.
+    expect(sectionOf({ view: 'account', accountId: accountId('acct:1') })).toBe('overview');
     expect(sectionOf({ view: 'debt', loanId: loanId('loan:1') })).toBe('debts');
   });
 
@@ -235,7 +242,7 @@ describe('which section the shell should light up', () => {
   });
 
   it('lights each destination for itself', () => {
-    for (const view of ['overview', 'accounts', 'debts', 'plan'] as const) {
+    for (const view of ['overview', 'debts', 'plan'] as const) {
       expect(sectionOf({ view })).toBe(view);
     }
   });
