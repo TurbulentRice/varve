@@ -30,7 +30,6 @@ import { formatRoute, sectionOf, type Route } from '../routing/route.js';
 /** The destinations, in the order they are read. Each takes no parameters. */
 const DESTINATIONS: readonly { route: Route; label: string }[] = [
   { route: { view: 'overview' }, label: 'Overview' },
-  { route: { view: 'accounts' }, label: 'Accounts' },
   { route: { view: 'debts' }, label: 'Debts' },
   { route: { view: 'plan' }, label: 'Plan' },
 ];

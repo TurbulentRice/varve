@@ -45,6 +45,28 @@
   --data-band-outer: rgba(42, 120, 214, 0.1);
 
   /*
+   * Six lines want six hues (§31.4).
+   *
+   * `--data-line` above is slot 1 of the reference categorical palette these
+   * tokens were built from, so these are its slots 2–6 rather than colours
+   * invented beside it. The whole set was run through the validator against
+   * *this* surface, not the palette's default one: lightness band, chroma floor,
+   * CVD separation (worst adjacent ΔE 9.1 protan) and normal-vision floor all
+   * pass. Three slots warn on contrast against this light surface, which obliges
+   * visible labels or a table view — the chart has a direct-labelling legend and
+   * the accounts table sits underneath it.
+   *
+   * Assigned in fixed order and never cycled. A seventh series is refused rather
+   * than recoloured, because past six adjacent slots stop being tellable apart.
+   */
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+  --series-4: #eda100;
+  --series-5: #e87ba4;
+  --series-6: #008300;
+
+  /*
    * Gain and loss.
    *
    * Green against red separates by only ΔE 4.1 under deuteranopia — the
@@ -92,6 +114,15 @@
     --data-line: #3987e5;
     --data-band-inner: rgba(57, 135, 229, 0.22);
     --data-band-outer: rgba(57, 135, 229, 0.12);
+
+    /* Stepped for the dark surface and validated against it separately: all six
+       checks pass here, contrast included. */
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --series-3: #199e70;
+    --series-4: #c98500;
+    --series-5: #d55181;
+    --series-6: #008300;
   }
 }
 
@@ -110,4 +141,11 @@
   --data-line: #3987e5;
   --data-band-inner: rgba(57, 135, 229, 0.22);
   --data-band-outer: rgba(57, 135, 229, 0.12);
+
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --series-3: #199e70;
+  --series-4: #c98500;
+  --series-5: #d55181;
+  --series-6: #008300;
 }

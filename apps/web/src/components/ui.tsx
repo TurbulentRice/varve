@@ -60,10 +60,10 @@ export function Tiles({ label, children }: { label: string; children: ReactNode 
 /**
  * A page's name and what qualifies it.
  *
- * Every surface had its own arrangement of this before — an `h1` here, an `h2`
- * inside a wrapper there, a `p.subtitle` in both — which is exactly the drift a
- * shared layer exists to stop. One heading level, because each of these is now
- * the title of its own page rather than a section of a longer one.
+ * Only for pages whose title is *not* already in the navigation — an account or
+ * a loan, named by something the shell cannot show. §31.5 removed it from
+ * Overview, Debts, Plan and the record room, where it repeated the lit nav item
+ * for 61px a page.
  */
 export function PageTitle({
   title,

@@ -49,7 +49,6 @@ import { accountId, loanId, type AccountId, type LoanId } from '@varve/core';
 
 export type Route =
   | { readonly view: 'overview' }
-  | { readonly view: 'accounts' }
   | { readonly view: 'account'; readonly accountId: AccountId }
   | { readonly view: 'debts' }
   | { readonly view: 'debt'; readonly loanId: LoanId }
@@ -111,10 +110,11 @@ export function parseRoute(hash: string): Route {
   const [head, tail] = segments;
 
   if (head === 'accounts') {
-    // A bare `#/accounts` is now a destination rather than a missing id: the
-    // list is a place you can be, which is most of what §19.2 means by making
-    // positions first-class.
-    return tail ? { view: 'account', accountId: accountId(decodeSegment(tail)) } : { view: 'accounts' };
+    // A bare `#/accounts` is the Overview, which absorbed the accounts list in
+    // §31.2. Parsed rather than dropped, for the reason every alias here exists:
+    // a total parser sending an old bookmark somewhere unrelated destroys the
+    // evidence of what the reader tried.
+    return tail ? { view: 'account', accountId: accountId(decodeSegment(tail)) } : OVERVIEW;
   }
 
   // `loans` is the alias; `debts` is canonical. Both parse, only one prints.
@@ -144,8 +144,6 @@ export function parseRoute(hash: string): Route {
 /** Render a route as a location hash. Inverse of {@link parseRoute}. */
 export function formatRoute(route: Route): string {
   switch (route.view) {
-    case 'accounts':
-      return '#/accounts';
     case 'account':
       return `#/accounts/${encodeSegment(route.accountId)}`;
     case 'record':
@@ -181,7 +179,8 @@ export function sameRoute(a: Route, b: Route): boolean {
 export function sectionOf(route: Route): Route['view'] | null {
   switch (route.view) {
     case 'account':
-      return 'accounts';
+      // An account detail page belongs to the Overview now that the list does.
+      return 'overview';
     case 'debt':
       return 'debts';
     case 'record':

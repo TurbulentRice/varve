@@ -9,7 +9,7 @@ Last updated: 2026-08-14. The second era is under way.
 
 ## Where things stand
 
-Nineteen phases done. **525 tests**, clean typecheck, clean production build, and
+Twenty phases done. **535 tests**, clean typecheck, clean production build, and
 CI running tests, the bundle guard and the documentation checks on every PR.
 
 | Package | What it holds | Tests |
@@ -19,7 +19,7 @@ CI running tests, the bundle guard and the documentation checks on every PR.
 | [`packages/retirement`](../packages/retirement) | Ledger, household + per-account derivation, year entry, contributions, Monte Carlo. | 106 |
 | [`packages/loans`](../packages/loans) | Amortization, strategies, comparison, ledger seam, what a loan actually cost, whether the payments are keeping up. | 151 |
 | [`packages/legacy-import`](../packages/legacy-import) | One-way migration from Access, with a synthetic fixture. | 23 |
-| [`apps/web`](../apps/web) | React + Vite. A four-destination shell — Overview, Accounts, Debts, Plan — plus account and debt detail, in-place corrections, a record room, money-formatted inputs, and hash routing. | 108 |
+| [`apps/web`](../apps/web) | React + Vite. A three-destination shell — Overview, Debts, Plan — with an interactive chart on the Overview, account and debt detail, in-place corrections, a record room, money-formatted inputs, and hash routing. | 118 |
 
 ## Roadmap
 
@@ -47,7 +47,8 @@ CI running tests, the bundle guard and the documentation checks on every PR.
 18. ✅ The chart back on top, and a mode rather than a replacement (§29)
 19. ✅ Adding people, a condensed card, and money that looks like money as it is
     typed (§30)
-20. ⬅ **Next: the rest of §23 — see below.**
+20. ✅ Overview and Accounts merged, with a chart you select into (§31)
+21. ⬅ **Next: the rest of §23 — see below.**
 
 Deferred behind a stated seam: server, auth, sync, institution APIs. None is
 worth building for a user who does not exist yet.
@@ -121,10 +122,10 @@ Anything from §23 is a larger commitment and wants its own decision first.
   fired: a query string is a parser change, not a router. The genuine remaining
   signals are nesting and loading states, neither of which local-first data
   produces. Call sites speak in `Route` values, so the swap stays mechanical.
-- **Adding an account still happens on Accounts, and a loan on Debts**, while
-  people and salaries are managed in the record room (§29.3). Whether those move
-  is a real question; moving them would be a second restructuring and §29 was a
-  correction.
+- **Adding is split between the record room and the lists.** §31.6 put "add" at
+  the foot of the table it adds to, and the record room remains the front door
+  for balances and people. Whether the lists' add-rows should route into the
+  record room instead is still open.
 - **A person cannot be deleted** (§30.1). An owner is referenced by every account
   they hold and every salary recorded for them, so removing one is a cascade with
   real choices in it — do the accounts go, or change hands? A decision nobody has

@@ -29,7 +29,7 @@ import type { YearEntry } from '@varve/retirement';
 import { useState } from 'react';
 import { YearEditor } from '../components/YearEditor.js';
 import { People } from '../components/People.js';
-import { PageTitle } from '../components/ui.js';
+
 
 type Pane = 'balances' | 'people';
 
@@ -68,10 +68,7 @@ export function Record({
 
   return (
     <>
-      <PageTitle
-        title="Update numbers"
-        subtitle="Everything this app knows, and where you tell it something new"
-      />
+      <h1 className="visually-hidden">Update numbers</h1>
 
       <nav className="panes" aria-label="What to update">
         {(
